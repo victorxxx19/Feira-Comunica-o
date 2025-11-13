@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  
+<style>
+/* ======================================================
+   ESTILOS FORM PEDIDO - v3.3 (Ajustes Finais)
+====================================================== */
+
+/* --- 1. CONFIGURAÇÃO GERAL --- */
+body {
+  background: #F4F6F8;
+  margin: 0;
+  padding: 0 0 80px 0;
+  font-family: 'Roboto', 'Segoe UI', sans-serif;
+}
+
+#divObjetos {
+  max-width: 98%;
+  margin: 15px auto;
+  padding: 0;
+}
+
+/* --- 2. CABEÇALHO --- */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px 25px;
+  border-bottom: 1px solid #ddd;
+  background: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.header-container h4 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #37417c;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+.header-container h4 > i {
+  font-size: 2rem;
+  margin-right: 15px;
+}
+.header-logo {
+  max-height: 45px;
+  width: auto;
+}
+
+/* --- 3. LAYOUT DAS COLUNAS (CARDS) --- */
+.row {
+  margin: 0 !important;
+  display: flex;
+  gap: 20px;
+}
+.card-coluna {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem 1.5rem 1.5rem !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #E0E0E0;
+}
+.row > .col.s5 {
+  flex: 0 0 35%;
+}
+.row > .col.s7 {
+  flex: 0 0 calc(65% - 20px);
+}
+
+/* --- 4. TÍTULOS (h5) --- */
+h5 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #37417c;
+  margin: 0.5rem 0 1.4rem 0 !important;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+/* --- 5. ESTRUTURA DOS CAMPOS --- */
+.input-field {
+  margin-top: 0.6rem !important;
+  margin-bottom: 0.6rem !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  position: relative;
+}
+
+/* Label estático (acima do campo) */
+.input-field > label {
+  position: static !important;
+  left: auto !important;
+  transform: none !important;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 5px;
+  display: block;
+}
+
+/* Container do input (wrapper cinza) */
+.input-field-content {
+  position: relative;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+}
+
+/* --- 6. INPUTS E SELECTS --- */
+.input-field input[type=text],
+.input-field input[type=number],
+.input-field .select-wrapper input.select-dropdown {
+  background-color: #f5f7fa !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 6px !important;
+  height: 2.8rem !important;
+  line-height: 2.8rem !important;
+  font-size: 0.95rem;
+  color: #333;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  box-sizing: border-box;
+}
+
+/* Focus */
+.input-field input[type=text]:focus,
+.input-field input[type=number]:focus,
+.input-field .select-wrapper input.select-dropdown:focus {
+  border: 1px solid #37417c !important;
+  box-shadow: 0 0 0 2px rgba(55, 65, 124, 0.15) !important;
+  background-color: #fff !important;
+}
+
+/* Readonly/Disabled */
+.input-field input[readonly],
+input:disabled {
+  color: #777 !important;
+  border: 1px dotted #ccc !important;
+  background-color: #f9f9f9 !important;
+}
+.input-field .black-text {
+  color: #37417c !important;
+  font-weight: 600;
+}
+
+/* --- 7. ÍCONES (PREFIX) - ALINHAMENTO CORRETO --- */
+
+/* Coluna Esquerda: SEM ícones */
+.col.s5 .input-field .prefix {
+  display: none;
+}
+.col.s5 .input-field-content input,
+.col.s5 .input-field-content .select-wrapper {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Coluna Direita: COM ícones - ESPAÇAMENTO LATERAL REDUZIDO */
+.col.s7 .input-field-content .prefix {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  color: #37417c;
+  line-height: 1;
+  z-index: 1;
+}
+
+.col.s7 .input-field-content input[type=text],
+.col.s7 .input-field-content input[type=number],
+.col.s7 .input-field-content .select-wrapper input.select-dropdown {
+  padding-left: 36px !important;
+  padding-right: 32px !important;
+}
+
+/* --- 8. ÍCONES DE STATUS (Faca/Clichê) --- */
+.input-field-content .status-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  display: none;
+  line-height: 1;
+}
+.status-icon.success {
+  color: #4CAF50;
+}
+.status-icon.warning {
+  color: #FB8C00;
+}
+
+/* --- 9. SELECTS (DROPDOWNS) --- */
+.select-wrapper {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  height: 2.8rem;
+}
+.select-wrapper .caret {
+  fill: #37417c !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+select:disabled + input.select-dropdown {
+  color: #777 !important;
+  border: 1px dotted #ccc !important;
+  background-color: #f9f9f9 !important;
+}
+.dropdown-content {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+.dropdown-content li > span {
+  color: #333;
+  font-size: 0.95rem;
+}
+.dropdown-content li:hover {
+  background-color: #f5f5f5 !important;
+}
+.dropdown-content li.selected {
+  background-color: #E3F2FD !important;
+  color: #0D47A1 !important;
+}
+
+/* --- 10. CHECKBOX --- */
+.checkbox-field-static {
+  margin-top: 0.6rem !important;
+  margin-bottom: 0.6rem !important;
+}
+.checkbox-field-static > label {
+  position: static !important;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 5px;
+  display: block;
+}
+.checkbox-field-static [type="checkbox"] + span {
+  color: #333;
+  font-weight: 500;
+  font-size: 1rem;
+  padding-left: 35px;
+  height: auto;
+  line-height: normal;
+}
+[type="checkbox"]:checked + span:not(.lever):before {
+  border-right: 2px solid #37417c !important;
+  border-bottom: 2px solid #37417c !important;
+}
+
+/* --- 11. AVISOS --- */
+.aviso {
+  padding: 10px 15px;
+  border-radius: 6px;
+  border-left: 4px solid;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin: 10px 0;
+}
+.aviso-amarelo {
+  background-color: #FFF9E6;
+  border-color: #FFA000;
+  color: #8B6914;
+}
+.aviso-amarelo .material-icons {
+  color: #FFA000;
+  margin-right: 10px;
+}
+.aviso-vermelho {
+  background-color: #FFE8E8;
+  border-color: #E53935;
+  color: #B71C1C;
+}
+.aviso-vermelho .material-icons {
+  color: #E53935;
+  margin-right: 10px;
+}
+.aviso-azul {
+  background-color: #E3F2FD;
+  border-color: #2196F3;
+  color: #0D47A1;
+}
+.aviso-azul .material-icons {
+  color: #2196F3;
+  margin-right: 10px;
+}
+
+/* --- 12. DIVIDER --- */
+.divider {
+  background-color: #e0e0e0;
+  margin: 20px 0 !important;
+}
+
+/* --- 13. DATA DE ENTREGA (DESTAQUE AUMENTADO) --- */
+.destaque-data {
+  color: #D32F2F !important;
+  font-weight: 700 !important;
+}
+
+/* Aumentar largura do campo Data de Entrega */
+#coluna-produto-info .row .input-field.data-entrega-field {
+  flex: 0 0 24% !important;
+}
+
+/* --- 14. CAMPO DE OBSERVAÇÕES --- */
+.obs-field {
+  margin-top: 1.2rem;
+  margin-bottom: 1rem;
+  padding: 0 !important;
+}
+.obs-field > label {
+  position: static !important;
+  transform: none !important;
+  color: #555;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 8px;
+}
+.obs-field label i {
+  vertical-align: middle;
+  font-size: 1.2rem;
+  margin-right: 6px;
+  color: #37417c;
+}
+.obs-field textarea {
+  width: 100%;
+  min-height: 85px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #333;
+  font-family: 'Roboto', 'Segoe UI', sans-serif;
+  resize: vertical;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  background-color: #f5f7fa;
+}
+.obs-field textarea:focus {
+  outline: none;
+  border-color: #37417c;
+  box-shadow: 0 0 0 2px rgba(55, 65, 124, 0.15);
+  background-color: #fff;
+}
+.obs-field .char-counter {
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* --- 15. RODAPÉ FIXO COM BOTÕES --- */
+#divBtn {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 20px;
+  text-align: center;
+  background: #ffffff;
+  border-top: 1px solid #ddd;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+}
+#divBtn button {
+  height: 40px;
+  line-height: 40px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: none;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#divBtn button:hover:not(:disabled) {
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+#btnSalvarContinuar {
+  background-color: #C8E154 !important;
+  color: #333 !important;
+}
+#btnLimpar {
+  background-color: #42A5F5 !important;
+  color: #fff !important;
+}
+#btnSalvarFechar {
+  background-color: #37417c !important;
+  color: #fff !important;
+}
+#divBtn button:disabled {
+  background: #E0E0E0 !important;
+  color: #9E9E9E !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: not-allowed !important;
+}
+
+/* Ícones dentro dos botões */
+#divBtn button .material-icons {
+  font-size: 1.1rem;
+}
+
+/* --- 16. MODAL E TOASTS --- */
+.modal {
+  border-radius: 8px !important;
+}
+.modal h4 {
+  color: #37417c;
+  font-weight: 600;
+}
+#toast-custom-container {
+  z-index: 10001;
+}
+#toast-custom-container .toast {
+  border-radius: 6px;
+  font-weight: 500;
+}
+#toast-custom-container .toast.green {
+  background-color: #C8E154 !important;
+  color: #333 !important;
+}
+#toast-custom-container .toast.red {
+  background-color: #E53935 !important;
+}
+
+/* --- 17. AJUSTES FINOS DE ESPAÇAMENTO --- */
+#coluna-produto-info .row {
+  margin-bottom: 0 !important;
+}
+
+#coluna-produto-info .row .input-field {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Ajuste de tamanhos específicos para não cortar textos */
+#coluna-produto-info .row .input-field.col.s3 {
+  flex: 0 0 24%;
+}
+
+#coluna-produto-info .row .input-field.col.s4 {
+  flex: 0 0 33%;
+}
+
+#coluna-produto-info .row .input-field.col.s6 {
+  flex: 0 0 50%;
+}
+</style>
+
+<div id="toast-custom-container"></div>
+
+<div id="divObjetos" class="container-fluid">
+
+  <div class="header-container">
+    <h4>
+      <i class="material-icons">bubble_chart</i>
+      Cadastro de Pedidos
+    </h4>
+    <img src="[meucodebase64]" alt="Logo da Empresa" class="header-logo">
+  </div>
+
+  <div class="row">
+
+    <div class="col s5 card-coluna">
+      <h5>Dados do Pedido</h5>
+      
+      <div class="input-field col s12">
+        <label for="numeroPedido">1. Nº do Pedido (Automático)</label>
+        <div class="input-field-content">
+          <input id="numeroPedido" type="text" readonly class="black-text" value="<?= listas.numPedido ?>">
+        </div>
+      </div>
+
+      <div class="input-field col s12">
+        <label for="listaCodigoProduto">2. Pesquisar por Código (ex: FC-0001)</label>
+        <div class="input-field-content">
+          <input id="listaCodigoProduto" type="text" list="listaCodigosDatalist" />
+        </div>
+        <datalist id="listaCodigosDatalist"></datalist>
+      </div>
+
+      <div class="input-field col s12">
+        <label for="listaDescricaoProduto">3. Ou Pesquisar por Descrição</label>
+        <div class="input-field-content">
+          <input id="listaDescricaoProduto" type="text" list="listaDescricoesDatalist" />
+        </div>
+        <datalist id="listaDescricoesDatalist"></datalist>
+      </div>
+
+      <div class="divider col s12"></div>
+
+      <div class="input-field col s12">
+        <label for="quantidade">4. Quantidade do Pedido</label>
+        <div class="input-field-content">
+          <input id="quantidade" type="text" class="validate" disabled>
+        </div>
+      </div>
+      
+      <div class="input-field col s12 checkbox-field-static">
+        <label>5. Sem Excedente</label>
+        <div class="input-field-content">
+          <label>
+            <input type="checkbox" id="semExcedente" disabled="disabled" />
+            <span>&nbsp;</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="input-field col s12">
+        <label>6. Vendedora</label>
+        <div class="input-field-content">
+          <select id="vendedora" disabled>
+            <option value="" disabled selected>Escolha a vendedora</option>
+            <? for (var i = 0; i < listas.vendedoras.length; i++) { ?>
+              <option value="<?= listas.vendedoras[i]; ?>"><?= listas.vendedoras[i]; ?></option>
+            <? } ?>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-field col s12">
+        <label>7. Tipo de Expedição</label>
+        <div class="input-field-content">
+          <select id="tipoExpedicao" disabled>
+            <option value="" disabled selected>Escolha a expedição</option>
+            <option value="Entrega">Entrega</option>
+            <option value="Coleta">Coleta</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col s7 card-coluna" id="coluna-produto-info">
+      <h5>Dados do Produto</h5>
+      
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s6">
+          <label for="tipoPedido">Tipo do Pedido</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">autorenew</i>
+            <input id="tipoPedido" type="text" readonly class="black-text">
+          </div>
+        </div>
+         <div class="input-field col s6">
+          <label for="statusPedido">Status do Pedido</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">hourglass_top</i>
+            <input id="statusPedido" type="text" readonly class="black-text">
+          </div>
+        </div>
+      </div>
+      
+      <div class="row" id="avisoStatusPendente" style="display: none;">
+        <div class="col s12 aviso aviso-amarelo">
+          <i class="material-icons left">warning</i>
+          <span id="avisoStatusPendenteTexto"></span>
+        </div>
+      </div>
+      <div class="row" id="avisoStatusLiberado" style="display: none;">
+        <div class="col s12 aviso aviso-azul">
+          <i class="material-icons left">check_circle_outline</i>
+          <span id="avisoStatusLiberadoTexto"></span>
+        </div>
+      </div>
+      <div class="row" id="avisoStatusProduto" style="display: none;">
+        <div class="col s12 aviso aviso-vermelho">
+          <i class="material-icons left">error</i>
+          <span id="avisoStatusProdutoTexto"></span>
+        </div>
+      </div>
+      
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s6">
+          <label for="cliente">Cliente</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">person_pin</i>
+            <input id="cliente" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s6">
+          <label for="descricao">Descrição</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">label</i>
+            <input id="descricao" type="text" readonly>
+          </div>
+        </div>
+      </div>
+      
+      <!-- LINHA NOVA: Cód. Produto | Status | Faca | Clichê -->
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s3">
+          <label for="codProduto">Cód. Produto</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">fingerprint</i>
+            <input id="codProduto" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3">
+          <label for="statusProduto">Status do Produto</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">shield</i>
+            <input id="statusProduto" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3"> 
+          <label for="faca">Faca</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">style</i>
+            <input id="faca" type="text" readonly>
+            <i id="faca_status_icon" class="material-icons status-icon"></i>
+          </div>
+        </div>
+        <div class="input-field col s3"> 
+          <label for="cliche">Clichê</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">auto_awesome_mosaic</i>
+            <input id="cliche" type="text" readonly>
+            <i id="cliche_status_icon" class="material-icons status-icon"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s4">
+          <label for="substrato">Substrato</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">layers</i>
+            <input id="substrato" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s4">
+          <label for="tipoCola">Tipo de Cola</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">opacity</i>
+            <input id="tipoCola" type="text" readonly>
+          </div>
+        </div>
+         <div class="input-field col s4">
+          <label for="tipoRotulo">Tipo Rótulo</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">label_outline</i>
+            <input id="tipoRotulo" type="text" readonly>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s3">
+          <label for="largura">Largura</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">swap_horiz</i>
+            <input id="largura" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3">
+          <label for="altura">Altura</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">swap_vert</i>
+            <input id="altura" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3">
+          <label for="puxada">Puxada</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">compare_arrows</i>
+            <input id="puxada" type="text" readonly>
+          </div>
+        </div>
+         <div class="input-field col s3">
+          <label for="carreiras">Carreiras</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">filter_2</i>
+            <input id="carreiras" type="text" readonly>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row" style="margin-bottom: 0;">
+        <div class="input-field col s3">
+          <label for="qtdLaminas">Lâminas</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">palette</i>
+            <input id="qtdCores" type="text" readonly>
+          </div>
+        </div>               
+        <div class="input-field col s3">
+          <label for="acabamento">Acabamento</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">blur_on</i>
+            <input id="acabamento" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3">
+          <label for="cold">Cold</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">flare</i>
+            <input id="cold" type="text" readonly>
+          </div>
+        </div>
+        <div class="input-field col s3 data-entrega-field">
+          <label for="dataEntrega">Data de Entrega</label>
+          <div class="input-field-content">
+            <i class="material-icons prefix">event_available</i>
+            <input id="dataEntrega" type="text" readonly class="destaque-data">
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom: 0;">
+        <div class="col s12">
+          <div class="obs-field">
+            <label for="observacoesCQ">
+              <i class="material-icons">comment</i>
+              Observações para o Controle de Qualidade
+            </label>
+            <textarea 
+              id="observacoesCQ" 
+              maxlength="500"
+              placeholder="Digite aqui observações especiais..."
+            ></textarea>
+            <span class="char-counter">0 / 500</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="divBtn">
+    <button id="btnSalvarContinuar" type="button" class="btn waves-effect" disabled>
+      Salvar e Continuar
+      <i class="material-icons">autorenew</i>
+    </button>
+
+    <button id="btnLimpar" type="button" class="btn waves-effect">
+      Limpar
+      <i class="material-icons">close</i>
+    </button>
+    
+    <button id="btnSalvarFechar" type="button" class="btn waves-effect" disabled>
+      Salvar e Fechar
+      <i class="material-icons">save</i>
+    </button>
+  </div>
+
+</div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.6/jquery.inputmask.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  
+  <script>
+    // ======================================================
+    //   JAVASCRIPT DO FORM PEDIDO (UNIFICADO E CORRIGIDO)
+    // ======================================================
+
+    let produtoCarregado = null;
+    let tipoPedidoCarregado = null;
+    let dadosInsumos = {
+      statusFaca: null,
+      statusCliche: null,
+      idCliche: null,
+      statusPedidoFinal: null
+    };
+    
+    // (NOVO) Opções globais para os Selects
+    const materializeSelectOptions = {
+      dropdownOptions: { 
+        container: document.body, // Renderiza o dropdown no body (evita corte)
+        constrainWidth: false // Permite o dropdown ser mais largo que o input
+      }
+    };
+
+    function preencherCampoNumerico(id, valor) {
+      const el = document.getElementById(id);
+      if (!valor) {
+        el.value = '';
+        return;
+      }
+      let valorStr = String(valor);
+      if (valorStr.includes('/')) {
+        el.value = '';
+      } else {
+        el.value = valorStr.replace(",", ".");
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // (CORREÇÃO DO BUG DE SELECT) Inicializa os selects individualmente
+      var selectElems = document.querySelectorAll('select');
+      M.FormSelect.init(selectElems, materializeSelectOptions);
+      
+      // Inicializa o modal
+      var modalElems = document.querySelectorAll('.modal');
+      M.Modal.init(modalElems);
+      
+      // Atualiza os labels dos campos (essencial para o novo layout)
+      M.updateTextFields();
+      
+      // Inicializa a máscara de input (jQuery)
+      $('#quantidade').inputmask({
+        alias: 'numeric',     
+        groupSeparator: '.',   
+        autoGroup: true,       
+        digits: 0,           
+        radixPoint: ',',
+        placeholder: '',
+        rightAlign: false,
+        autoUnmask: true,     
+        removeMaskOnSubmit: true
+      });
+      
+      document.getElementById('listaCodigoProduto').focus();
+
+      // Listeners dos botões
+      document.getElementById('btnLimpar').addEventListener('click', limparFormulario);
+      document.getElementById('btnSalvarFechar').addEventListener('click', onSalvarFecharClick);
+      document.getElementById('btnSalvarContinuar').addEventListener('click', onSalvarContinuarClick);
+
+      // Listeners dos campos de busca
+      const inputCod = document.getElementById('listaCodigoProduto');
+      const inputDesc = document.getElementById('listaDescricaoProduto');
+      
+      inputCod.addEventListener('keypress', (e) => onBuscaEnter(e, 'codigo'));
+      inputDesc.addEventListener('keypress', (e) => onBuscaEnter(e, 'descricao'));
+      inputCod.addEventListener('input', (e) => onBuscaInput(e, 'codigo'));
+      inputDesc.addEventListener('input', (e) => onBuscaInput(e, 'descricao'));
+      
+      // Listener do contador de caracteres
+      document.getElementById('observacoesCQ').addEventListener('input', function() {
+        const counter = document.querySelector('.char-counter');
+        counter.textContent = `${this.value.length} / 500`;
+      });
+    });
+
+    function onBuscaInput(event, tipoBusca) {
+      const termo = event.target.value;
+      const datalistId = (tipoBusca === 'codigo') ? 'listaCodigosDatalist' : 'listaDescricoesDatalist';
+      
+      if (isValorDaLista(termo, datalistId)) {
+        onBuscaEnter({ target: { value: termo } }, tipoBusca);
+        return;
+      }
+      if (termo.length >= 2) {
+        google.script.run
+          .withSuccessHandler((sugestoes) => atualizarListaSugestoes(sugestoes, datalistId))
+          .buscarSugestoesProduto(termo, tipoBusca);
+      } else {
+        atualizarListaSugestoes([], datalistId);
+      }
+    }
+
+    function onBuscaEnter(event, tipoBusca) {
+        if (event.key && event.key !== 'Enter') return;
+        if (event.preventDefault) event.preventDefault();
+        const identificador = event.target.value;
+        if (!identificador) return;
+        
+        // Limpa avisos
+        document.getElementById('avisoStatusPendente').style.display = 'none';
+        document.getElementById('avisoStatusLiberado').style.display = 'none';
+        document.getElementById('avisoStatusProduto').style.display = 'none';
+        document.getElementById('faca_status_icon').style.display = 'none';
+        document.getElementById('cliche_status_icon').style.display = 'none';
+        
+        document.getElementById('listaCodigoProduto').disabled = true;
+        document.getElementById('listaDescricaoProduto').disabled = true;
+
+        google.script.run
+          .withSuccessHandler(preencherFormulario)
+          .withFailureHandler((err) => {
+            showErrorToast(err.message || err);
+            limparFormulario();
+          })
+          .getDadosCompletosProduto(identificador, tipoBusca);
+    }
+
+    // ==================================================================
+    // ===               FUNÇÃO PRINCIPAL (COM A LÓGICA CORRIGIDA)  ===
+    // ==================================================================
+    function preencherFormulario(response) {
+      if (!response) {
+        showErrorToast("Produto não encontrado. Verifique o código ou descrição.");
+        limparFormulario();
+        return;
+      }
+      
+      // 1. VERIFICAR SE O PRODUTO ESTÁ BLOQUEADO
+      if (response.produtoBloqueado) {
+        document.getElementById('codProduto').value = response.codigo;
+        document.getElementById('statusProduto').value = response.status;
+        
+        const avisoDiv = document.getElementById('avisoStatusProduto');
+        let erroMsg = `ERRO: Este produto está ${response.status.toUpperCase()}.`;
+        if (response.motivo) erroMsg += ` Motivo: ${response.motivo}`;
+        if (response.dataAlteracao) erroMsg += ` (em ${response.dataAlteracao})`;
+        
+        document.getElementById('avisoStatusProdutoTexto').innerText = erroMsg;
+        avisoDiv.style.display = 'block';
+        
+        M.updateTextFields();
+        return;
+      }
+
+      // 2. PREENCHER DADOS GLOBAIS E DO PRODUTO
+      produtoCarregado = response.dadosDoProduto;
+      tipoPedidoCarregado = response.tipoPedido;
+      
+      dadosInsumos = {
+        statusFaca: response.statusFaca || "Existente",
+        statusCliche: response.statusCliche || "Existente",
+        idCliche: response.idCliche || "N/A",
+        statusPedidoFinal: null
+      };
+
+      document.getElementById('codProduto').value = produtoCarregado.codigo;
+      document.getElementById('statusProduto').value = produtoCarregado.status;
+      document.getElementById('cliente').value = produtoCarregado.cliente;
+      document.getElementById('descricao').value = produtoCarregado.descricao;
+      document.getElementById('faca').value = produtoCarregado.faca;
+      document.getElementById('substrato').value = produtoCarregado.substrato;
+      document.getElementById('tipoCola').value = produtoCarregado.tipoCola;
+      
+      preencherCampoNumerico('largura', produtoCarregado.largura);
+      preencherCampoNumerico('altura', produtoCarregado.altura);
+      preencherCampoNumerico('puxada', produtoCarregado.puxada);
+      preencherCampoNumerico('qtdCores', produtoCarregado.qtdCores);
+      preencherCampoNumerico('carreiras', produtoCarregado.carreiras);
+
+      document.getElementById('tipoPedido').value = tipoPedidoCarregado;
+      document.getElementById('acabamento').value = produtoCarregado.acabamento;
+      document.getElementById('cold').value = produtoCarregado.cold;
+      document.getElementById('tipoRotulo').value = produtoCarregado.tipoRotulo || "Único";
+      document.getElementById('cliche').value = dadosInsumos.idCliche;
+      
+      // 3. ATUALIZAR ÍCONES DE STATUS (Faca e Clichê)
+      const facaIcon = document.getElementById('faca_status_icon');
+      if (dadosInsumos.statusFaca === 'Nova') {
+        facaIcon.textContent = 'warning';
+        facaIcon.className = 'material-icons status-icon warning';
+      } else {
+        facaIcon.textContent = 'check_circle';
+        facaIcon.className = 'material-icons status-icon success';
+      }
+      facaIcon.style.display = 'block';
+
+      const clicheIcon = document.getElementById('cliche_status_icon');
+      if (dadosInsumos.statusCliche === 'Inexistente') {
+        clicheIcon.textContent = 'warning';
+        clicheIcon.className = 'material-icons status-icon warning';
+      } else {
+        clicheIcon.textContent = 'check_circle';
+        clicheIcon.className = 'material-icons status-icon success';
+      }
+      clicheIcon.style.display = 'block';
+      
+      // 4. LÓGICA DE STATUS AUTOMÁTICO (CORRIGIDA)
+      let statusInicial = "";
+      let avisoMsg = "";
+      const facaOk = dadosInsumos.statusFaca === 'Existente';
+      const clicheOk = dadosInsumos.statusCliche === 'Existente';
+
+      if (!facaOk && !clicheOk) {
+        statusInicial = "Aguardando Faca e Clichê";
+        avisoMsg = `Status definido: Faca (${produtoCarregado.faca}) e Clichê (${produtoCarregado.codigo}) são novos.`;
+      } else if (!facaOk) {
+        statusInicial = "Aguardando Faca";
+        avisoMsg = `Status definido: Faca (${produtoCarregado.faca}) é nova.`;
+      } else if (!clicheOk) {
+        statusInicial = "Aguardando Clichê";
+        avisoMsg = `Status definido: Clichê para o produto (${produtoCarregado.codigo}) é novo.`;
+      } else {
+        // --- CORREÇÃO APLICADA (Conforme sua solicitação) ---
+        statusInicial = "Disponível"; 
+        avisoMsg = `Status definido: Faca e Clichê disponíveis. Aguardando conferência do PCP.`;
+      }
+
+      dadosInsumos.statusPedidoFinal = statusInicial; 
+      document.getElementById('statusPedido').value = statusInicial;
+      
+      if (facaOk && clicheOk) {
+        document.getElementById('avisoStatusLiberadoTexto').innerText = avisoMsg;
+        document.getElementById('avisoStatusLiberado').style.display = 'block';
+      } else {
+        document.getElementById('avisoStatusPendenteTexto').innerText = avisoMsg;
+        document.getElementById('avisoStatusPendente').style.display = 'block';
+      }
+
+      // 5. FINALIZAR PREENCHIMENTO E HABILITAR CAMPOS
+      google.script.run
+        .withSuccessHandler(preencherDataEntrega)
+        .calcularDataEntrega(tipoPedidoCarregado);
+
+      document.getElementById('quantidade').disabled = false;
+      document.getElementById('semExcedente').disabled = false;
+      document.getElementById('vendedora').disabled = false;
+      document.getElementById('tipoExpedicao').disabled = false;
+      
+      document.getElementById('btnSalvarFechar').disabled = false;
+      document.getElementById('btnSalvarContinuar').disabled = false;
+      
+      M.FormSelect.init(document.querySelectorAll('select'), materializeSelectOptions);
+      M.updateTextFields(); // Força os labels a flutuarem
+    }
+    // ==================================================================
+    // ===                  FIM DA FUNÇÃO MODIFICADA                ===
+    // ==================================================================
+
+    function preencherDataEntrega(data) {
+      document.getElementById('dataEntrega').value = data;
+      M.updateTextFields(); // Atualiza o label da data
+    }
+
+    function limparFormulario() {
+      produtoCarregado = null;
+      tipoPedidoCarregado = null;
+      dadosInsumos = { statusFaca: null, statusCliche: null, idCliche: null, statusPedidoFinal: null };
+      
+      document.getElementById('divObjetos').querySelectorAll('input[type=text], input[type=number]').forEach(input => {
+        if (input.id !== 'numeroPedido') {
+          input.value = '';
+        }
+      });
+
+      document.querySelectorAll('select').forEach(select => {
+        select.value = "";
+        M.FormSelect.init(select, materializeSelectOptions);
+      });
+      
+      document.getElementById('avisoStatusPendente').style.display = 'none';
+      document.getElementById('avisoStatusLiberado').style.display = 'none';
+      document.getElementById('avisoStatusProduto').style.display = 'none';
+      document.getElementById('faca_status_icon').style.display = 'none';
+      document.getElementById('cliche_status_icon').style.display = 'none';
+
+      document.getElementById('semExcedente').checked = false; 
+      document.getElementById('semExcedente').disabled = true;
+      document.getElementById('observacoesCQ').value = '';
+      document.querySelector('.char-counter').textContent = '0 / 500'; 
+      document.getElementById('quantidade').disabled = true;
+      document.getElementById('vendedora').disabled = true;
+      document.getElementById('tipoExpedicao').disabled = true;
+      
+      document.getElementById('btnSalvarFechar').disabled = true;
+      document.getElementById('btnSalvarContinuar').disabled = true;
+      
+      document.getElementById('listaCodigoProduto').disabled = false;
+      document.getElementById('listaDescricaoProduto').disabled = false;
+
+      google.script.run
+        .withSuccessHandler(function(num) {
+          document.getElementById('numeroPedido').value = num;
+          M.updateTextFields(); 
+        })
+        .getProximoNumeroPedido();
+
+      document.getElementById('listaCodigoProduto').focus();
+    }
+
+    function limparFormularioParcial() {
+      const vendedoraSalva = document.getElementById('vendedora').value;
+      const expedicaoSalva = document.getElementById('tipoExpedicao').value;
+      const semExcedenteSalvo = document.getElementById('semExcedente').checked;
+
+      limparFormulario();
+
+      setTimeout(function() {
+          const vendedoraSelect = document.getElementById('vendedora');
+          const expedicaoSelect = document.getElementById('tipoExpedicao');
+          const semExcedenteCheckbox = document.getElementById('semExcedente');
+
+          vendedoraSelect.value = vendedoraSalva;
+          expedicaoSelect.value = expedicaoSalva;
+          semExcedenteCheckbox.checked = semExcedenteSalvo;
+          
+          M.FormSelect.init(vendedoraSelect, materializeSelectOptions);
+          M.FormSelect.init(expedicaoSelect, materializeSelectOptions);
+      }, 100); 
+    }
+
+    function getDadosDoForm() {
+      if (!produtoCarregado) return null;
+      return {
+        dadosDoProduto: produtoCarregado,
+        tipoPedido: tipoPedidoCarregado,
+        quantidade: $('#quantidade').inputmask('unmaskedvalue'),
+        vendedora: document.getElementById('vendedora').value,
+        tipoExpedicao: document.getElementById('tipoExpedicao').value,
+        semExcedente: document.getElementById('semExcedente').checked,
+        observacoesCQ: document.getElementById('observacoesCQ').value.trim(),
+        statusPedido: dadosInsumos.statusPedidoFinal,
+        idCliche: dadosInsumos.idCliche
+      };
+    }
+
+    function validarFormulario(dados) {
+      if (!dados) {
+        showErrorToast("Erro interno: Nenhum dado do formulário foi coletado.");
+        return false;
+      }
+      if (!dados.dadosDoProduto) {
+          showErrorToast("Nenhum produto foi carregado. Use a pesquisa primeiro.");
+          return false;
+      }
+      if (!dados.quantidade || parseFloat(dados.quantidade) <= 0) {
+          showErrorToast("O campo 'Quantidade do Pedido' é obrigatório e deve ser maior que zero.");
+          return false;
+      }
+      if (!dados.vendedora) {
+          showErrorToast("O campo 'Vendedora' é obrigatório.");
+          return false;
+      }
+      if (!dados.tipoExpedicao) {
+          showErrorToast("O campo 'Tipo de Expedição' é obrigatório.");
+          return false;
+      }
+      if (!dados.statusPedido) {
+          showErrorToast("Erro: O Status do Pedido não foi definido. Recarregue o produto.");
+          return false;
+      }
+      return true;
+    }
+
+    function salvarPedidoLogic(successCallback) {
+      const dadosPedido = getDadosDoForm();
+      if (!validarFormulario(dadosPedido)) {
+        return;
+      }
+      
+      document.getElementById('btnSalvarFechar').disabled = true;
+      document.getElementById('btnSalvarContinuar').disabled = true;
+      document.getElementById('btnLimpar').disabled = true;
+
+      google.script.run
+        .withSuccessHandler(successCallback)
+        .withFailureHandler(onSalvarFalha)
+        .salvarPedido(dadosPedido);
+    }
+
+    function onSalvarFecharClick() {
+      salvarPedidoLogic(onSalvarFecharSuccess);
+    }
+    
+    function onSalvarFecharSuccess(msg) {
+      showSuccessToast(msg);
+      document.getElementById('btnLimpar').disabled = false;
+
+      setTimeout(function() {
+        google.script.host.close();
+      }, 2000);
+    }
+
+    function onSalvarContinuarClick() {
+      salvarPedidoLogic(onSalvarContinuarSuccess);
+    }
+
+    function onSalvarContinuarSuccess(msg) {
+      showSuccessToast(msg);
+      document.getElementById('btnLimpar').disabled = false;
+      
+      limparFormularioParcial();
+    }
+    
+    function onSalvarFalha(err) {
+      showErrorToast(err.message || err);
+      document.getElementById('btnSalvarFechar').disabled = false;
+      document.getElementById('btnSalvarContinuar').disabled = false;
+      document.getElementById('btnLimpar').disabled = false;
+    }
+
+    function showSuccessToast(message) {
+      M.toast({
+        html: `<i class="material-icons left">check</i> ${message}`,
+        classes: 'green',
+        displayLength: 4000,
+        container: '#toast-custom-container'
+      });
+    }
+    function showErrorToast(error) {
+      const msg = (typeof error === 'object' && error.message) ? error.message : error;
+      M.toast({
+        html: `<i class="material-icons left">error</i> ${msg}`,
+        classes: 'red',
+        displayLength: 5000,
+        container: '#toast-custom-container'
+      });
+    }
+    function atualizarListaSugestoes(sugestoes, datalistId) {
+      const datalist = document.getElementById(datalistId);
+      datalist.innerHTML = '';
+      if (sugestoes && sugestoes.length > 0) {
+        sugestoes.forEach(function(item) {
+          const option = document.createElement('option');
+          option.value = item;
+          datalist.appendChild(option);
+        });
+      }
+    }
+    function isValorDaLista(valor, datalistId) {
+      const datalist = document.getElementById(datalistId);
+      const options = datalist.getElementsByTagName('option');
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === valor) {
+          return true;
+        }
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>
