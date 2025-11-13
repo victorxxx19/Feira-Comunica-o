@@ -1931,50 +1931,51 @@ function abrirFormProducao() {
   );
 }
 
-// [CÓDIGO.GS]
+
 function buscarPedidosParaProducao() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    const ultimoLinha = abaPedidos.getLastRow();
 
-    if (abaPedidos.getLastRow() < 2) {
+    if (ultimoLinha < 2) {
       Logger.log("Aba Pedidos está vazia.");
       return []; 
     }
 
-     // --- (Sua lógica de 'mapaAlocacao' do Almoxarifado permanece aqui) ---
-     const abaFilha = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAFILHA);
-     const abaMae = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAMAE);
-
-     const mapaFornecedores = {};
-     if (abaMae && abaMae.getLastRow() > 1) {
-       const dadosMae = abaMae.getRange(2, 2, abaMae.getLastRow() - 1, 2).getValues();
-       for (const linhaMae of dadosMae) {
-         const lote = linhaMae[0].toString().trim();
-         const fornecedor = linhaMae[1].toString().trim();
-         if (lote && !mapaFornecedores[lote]) {
-           mapaFornecedores[lote] = fornecedor;
-         }
-       }
-     }
-
-     const mapaAlocacao = {};
-     if (abaFilha && abaFilha.getLastRow() > 1) {
-       const dadosFilha = abaFilha.getRange(2, 3, abaFilha.getLastRow() - 1, 8).getValues(); 
-       for (const linhaFilha of dadosFilha) {
-         const loteFornecedor = linhaFilha[0].toString().trim(); 
-         const pedidoAlocado = linhaFilha[7].toString().trim(); // Indice 7 = Col J
-         if (pedidoAlocado && !mapaAlocacao[pedidoAlocado]) {
-           const fornecedor = mapaFornecedores[loteFornecedor] || "Não Encontrado";
-           mapaAlocacao[pedidoAlocado] = {
-             lote: loteFornecedor,
-             fornecedor: fornecedor
-           };
-         }
-       }
-     }
+    // --- (Sua lógica de 'mapaAlocacao' do Almoxarifado permanece aqui) ---
+    // (Esta parte do seu código está ótima e eficiente)
+    const abaFilha = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAFILHA);
+    const abaMae = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAMAE);
+    const mapaFornecedores = {};
+    if (abaMae && abaMae.getLastRow() > 1) {
+      const dadosMae = abaMae.getRange(2, 2, abaMae.getLastRow() - 1, 2).getValues();
+      for (const linhaMae of dadosMae) {
+        const lote = linhaMae[0].toString().trim();
+        const fornecedor = linhaMae[1].toString().trim();
+        if (lote && !mapaFornecedores[lote]) {
+          mapaFornecedores[lote] = fornecedor;
+        }
+      }
+    }
+    const mapaAlocacao = {};
+    if (abaFilha && abaFilha.getLastRow() > 1) {
+      const dadosFilha = abaFilha.getRange(2, 3, abaFilha.getLastRow() - 1, 8).getValues(); 
+      for (const linhaFilha of dadosFilha) {
+        const loteFornecedor = linhaFilha[0].toString().trim(); 
+        const pedidoAlocado = linhaFilha[7].toString().trim(); // Indice 7 = Col J
+        if (pedidoAlocado && !mapaAlocacao[pedidoAlocado]) {
+          const fornecedor = mapaFornecedores[loteFornecedor] || "Não Encontrado";
+          mapaAlocacao[pedidoAlocado] = {
+            lote: loteFornecedor,
+            fornecedor: fornecedor
+          };
+        }
+      }
+    }
     // --- (Fim da lógica do Almoxarifado) ---
 
+    // --- OTIMIZAÇÃO COMEÇA AQUI ---
     const statusParaIncluir = [
        "Liberado para produção", "Programado", 
        "Setup", "Em produção", 
@@ -1982,42 +1983,77 @@ function buscarPedidosParaProducao() {
        "Setup (Digital)", "Imprimindo (Digital)", "Cortando (Digital)",
        "Controlando"
     ];
+    
+    // 1. Ler Apenas as colunas de FILTRO: Status (I) e Data Fim Prod (AM)
+    const statusRange = abaPedidos.getRange(2, COL_PEDIDO_STATUS, ultimoLinha - 1, 1);
+    const statusValores = statusRange.getValues();
+    const fimProdRange = abaPedidos.getRange(2, COL_PEDIDO_DATA_FIM_PROD, ultimoLinha - 1, 1);
+    const fimProdValores = fimProdRange.getValues();
 
-    const dados = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, TOTAL_COLUNAS_PEDIDOS).getDisplayValues(); 
-    const pedidosParaProducao = [];
-
-    for (let i = 0; i < dados.length; i++) {
-      const linha = dados[i];
-      const statusAtual = linha[COL_PEDIDO_STATUS - 1]; // I
-      const dataFimProducao = linha[COL_PEDIDO_DATA_FIM_PROD - 1]; // AM
+    const statusImpressao = ["Liberado para produção", "Programado", "Setup", "Em produção", "Setup (Digital)", "Imprimindo (Digital)"];
+    
+    const linhasParaBuscar = []; // Armazena os números das linhas (ex: 5, 12, 45)
+    for (let i = 0; i < statusValores.length; i++) {
+      const statusAtual = statusValores[i][0];
+      const dataFimProducao = fimProdValores[i][0];
 
       if (statusParaIncluir.includes(statusAtual)) {
-
-        const statusImpressao = ["Liberado para produção", "Programado", "Setup", "Em produção", "Setup (Digital)", "Imprimindo (Digital)"];
-        const statusAcabamento = ["Aguardando Batida", "Aguardando Corte (Digital)", "Cortando (Digital)", "Controlando"];
-
+        // Se está em status de impressão E JÁ tem data final, PULA
         if (statusImpressao.includes(statusAtual) && dataFimProducao) {
-           continue; 
+          continue;
         }
+        // Se passou, adiciona a LINHA REAL (base 1)
+        linhasParaBuscar.push(i + 2); // i=0 é linha 2
+      }
+    }
 
-        const numPedido = linha[COL_PEDIDO_NUMERO - 1];
-        const fornecedorAtual = linha[COL_PEDIDO_FORNECEDOR_SUBSTRATO - 1];
-        const loteAtual = linha[COL_PEDIDO_LOTE_SUBSTRATO - 1];
-        const alocacao = mapaAlocacao[numPedido];
-        const fornecedorFinal = alocacao ? alocacao.fornecedor : funcaoUtilSanitizar(fornecedorAtual);
-        const loteFinal = alocacao ? alocacao.lote : funcaoUtilSanitizar(loteAtual);
+    if (linhasParaBuscar.length === 0) {
+      Logger.log("Nenhum pedido encontrado para Produção.");
+      return [];
+    }
 
-        pedidosParaProducao.push({
-           linhaPlanilha: i + 2, 
+    // 2. Montar uma RangeList para buscar SÓ as linhas que importam
+    // (TOTAL_COLUNAS_PEDIDOS = 49, que é a coluna AW)
+    const rangesParaBuscar = linhasParaBuscar.map(rowNum => `A${rowNum}:AW${rowNum}`);
+    const rangeList = abaPedidos.getRangeList(rangesParaBuscar);
+    
+    const dados = [];
+    const linhasReais = []; // Armazena o número da linha original para cada item em 'dados'
+    const ranges = rangeList.getRanges();
+    
+    for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i];
+        dados.push(range.getDisplayValues()[0]); // É um range de 1 linha, pegamos [0]
+        linhasReais.push(range.getRow()); // Armazena a linha real (ex: 5)
+    }
+
+    Logger.log(`Buscando ${dados.length} pedidos filtrados para Produção.`);
+    // --- FIM DA OTIMIZAÇÃO ---
+
+    const pedidosParaProducao = [];
+
+    // 3. Loop sobre os dados JÁ FILTRADOS
+    for (let i = 0; i < dados.length; i++) {
+      const linha = dados[i];
+      const linhaPlanilha = linhasReais[i]; // Pega a linha real correspondente
+
+      // Não precisamos mais checar o status, já foi filtrado
+      const numPedido = linha[COL_PEDIDO_NUMERO - 1];
+      const fornecedorAtual = linha[COL_PEDIDO_FORNECEDOR_SUBSTRATO - 1];
+      const loteAtual = linha[COL_PEDIDO_LOTE_SUBSTRATO - 1];
+      const alocacao = mapaAlocacao[numPedido];
+      const fornecedorFinal = alocacao ? alocacao.fornecedor : funcaoUtilSanitizar(fornecedorAtual);
+      const loteFinal = alocacao ? alocacao.lote : funcaoUtilSanitizar(loteAtual);
+
+      pedidosParaProducao.push({
+           linhaPlanilha: linhaPlanilha, // USA A LINHA REAL
            numPedido: funcaoUtilSanitizar(numPedido),
-           // <<< --- ADIÇÃO IMPORTANTE --- >>>
            tipoPedido: funcaoUtilSanitizar(linha[COL_PEDIDO_TIPO - 1]), // Col C
-           // <<< --- FIM DA ADIÇÃO --- >>>
            dataEntrega: funcaoUtilSanitizar(linha[COL_PEDIDO_DATA_ENTREGA - 1]),
            cliente: funcaoUtilSanitizar(linha[COL_PEDIDO_CLIENTE - 1]),
            descricao: funcaoUtilSanitizar(linha[COL_PEDIDO_DESCRICAO - 1]),
            quantidade: funcaoUtilSanitizar(linha[COL_PEDIDO_QUANTIDADE - 1]),
-           status: funcaoUtilSanitizar(statusAtual), 
+           status: funcaoUtilSanitizar(linha[COL_PEDIDO_STATUS - 1]), // Col I
            maquina: funcaoUtilSanitizar(linha[COL_PEDIDO_MAQUINA - 1]),
            fila: funcaoUtilSanitizar(linha[COL_PEDIDO_FILA - 1]),
            obsPCP: funcaoUtilSanitizar(linha[COL_PEDIDO_OBS_PCP - 1]),
@@ -2029,12 +2065,20 @@ function buscarPedidosParaProducao() {
            metragem: funcaoUtilSanitizar(linha[COL_PEDIDO_METRAGEM - 1]),
            impressor: funcaoUtilSanitizar(linha[COL_PEDIDO_IMPRESSOR - 1])
         });
-      }
+
+        if (numPedido === "60116") { // O pedido que você está testando
+  Logger.log("=== DEBUG PEDIDO 60116 ===");
+  Logger.log("COL_PEDIDO_PRODUTO_CODIGO:", COL_PEDIDO_PRODUTO_CODIGO);
+  Logger.log("Valor bruto:", linha[COL_PEDIDO_PRODUTO_CODIGO - 1]);
+  Logger.log("Após sanitizar:", funcaoUtilSanitizar(linha[COL_PEDIDO_PRODUTO_CODIGO - 1]));
+  Logger.log("Objeto completo:", pedidosParaProducao[pedidosParaProducao.length - 1]);
+}
     }
     return pedidosParaProducao;
+
   } catch (e) {
-    Logger.log(`Erro ao buscar pedidos para Produção (v4.7): ${e}`);
-    return []; 
+    Logger.log(`Erro ao buscar pedidos para Produção (v4.7.1): ${e.message} ${e.stack}`);
+    return [];
   }
 }
 
@@ -2360,36 +2404,57 @@ function validarConsumoMetragem(dadosConsumo) {
   }
 }
 
-
-// [CÓDIGO.GS]
-/**
- * NOVO (V4.7): Busca a Ficha Técnica e o Tipo de Pedido.
- */
 function getFichaTecnicaParaSetup(codigoProduto, tipoPedido) {
   try {
     const abaProdutos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PRODUTOS);
-    const mapa = _criarMapaDeColunas(abaProdutos); 
-    const idxCodigo = mapa["Código do Produto"];
+    
+    if (!abaProdutos) {
+      throw new Error(`Aba "${NOME_ABA_PRODUTOS}" não encontrada.`);
+    }
+    
+    const ultimaLinha = abaProdutos.getLastRow();
+    
+    if (ultimaLinha < 2) {
+      throw new Error("Nenhum produto cadastrado.");
+    }
+    
+    // 1. Busca manual (mais compatível)
+    const codigos = abaProdutos.getRange(2, COL_PRODUTO_CODIGO, ultimaLinha - 1, 1).getValues();
+    
+    let linhaEncontrada = -1;
+    
+    for (let i = 0; i < codigos.length; i++) {
+      if (String(codigos[i][0]).trim() === String(codigoProduto).trim()) {
+        linhaEncontrada = i + 2; // +2 porque: índice 0 + header na linha 1
+        break;
+      }
+    }
+
+    if (linhaEncontrada === -1) {
+      throw new Error(`Produto "${codigoProduto}" não encontrado.`);
+    }
+
+    // 2. Pega o mapa de colunas
+    const mapa = _criarMapaDeColunas(abaProdutos);
     const idxFicha = mapa["FichaTecnicaCores"];
 
     if (idxFicha === undefined) {
-      Logger.log("A coluna 'FichaTecnicaCores' não foi encontrada no mapa.");
-      return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido }; // Retorna o tipo mesmo assim
+      throw new Error('Coluna "FichaTecnicaCores" não encontrada.');
     }
+    
+    // 3. Lê a ficha técnica
+    const ficha = abaProdutos.getRange(linhaEncontrada, idxFicha + 1).getValue();
 
-    const dados = abaProdutos.getRange(2, 1, abaProdutos.getLastRow() - 1, abaProdutos.getLastColumn()).getValues();
-    for (const linha of dados) {
-      if (linha[idxCodigo] == codigoProduto) {
-        return { 
-           fichaTecnicaCores: linha[idxFicha] || "[]",
-           tipoPedido: tipoPedido // Apenas repassa o tipo
-        };
-      }
-    }
-    return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido };
+    Logger.log(`✓ Ficha técnica encontrada para ${codigoProduto}`);
+
+    return { 
+        fichaTecnicaCores: ficha || "[]",
+        tipoPedido: tipoPedido
+    };
+
   } catch (e) {
-     Logger.log("Erro em getFichaTecnicaParaSetup: " + e.message);
-     return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido, erro: e.message };
+     Logger.log("✗ Erro em getFichaTecnicaParaSetup: " + e.message);
+     throw new Error(e.message);
   }
 }
 
