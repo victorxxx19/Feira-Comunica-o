@@ -604,10 +604,11 @@ const COL_PEDIDO_TEMPO_SETUP_MIN = 44;    // AR - Tempo de Setup (min)
 const COL_PEDIDO_DATA_INICIO_SETUP = 45;  // AS - Data Início Setup
 const COL_PEDIDO_DATA_FIM_SETUP = 46;     // AT - Data Fim Setup
 const COL_PEDIDO_ID_CLICHE = 47;          // AU - ID_Cliche
-const COL_PEDIDO_ID_UNICO_FACA = 48;         
+const COL_PEDIDO_ID_UNICO_FACA = 48;
+const COL_PEDIDO_MOTIVO_ALTERACAO_SETUP = 49;         
 
 // Total de colunas da aba Pedidos
-const TOTAL_COLUNAS_PEDIDOS = 48;
+const TOTAL_COLUNAS_PEDIDOS = 49;
 
 const STATUS_ALERTA = ["Em produção", "Liberado para produção", "Programado"];
 
@@ -1930,17 +1931,18 @@ function abrirFormProducao() {
   );
 }
 
+// [CÓDIGO.GS]
 function buscarPedidosParaProducao() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
-    
+
     if (abaPedidos.getLastRow() < 2) {
       Logger.log("Aba Pedidos está vazia.");
       return []; 
     }
 
-    // --- (Sua lógica de 'mapaAlocacao' do Almoxarifado permanece aqui) ---
+     // --- (Sua lógica de 'mapaAlocacao' do Almoxarifado permanece aqui) ---
      const abaFilha = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAFILHA);
      const abaMae = ss.getSheetByName(NOME_ABA_ALMOX_BOBINAMAE);
 
@@ -1955,7 +1957,7 @@ function buscarPedidosParaProducao() {
          }
        }
      }
-    
+
      const mapaAlocacao = {};
      if (abaFilha && abaFilha.getLastRow() > 1) {
        const dadosFilha = abaFilha.getRange(2, 3, abaFilha.getLastRow() - 1, 8).getValues(); 
@@ -1973,15 +1975,14 @@ function buscarPedidosParaProducao() {
      }
     // --- (Fim da lógica do Almoxarifado) ---
 
-    // <<< MUDANÇA AQUI: Adicionados todos os status de Roteiro B e C >>>
     const statusParaIncluir = [
-      "Liberado para produção", "Programado", 
-      "Setup", "Em produção", 
-      "Aguardando Batida", 
-      "Setup (Digital)", "Imprimindo (Digital)", "Cortando (Digital)",
-      "Controlando"
+       "Liberado para produção", "Programado", 
+       "Setup", "Em produção", 
+       "Aguardando Batida", 
+       "Setup (Digital)", "Imprimindo (Digital)", "Cortando (Digital)",
+       "Controlando"
     ];
-    
+
     const dados = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, TOTAL_COLUNAS_PEDIDOS).getDisplayValues(); 
     const pedidosParaProducao = [];
 
@@ -1989,64 +1990,54 @@ function buscarPedidosParaProducao() {
       const linha = dados[i];
       const statusAtual = linha[COL_PEDIDO_STATUS - 1]; // I
       const dataFimProducao = linha[COL_PEDIDO_DATA_FIM_PROD - 1]; // AM
-      
+
       if (statusParaIncluir.includes(statusAtual)) {
-        
-        // Status de Impressão (Flexo/Digital) SÓ entram se NÃO tiverem Data Fim (AM)
+
         const statusImpressao = ["Liberado para produção", "Programado", "Setup", "Em produção", "Setup (Digital)", "Imprimindo (Digital)"];
-        // Status de Acabamento (Batida/Corte) SÓ entram se JÁ TIVEREM Data Fim (AM)
         const statusAcabamento = ["Aguardando Batida", "Aguardando Corte (Digital)", "Cortando (Digital)", "Controlando"];
 
         if (statusImpressao.includes(statusAtual) && dataFimProducao) {
-           continue; // Pula (Impressão já finalizada)
+           continue; 
         }
-        
-        // (Vou remover a validação de dataFim para Acabamento por enquanto, para simplificar o 'Controlando')
-        // if (statusAcabamento.includes(statusAtual) && !dataFimProducao) {
-        //   if (statusAtual === "Aguardando Batida" || statusAtual === "Aguardando Corte (Digital)") {
-        //     continue; // Pula (Impressão ainda não finalizou)
-        //   }
-        // }
-        
+
         const numPedido = linha[COL_PEDIDO_NUMERO - 1];
         const fornecedorAtual = linha[COL_PEDIDO_FORNECEDOR_SUBSTRATO - 1];
         const loteAtual = linha[COL_PEDIDO_LOTE_SUBSTRATO - 1];
         const alocacao = mapaAlocacao[numPedido];
         const fornecedorFinal = alocacao ? alocacao.fornecedor : funcaoUtilSanitizar(fornecedorAtual);
         const loteFinal = alocacao ? alocacao.lote : funcaoUtilSanitizar(loteAtual);
-        
+
         pedidosParaProducao.push({
-          linhaPlanilha: i + 2, 
-          numPedido: funcaoUtilSanitizar(numPedido),
-          dataEntrega: funcaoUtilSanitizar(linha[COL_PEDIDO_DATA_ENTREGA - 1]),
-          cliente: funcaoUtilSanitizar(linha[COL_PEDIDO_CLIENTE - 1]),
-          descricao: funcaoUtilSanitizar(linha[COL_PEDIDO_DESCRICAO - 1]),
-          quantidade: funcaoUtilSanitizar(linha[COL_PEDIDO_QUANTIDADE - 1]),
-          status: funcaoUtilSanitizar(statusAtual), 
-          maquina: funcaoUtilSanitizar(linha[COL_PEDIDO_MAQUINA - 1]),
-          fila: funcaoUtilSanitizar(linha[COL_PEDIDO_FILA - 1]),
-          obsPCP: funcaoUtilSanitizar(linha[COL_PEDIDO_OBS_PCP - 1]),
-          codProduto: funcaoUtilSanitizar(linha[COL_PEDIDO_PRODUTO_CODIGO - 1]),
-          faca: funcaoUtilSanitizar(linha[COL_PEDIDO_FACA - 1]),
-          qtdCores: funcaoUtilSanitizar(linha[COL_PEDIDO_QTD_CORES - 1]),
-          fornecedorSubstrato: fornecedorFinal,
-          loteSubstrato: loteFinal,
-          metragem: funcaoUtilSanitizar(linha[COL_PEDIDO_METRAGEM - 1]),
-          impressor: funcaoUtilSanitizar(linha[COL_PEDIDO_IMPRESSOR - 1])
+           linhaPlanilha: i + 2, 
+           numPedido: funcaoUtilSanitizar(numPedido),
+           // <<< --- ADIÇÃO IMPORTANTE --- >>>
+           tipoPedido: funcaoUtilSanitizar(linha[COL_PEDIDO_TIPO - 1]), // Col C
+           // <<< --- FIM DA ADIÇÃO --- >>>
+           dataEntrega: funcaoUtilSanitizar(linha[COL_PEDIDO_DATA_ENTREGA - 1]),
+           cliente: funcaoUtilSanitizar(linha[COL_PEDIDO_CLIENTE - 1]),
+           descricao: funcaoUtilSanitizar(linha[COL_PEDIDO_DESCRICAO - 1]),
+           quantidade: funcaoUtilSanitizar(linha[COL_PEDIDO_QUANTIDADE - 1]),
+           status: funcaoUtilSanitizar(statusAtual), 
+           maquina: funcaoUtilSanitizar(linha[COL_PEDIDO_MAQUINA - 1]),
+           fila: funcaoUtilSanitizar(linha[COL_PEDIDO_FILA - 1]),
+           obsPCP: funcaoUtilSanitizar(linha[COL_PEDIDO_OBS_PCP - 1]),
+           codProduto: funcaoUtilSanitizar(linha[COL_PEDIDO_PRODUTO_CODIGO - 1]),
+           faca: funcaoUtilSanitizar(linha[COL_PEDIDO_FACA - 1]),
+           qtdCores: funcaoUtilSanitizar(linha[COL_PEDIDO_QTD_CORES - 1]),
+           fornecedorSubstrato: fornecedorFinal,
+           loteSubstrato: loteFinal,
+           metragem: funcaoUtilSanitizar(linha[COL_PEDIDO_METRAGEM - 1]),
+           impressor: funcaoUtilSanitizar(linha[COL_PEDIDO_IMPRESSOR - 1])
         });
       }
     }
     return pedidosParaProducao;
   } catch (e) {
-    Logger.log(`Erro ao buscar pedidos para Produção (v4.5): ${e}`);
+    Logger.log(`Erro ao buscar pedidos para Produção (v4.7): ${e}`);
     return []; 
   }
 }
 
-/**
- * NOVO (V4.5): PASSO 1 (Digital) - Inicia o Setup
- * Salva o impressor e a data de início do setup.
- */
 function iniciarSetupDigital(linhaPlanilha, impressor) {
   try {
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
@@ -2180,7 +2171,8 @@ function finalizarProducaoDigital(linhaPlanilha, motivoAtraso = "") {
   }
 }
 
-function iniciarSetupFlexo(linhaPlanilha, dadosAniloxJSON, codigoProduto, impressor, idUnicoFaca) {
+// [CÓDIGO.GS]
+function iniciarSetupFlexo(linhaPlanilha, dadosAniloxJSON, codigoProduto, impressor, idUnicoFaca, motivoAlteracao) {
   try {
     // 1. Validação do novo campo obrigatório
     if (!idUnicoFaca || idUnicoFaca.trim() === "") {
@@ -2188,31 +2180,35 @@ function iniciarSetupFlexo(linhaPlanilha, dadosAniloxJSON, codigoProduto, impres
     }
 
     // 2. Salva os Anilox de volta na Aba "Produtos" (se houver dados)
-    if (dadosAniloxJSON && dadosAniloxJSON !== "[]") {
-      salvarAniloxDaProducao(codigoProduto, dadosAniloxJSON);
+    // (SÓ SALVA SE O MOTIVO FOI PREENCHIDO ou se for "Primeira Fabricação")
+    if ((motivoAlteracao && motivoAlteracao.trim() !== "") || !dadosAniloxJSON.includes("tipoPedido\":\"Repetição")) {
+       if (dadosAniloxJSON && dadosAniloxJSON !== "[]") {
+          // (NOTA: A função salvarAniloxDaProducao não salva "tipoPedido", apenas o JSON das cores)
+          salvarAniloxDaProducao(codigoProduto, dadosAniloxJSON);
+       }
     }
-    
+
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
     const linha = parseInt(linhaPlanilha);
-    
+
     // 3. Salva os dados na Aba "Pedidos"
     abaPedidos.getRange(linha, COL_PEDIDO_IMPRESSOR).setValue(impressor); // Col AD (30)
     abaPedidos.getRange(linha, COL_PEDIDO_DATA_INICIO_SETUP).setValue(new Date()); // Col AS (45)
     abaPedidos.getRange(linha, COL_PEDIDO_STATUS).setValue("Setup"); // Col I (9)
-    
-    // ==========================================================
-    // ==== CORREÇÃO APLICADA AQUI (Linha que faltava) ====
-    // ==========================================================
-    // Salva o ID da Faca Específica (ex: FX-123/1) na Coluna AV (48)
     abaPedidos.getRange(linha, COL_PEDIDO_ID_UNICO_FACA).setValue(idUnicoFaca); // Col AV (48)
-    // ==========================================================
-    
+
+    // <<< --- ADIÇÃO DA NOVA LÓGICA --- >>>
+    if (motivoAlteracao && motivoAlteracao.trim() !== "") {
+      abaPedidos.getRange(linha, COL_PEDIDO_MOTIVO_ALTERACAO_SETUP).setValue(motivoAlteracao); // Col AW (49)
+    }
+    // <<< --- FIM DA ADIÇÃO --- >>>
+
     SpreadsheetApp.flush();
     return "Setup iniciado, Anilox e Faca (Item) salvos!";
 
   } catch (e) {
-    Logger.log(`Erro ao iniciar setup flexo: ${e}`);
-    throw new Error(`Erro no servidor: ${e.message}`);
+     Logger.log(`Erro ao iniciar setup flexo: ${e}`);
+     throw new Error(`Erro no servidor: ${e.message}`);
   }
 }
 
@@ -2364,42 +2360,39 @@ function validarConsumoMetragem(dadosConsumo) {
   }
 }
 
+
+// [CÓDIGO.GS]
 /**
- * NOVO: Busca apenas a Ficha Técnica de um Produto.
- * (Função leve para o modal de setup)
+ * NOVO (V4.7): Busca a Ficha Técnica e o Tipo de Pedido.
  */
-function getFichaTecnicaParaSetup(codigoProduto) {
+function getFichaTecnicaParaSetup(codigoProduto, tipoPedido) {
   try {
     const abaProdutos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PRODUTOS);
-    const mapa = _criarMapaDeColunas(abaProdutos); // Reutiliza sua função de mapa
+    const mapa = _criarMapaDeColunas(abaProdutos); 
     const idxCodigo = mapa["Código do Produto"];
     const idxFicha = mapa["FichaTecnicaCores"];
-    
-    // Se a coluna FichaTecnicaCores não existir no template
+
     if (idxFicha === undefined) {
       Logger.log("A coluna 'FichaTecnicaCores' não foi encontrada no mapa.");
-      return { fichaTecnicaCores: "[]" };
+      return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido }; // Retorna o tipo mesmo assim
     }
 
     const dados = abaProdutos.getRange(2, 1, abaProdutos.getLastRow() - 1, abaProdutos.getLastColumn()).getValues();
-
     for (const linha of dados) {
       if (linha[idxCodigo] == codigoProduto) {
         return { 
-          fichaTecnicaCores: linha[idxFicha] || "[]"
+           fichaTecnicaCores: linha[idxFicha] || "[]",
+           tipoPedido: tipoPedido // Apenas repassa o tipo
         };
       }
     }
-    return { fichaTecnicaCores: "[]" };
+    return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido };
   } catch (e) {
-    Logger.log("Erro em getFichaTecnicaParaSetup: " + e.message);
-    return { fichaTecnicaCores: "[]", erro: e.message };
+     Logger.log("Erro em getFichaTecnicaParaSetup: " + e.message);
+     return { fichaTecnicaCores: "[]", tipoPedido: tipoPedido, erro: e.message };
   }
 }
 
-/**
- * NOVO: Salva os Anilox (e outras infos) de volta no Cadastro do Produto.
- */
 function salvarAniloxDaProducao(codigoProduto, fichaTecnicaCoresJSON) {
   try {
     const abaProdutos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PRODUTOS);
