@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+/* ===============================================
+ * CSS GERAL (v4.0 - Modais Isolados Corretamente)
+ * =============================================== */
+body {
+    font-family: 'Roboto', sans-serif;
+    padding-bottom: 80px;
+    background-color: #ffffff;
+}
+#divObjetos {
+    max-width: 98%; margin: 20px auto; 
+    padding: 0 10px; background-color: transparent;
+    border: none; box-shadow: none;
+}
+
+/* --- Cabeçalho --- */
+.header-container {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 25px; padding: 15px 20px;
+    background-color: #ffffff; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-bottom: 3px solid #37417c; 
+}
+.header-container h4 {
+    font-size: 1.8rem; font-weight: 600; color: #37417c;
+    display: flex; align-items: center; margin: 0;
+}
+.header-container h4 > i {
+    font-size: 2.2rem; margin-right: 10px; color: #37417c;
+}
+.header-logo { max-height: 50px; width: auto; }
+
+/* --- Container de Tabela (Card Branco) --- */
+.tabela-container {
+    background-color: #ffffff; border-radius: 8px;
+    overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+}
+.mensagem-vazia {
+    padding: 30px 20px; text-align: center; color: #666;
+    font-style: italic; background-color: #f9f9f9;
+    border-radius: 4px; margin: 20px;
+}
+
+/* --- Filtros/Busca --- */
+.filtro-container {
+  background-color: #ffffff;
+  padding: 1px 20px 10px 20px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid #eee;
+}
+.filtro-container .row {
+  margin-bottom: 0 !important;
+}
+.filtro-container .input-field {
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.filtro-container .input-field.filtro-texto .prefix {
+  top: 0.5rem;
+}
+
+/* --- Estilo das Tabelas --- */
+table.responsive-table { width: 100%; table-layout: auto; }
+table thead { background: #37417c; }
+table thead th {
+    padding: 12px 10px !important; text-align: left !important;
+    font-weight: 600 !important; color: #ffffff !important; 
+    text-transform: uppercase; font-size: 0.75rem;
+    letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.1);
+}
+table thead th:last-child { border-right: none; }
+table tbody td {
+    padding: 10px 10px !important; vertical-align: middle !important;
+    text-align: left; color: #333; font-size: 0.85rem;
+    border-bottom: 1px solid #e0e0e0; word-wrap: break-word; 
+}
+table tbody tr:hover { background-color: #f5f7fa !important; }
+
+/* Colunas da Tabela Principal */
+.col-id-cliche { width: 10%; font-weight: 700; color: #37417c; }
+.col-id-produto { width: 10%; }
+.col-cliente { width: 15%; }
+.col-descricao { width: 25%; }
+.col-laminas { width: 5%; text-align: center !important; }
+.col-local { width: 15%; }
+.col-status-geral { width: 10%; }
+.col-acoes { width: 10%; text-align: center !important; }
+
+/* Status (Estilo para Célula Inteira) */
+.col-status-cell {
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase;
+    text-align: center !important;
+    color: #fff !important;
+}
+.status-disponivel, .status-no-prazo { background-color: #4CAF50 !important; }
+.status-em-fabricacao, .status-pendente { background-color: #FFC107 !important; color: #333 !important; }
+.status-com-problema, .status-atrasado { background-color: #F44336 !important; }
+.status-descartado { background-color: #9E9E9E !important; }
+
+/* --- Rodapé Fixo --- */
+#footer-bar {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background-color: #ffffff; border-top: 2px solid #37417c;
+    padding: 15px 30px; display: flex;
+    justify-content: flex-end; align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 999;
+}
+#footer-bar .btn {
+    height: 45px; line-height: 45px;
+    padding: 0 25px !important;
+    font-weight: 600; 
+    margin-left: 8px !important; 
+}
+#footer-bar .btn.green {
+    background-color: #C8E154 !important;
+    color: #333 !important;
+}
+#footer-bar .btn.green:hover {
+    background-color: #d4e870 !important;
+}
+
+/* ===============================================
+ * ESTILOS BASE PARA TODOS OS MODAIS
+ * =============================================== */
+.modal { 
+  border-radius: 12px !important; 
+  max-width: 900px !important; 
+  width: 90% !important;
+  max-height: 85% !important;
+  background-color: #ffffff;
+}
+.modal .modal-content { 
+  padding: 30px 35px 20px 35px !important;
+  background-color: #ffffff;
+}
+
+/* Cabeçalho do Modal */
+.modal h4 { 
+    color: #37417c; 
+    font-weight: 600;
+    border-bottom: 2px solid #eeeeee;
+    padding-bottom: 18px; 
+    margin-bottom: 30px !important;
+    font-size: 1.6rem !important; 
+    display: flex;
+    align-items: center;
+}
+.modal h4 i { 
+    color: #C8E154 !important;
+    margin-right: 12px; 
+    font-size: 1.8rem;
+}
+.modal h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #37417c;
+  margin-bottom: 20px;
+}
+
+/* Footer do Modal */
+.modal .modal-footer {
+    background-color: #f9f9f9; 
+    border-radius: 0 0 12px 12px;
+    border-top: 1px solid #eee;
+    padding: 15px 25px;
+}
+.modal .modal-footer .btn-flat { 
+  color: #E53935 !important; 
+  font-weight: 600;
+}
+.modal .modal-footer .btn { 
+  background-color: #37417c !important;
+  height: 42px;
+  line-height: 42px;
+  padding: 0 30px !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(55, 65, 124, 0.3);
+}
+.modal .modal-footer .btn.green { 
+  background-color: #C8E154 !important;
+  color: #333 !important;
+  box-shadow: 0 2px 8px rgba(200, 225, 84, 0.3);
+}
+.modal .modal-footer .btn.orange { background-color: #FB8C00 !important; }
+.modal .modal-footer .btn.red { background-color: #E53935 !important; }
+
+/* Grid de Detalhes (para modal de detalhes) */
+.detalhes-label {
+    font-size: 0.8rem;
+    color: #37417c !important;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.detalhes-valor {
+    font-size: 1rem;
+    color: #000;
+    font-weight: 500;
+    padding: 8px 12px;
+    background-color: #f5f7fa;
+    border-radius: 6px;
+    border-left: 3px solid #37417c;
+    display: block; 
+    min-height: 38px; 
+    box-sizing: border-box;
+}
+.detalhes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+  gap: 15px 25px;
+  margin-bottom: 20px;
+}
+
+/* Tabelas dentro dos modais */
+.sub-tabela-container {
+  margin-top: 20px;
+}
+#laminas-table, #detalhe-laminas-table, #detalhe-pedidos-table { 
+  table-layout: auto; 
+  width: 100%;
+}
+#laminas-table thead, #detalhe-laminas-table thead, #detalhe-pedidos-table thead { 
+  background-color: #37417c; 
+}
+#laminas-table tbody td, #detalhe-laminas-table tbody td, #detalhe-pedidos-table tbody td {
+  padding: 6px 10px !important;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Botão de Recebimento */
+.btn-receber {
+  background-color: #4CAF50 !important;
+  padding: 0 10px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  font-size: 0.8rem !important;
+}
+.btn-receber i {
+  font-size: 1.1rem !important;
+  line-height: 30px !important;
+}
+
+/* ===============================================
+ * MODAL 1: NOVO PEDIDO DE CLICHÊ
+ * =============================================== */
+#modalNovoPedidoCliche .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 0;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+
+#modalNovoPedidoCliche .input-field:hover {
+  border-color: #b0b0b0;
+}
+
+#modalNovoPedidoCliche .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+
+/* Labels do modal Novo Pedido - SEM fundo */
+#modalNovoPedidoCliche .input-field label {
+    position: absolute;
+    top: -12px !important; 
+    left: -60px !important;  
+    transform: scale(0.85) !important; 
+    transform-origin: 0 0;
+    background-color: #ffffff !important;
+    padding: 0 8px; 
+    color: #37417c !important;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important; 
+    width: auto !important;
+    max-width: calc(100% - 30px);
+}
+
+/* Remove fundo também para campos readonly/disabled */
+#modalNovoPedidoCliche .input-field:has(input[readonly]) label,
+#modalNovoPedidoCliche .input-field:has(input:disabled) label {
+    background-color: #ffffff !important;
+}
+
+/* Inputs do modal Novo Pedido */
+#modalNovoPedidoCliche .input-field input[type=text],
+#modalNovoPedidoCliche .input-field input[type=number],
+#modalNovoPedidoCliche .input-field input[type=text][readonly],
+#modalNovoPedidoCliche .input-field input[type=text]:disabled,
+#modalNovoPedidoCliche .input-field textarea.materialize-textarea,
+#modalNovoPedidoCliche .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+    padding-left: 0 !important;
+}
+
+#modalNovoPedidoCliche .input-field input[type=text][readonly],
+#modalNovoPedidoCliche .input-field input[type=text]:disabled {
+    background-color: #ffffff !important;
+}
+
+#modalNovoPedidoCliche .input-field textarea.materialize-textarea {
+  height: auto !important;
+  padding-top: 5px;
+  min-height: 80px;
+}
+
+/* Ícones (Prefix) do modal Novo Pedido */
+#modalNovoPedidoCliche .input-field .prefix {
+  left: 15px !important;
+  top: 0.6rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalNovoPedidoCliche .input-field .prefix ~ input,
+#modalNovoPedidoCliche .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+  padding-left: 0 !important;
+}
+#modalNovoPedidoCliche .input-field .prefix ~ .select-wrapper {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalNovoPedidoCliche .input-field .prefix ~ label {
+  left: 3.5rem !important;
+}
+
+#modalNovoPedidoCliche .input-field .select-wrapper {
+  padding-left: 0;
+}
+#modalNovoPedidoCliche .input-field .select-wrapper .caret {
+  fill: #37417c !important;
+  right: 10px !important;
+}
+
+/* Tabela de lâminas no modal Novo Pedido */
+#novo-laminas-table {
+  table-layout: auto;
+  width: 100%;
+  background-color: #fff;
+  border: 2px solid;
+  border-radius: 3px;
+  border-color: #37417c; 
+  box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+  
+}
+#novo-laminas-table thead {
+  background-color: #37417c;
+}
+#novo-laminas-table tbody td {
+  padding: 6px 10px !important;
+  font-size: 0.9rem;
+  background-color: #fff;
+}
+
+/* Remove fundo cinza dos subtítulos dos modais */
+#modalNovoPedidoCliche h5,
+#modalDetalhesCliche h5,
+#modalReposicao h5,
+#modalRecebimento h5,
+#modalReportarProblemaCliche h5 {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+/* Remove fundo cinza dos labels de seção */
+.detalhes-label {
+    font-size: 0.8rem;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 2px;
+    background-color: transparent !important;
+}
+
+/* ===============================================
+ * MODAL 2: DETALHES DO CLICHÊ
+ * =============================================== */
+#modalDetalhesCliche {
+  max-width: 1200px !important;
+  background-color: #ffffff;
+}
+
+#modalDetalhesCliche .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 15px;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+
+#modalDetalhesCliche .input-field:hover {
+  border-color: #b0b0b0;
+}
+
+#modalDetalhesCliche .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+
+/* Labels com fundo branco */
+#modalDetalhesCliche .input-field label {
+    position: absolute;
+    top: -12px !important;
+    left: -48px !important;
+    transform: scale(0.85) !important;
+    transform-origin: 0 0;
+    background-color: #ffffff !important;
+    padding: 0 8px;
+    color: #37417c !important;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important;
+    width: auto !important;
+    max-width: calc(100% - 30px);
+}
+
+/* Fundo cinza para campos readonly/disabled */
+#modalDetalhesCliche .input-field:has(input[readonly]) label,
+#modalDetalhesCliche .input-field:has(input:disabled) label {
+    background-color: #ffffff !important;
+}
+
+/* Inputs */
+#modalDetalhesCliche .input-field input[type=text],
+#modalDetalhesCliche .input-field input[type=number],
+#modalDetalhesCliche .input-field input[type=text][readonly],
+#modalDetalhesCliche .input-field input[type=text]:disabled,
+#modalDetalhesCliche .input-field textarea.materialize-textarea,
+#modalDetalhesCliche .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+    vertical-align: center !important;
+}
+
+#modalDetalhesCliche .input-field textarea.materialize-textarea {
+  height: auto !important;
+  padding-top: 10px;
+  min-height: 80px;
+}
+
+/* Ícones */
+#modalDetalhesCliche .input-field .prefix {
+  left: 15px !important;
+  top: 0.5rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalDetalhesCliche .input-field .prefix ~ input,
+#modalDetalhesCliche .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+  padding-left: 0 !important;
+}
+#modalDetalhesCliche .input-field .prefix ~ .select-wrapper {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalDetalhesCliche .input-field .prefix ~ label {
+  left: 3.5rem !important;
+}
+
+#modalDetalhesCliche .input-field .select-wrapper {
+  padding-left: 0;
+}
+#modalDetalhesCliche .input-field .select-wrapper .caret {
+  fill: #37417c !important;
+  right: 10px !important;
+}
+
+/* Exceção: selects dentro da tabela de lâminas */
+#detalhe-laminas-table .input-field {
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#detalhe-laminas-table .input-field:focus-within {
+  box-shadow: none !important;
+}
+
+#detalhe-laminas-table .select-wrapper input.select-dropdown {
+  font-size: 0.9rem !important;
+  font-weight: 500;
+  border: 1px solid #ccc !important;
+  padding: 0 5px !important;
+  border-radius: 4px;
+  height: 2.2rem !important;
+}
+
+#detalhe-laminas-table .input-field .caret {
+  top: 0.5rem !important;
+}
+
+/* Cores de Status das Lâminas */
+.select-dropdown.status-lamina-disponivel { 
+  color: #2E7D32 !important; 
+  background-color: #E8F5E9 !important; 
+  border-color: #a5d6a7 !important; 
+}
+.select-dropdown.status-lamina-danificada { 
+  color: #C62828 !important; 
+  background-color: #FFEBEE !important; 
+  border-color: #ef9a9a !important; 
+}
+.select-dropdown.status-lamina-em-reposicao,
+.select-dropdown.status-lamina-em-fabricacao { 
+  color: #F57F17 !important; 
+  background-color: #FFF9C4 !important; 
+  border-color: #fff176 !important;
+}
+
+input.status-lamina-disponivel { color: #2E7D32 !important; }
+input.status-lamina-danificada { color: #C62828 !important; }
+input.status-lamina-em-reposicao,
+input.status-lamina-em-fabricacao { color: #F57F17 !important; }
+
+/* ===============================================
+ * MODAL 3: REPOSIÇÃO DE LÂMINA
+ * =============================================== */
+#modalReposicao {
+  max-width: 700px !important;
+}
+
+#modalReposicao .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 15px;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+
+#modalReposicao .input-field:hover {
+  border-color: #b0b0b0;
+}
+
+#modalReposicao .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+
+/* Labels com fundo branco */
+#modalReposicao .input-field label {
+    position: absolute;
+    top: -12px !important;
+    left: 15px !important;
+    transform: scale(0.85) !important;
+    transform-origin: 0 0;
+    background-color: #fff !important;
+    padding: 0 8px;
+    color: #37417c !important;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important;
+    width: auto !important;
+    max-width: calc(100% - 30px);
+}
+
+#modalReposicao .input-field:has(input[readonly]) label,
+#modalReposicao .input-field:has(input:disabled) label {
+    background-color: #f5f7fa !important;
+}
+
+/* Inputs */
+#modalReposicao .input-field input[type=text],
+#modalReposicao .input-field input[type=number],
+#modalReposicao .input-field input[type=text][readonly],
+#modalReposicao .input-field input[type=text]:disabled,
+#modalReposicao .input-field textarea.materialize-textarea,
+#modalReposicao .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+}
+
+#modalReposicao .input-field textarea.materialize-textarea {
+  height: auto !important;
+  padding-top: 10px;
+  min-height: 80px;
+}
+
+/* Ícones */
+#modalReposicao .input-field .prefix {
+  left: 15px !important;
+  top: 0.75rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalReposicao .input-field .prefix ~ input,
+#modalReposicao .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalReposicao .input-field .prefix ~ .select-wrapper {
+  padding-left: 3.5rem !important;
+}
+
+#modalReposicao .input-field .select-wrapper {
+  padding-left: 0;
+}
+#modalReposicao .input-field .select-wrapper .caret {
+  fill: #37417c !important;
+  right: 10px !important;
+}
+
+/* ===============================================
+ * MODAL 4: RECEBIMENTO
+ * =============================================== */
+#modalRecebimento {
+  max-width: 500px !important;
+}
+
+#modalRecebimento .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 15px;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+
+#modalRecebimento .input-field:hover {
+  border-color: #b0b0b0;
+}
+
+#modalRecebimento .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+
+/* Labels com fundo branco */
+#modalRecebimento .input-field label {
+    position: absolute;
+    top: -12px !important;
+    left: 15px !important;
+    transform: scale(0.85) !important;
+    transform-origin: 0 0;
+    background-color: #fff !important;
+    padding: 0 8px;
+    color: #37417c !important;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important;
+    width: auto !important;
+    max-width: calc(100% - 30px);
+}
+
+#modalRecebimento .input-field:has(input[readonly]) label,
+#modalRecebimento .input-field:has(input:disabled) label {
+    background-color: #f5f7fa !important;
+}
+
+/* Inputs */
+#modalRecebimento .input-field input[type=text],
+#modalRecebimento .input-field input[type=number],
+#modalRecebimento .input-field input[type=text][readonly],
+#modalRecebimento .input-field input[type=text]:disabled,
+#modalRecebimento .input-field textarea.materialize-textarea,
+#modalRecebimento .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+}
+
+#modalRecebimento .input-field textarea.materialize-textarea {
+  height: auto !important;
+  padding-top: 10px;
+  min-height: 80px;
+}
+
+/* Ícones */
+#modalRecebimento .input-field .prefix {
+  left: 15px !important;
+  top: 0.75rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalRecebimento .input-field .prefix ~ input,
+#modalRecebimento .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalRecebimento .input-field .prefix ~ .select-wrapper {
+  padding-left: 3.5rem !important;
+}
+
+#modalRecebimento .input-field .select-wrapper {
+  padding-left: 0;
+}
+#modalRecebimento .input-field .select-wrapper .caret {
+  fill: #37417c !important;
+  right: 10px !important;
+}
+
+/* ===============================================
+ * MODAL 5: REPORTAR PROBLEMA
+ * =============================================== */
+#modalReportarProblemaCliche {
+  max-width: 700px !important;
+}
+
+#modalReportarProblemaCliche .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 15px;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+
+#modalReportarProblemaCliche .input-field:hover {
+  border-color: #b0b0b0;
+}
+
+#modalReportarProblemaCliche .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+
+/* Labels com fundo branco */
+#modalReportarProblemaCliche .input-field label {
+    position: absolute;
+    top: -12px !important;
+    left: 15px !important;
+    transform: scale(0.85) !important;
+    transform-origin: 0 0;
+    background-color: #fff !important;
+    padding: 0 8px;
+    color: #37417c !important;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important;
+    width: auto !important;
+    max-width: calc(100% - 30px);
+}
+
+#modalReportarProblemaCliche .input-field:has(input[readonly]) label,
+#modalReportarProblemaCliche .input-field:has(input:disabled) label {
+    background-color: #f5f7fa !important;
+}
+
+/* Inputs */
+#modalReportarProblemaCliche .input-field input[type=text],
+#modalReportarProblemaCliche .input-field input[type=number],
+#modalReportarProblemaCliche .input-field input[type=text][readonly],
+#modalReportarProblemaCliche .input-field input[type=text]:disabled,
+#modalReportarProblemaCliche .input-field textarea.materialize-textarea,
+#modalReportarProblemaCliche .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+}
+
+#modalReportarProblemaCliche .input-field textarea.materialize-textarea {
+  height: auto !important;
+  padding-top: 10px;
+  min-height: 80px;
+}
+
+/* Ícones */
+#modalReportarProblemaCliche .input-field .prefix {
+  left: 15px !important;
+  top: 0.75rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalReportarProblemaCliche .input-field .prefix ~ input,
+#modalReportarProblemaCliche .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalReportarProblemaCliche .input-field .prefix ~ .select-wrapper {
+  padding-left: 3.5rem !important;
+}
+
+#modalReportarProblemaCliche .input-field .select-wrapper {
+  padding-left: 0;
+}
+#modalReportarProblemaCliche .input-field .select-wrapper .caret {
+  fill: #37417c !important;
+  right: 10px !important;
+}
+
+/* ===============================================
+ * TOASTS
+ * =============================================== */
+#toast-custom-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  width: auto;
+  min-width: unset;
+}
+.toast {
+  border-radius: 8px;
+  min-width: unset;
+  width: auto;
+  padding: 10px 20px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
+}
+.toast .material-icons {
+  margin-right: 10px;
+  vertical-align: middle;
+  font-size: 1.5rem;
+}
+
+/* ===============================================
+ * ADIÇÕES (v4.1) - Jogo Inteiro e Hist. Problemas
+ * =============================================== */
+
+/* Estilo para o novo botão "Pedir Jogo Inteiro" */
+.modal .modal-footer .btn.yellow.darken-3 { 
+    background-color: #F9A825 !important; 
+    color: #fff !important;
+}
+
+/* Estilos para a nova Tabela de Problemas */
+#detalhe-problemas-table thead {
+    background-color: #c62828 !important; /* Vermelho escuro */
+}
+#detalhe-problemas-table thead th {
+    color: #fff !important;
+}
+#detalhe-problemas-table tbody td {
+    text-align: left !important;
+}
+
+/* Estilos para o novo Modal "Jogo Inteiro" */
+#modalJogoInteiro .input-field {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 5px 15px 0 15px;
+    margin-bottom: 20px !important; 
+    position: relative; 
+    background-color: #fff; 
+    transition: all 0.3s ease;
+}
+#modalJogoInteiro .input-field:hover {
+    border-color: #b0b0b0;
+}
+#modalJogoInteiro .input-field:focus-within {
+    border-color: #37417c; 
+    box-shadow: 0 0 0 3px rgba(55, 65, 124, 0.1); 
+}
+#modalJogoInteiro .input-field label {
+    position: absolute;
+    top: -12px !important; 
+    left: 15px !important;
+    transform: scale(0.85);
+    transform-origin: 0 0;
+    background-color: #fff !important;
+    padding: 0 8px;
+    color: #37417c !important; 
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 1rem !important;
+}
+#modalJogoInteiro .input-field .prefix ~ label {
+     left: calc(3.5rem + 5px) !important;
+}
+#modalJogoInteiro .input-field:has(input[readonly]) label {
+    background-color: #f5f7fa !important;
+}
+#modalJogoInteiro .input-field input, 
+#modalJogoInteiro .input-field textarea, 
+#modalJogoInteiro .input-field .select-wrapper input.select-dropdown {
+    border: none !important; 
+    box-shadow: none !important;
+    height: 2.8rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1rem;
+}
+#modalJogoInteiro .input-field textarea.materialize-textarea {
+    height: auto !important;
+    padding-top: 10px;
+    min-height: 80px;
+}
+#modalJogoInteiro .input-field .prefix {
+  left: 15px !important;
+  top: 0.75rem !important;
+  font-size: 1.8rem;
+  color: #37417c;
+}
+#modalJogoInteiro .input-field .prefix ~ input,
+#modalJogoInteiro .input-field .prefix ~ textarea {
+  margin-left: 3.5rem !important;
+  width: calc(100% - 3.5rem) !important;
+}
+#modalJogoInteiro .input-field .prefix ~ .select-wrapper {
+  padding-left: 3.5rem !important;
+}
+#modalJogoInteiro .input-field .select-wrapper { padding-left: 0; }
+#modalJogoInteiro .input-field .select-wrapper .caret { fill: #37417c !important; right: 10px !important; }
+#modalJogoInteiro .input-field input[type=text][readonly] { background-color: transparent; }
+
+/* Botões mais compactos no footer dos modais */
+.modal .modal-footer .btn {
+  height: 38px !important;
+  line-height: 38px !important;
+  font-size: 0.85rem !important;
+  white-space: nowrap;
+}
+
+.modal .modal-footer .btn i {
+  font-size: 1.2rem !important;
+  margin-right: -25px !important;
+}
+
+.modal .modal-footer {
+  display: flex;
+  margin-left: -5px !important;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.modal .modal-footer .btn-flat {
+  margin-right: auto;
+}
+
+  </style>
+</head>
+<body>
+
+  <div id="toast-custom-container"></div>
+
+  <div id="divObjetos">
+    
+    <div class="header-container">
+      <h4><i class="material-icons">style</i> Gestão de Clichês</h4>
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAADICAYAAADGFbfiAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAEumlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4KPHg6eG1wbWV0YSB4bWxuczp4PSdhZG9iZTpuczptZXRhLyc+CjxyZGY6UkRGIHhtbG5zOnJkZj0naHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyc+CgogPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICB4bWxuczpBdHRyaWI9J2h0dHA6Ly9ucy5hdHRyaWJ1dGlvbi5jb20vYWRzLzEuMC8nPgogIDxBdHRyaWI6QWRzPgogICA8cmRmOlNlcT4KICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0nUmVzb3VyY2UnPgogICAgIDxBdHRyaWI6Q3JlYXRlZD4yMDI1LTExLTA0PC9BdHRyaWI6Q3JlYXRlZD4KICAgICA8QXR0cmliOkV4dElkPjcyMDNmNjM2LTRhNmUtNDkzZi04MGZlLWE0NWRhNjljNTJmZDwvQXR0cmliOkV4dElkPgogICAgIDxBdHRyaWI6RmJJZD41MjUyNjU5MTQxNzk1ODA8L0F0dHJpYjpGYklkPgogICAgIDxBdHRyaWI6VG91Y2hUeXBlPjI8L0F0dHJpYjpUb3VjaFR5cGU+CiAgICA8L3JkZjpsaT4KICAgPC9yZGY6U2VxPgogIDwvQXR0cmliOkFkcz4KIDwvcmRmOkRlc2NyaXB0aW9uPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6ZGM9J2h0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvJz4KICA8ZGM6dGl0bGU+CiAgIDxyZGY6QWx0PgogICAgPHJkZjpsaSB4bWw6bGFuZz0neC1kZWZhdWx0Jz5EZXNpZ24gc2VtIG5vbWUgLSAxPC9yZGY6bGk+CiAgIDwvcmRmOkFsdD4KICA8L2RjOnRpdGxlPgogPC9yZGY6RGVzY3JpcHRpb24+CgogPHJkZjpEZXNjcmlwdGlv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" alt="Logo Feira" class="header-logo">
+    </div>
+    
+    <div id="tabela-cliche-container" class="tabela-container">
+      
+      <div class="filtro-container">
+        <div class="row">
+          <div class="input-field col s6 filtro-texto">
+            <i class="material-icons prefix">search</i>
+            <input id="filtro-pesquisa" type="text" placeholder="Pesquisar por Cód. Produto, ID, Cliente, Descrição ou Local">
+          </div>
+          <div class="input-field col s3 filtro-cliente">
+            <select id="filtro-cliente">
+              <option value="">Todos os Clientes</option>
+            </select>
+            <label>Filtrar por Cliente</label>
+          </div>
+          <div class="input-field col s3 filtro-status">
+            <select id="filtro-status">
+              <option value="">Todos os Status</option>
+              <option value="Disponível">Disponível</option>
+              <option value="Em Fabricação">Em Fabricação</option>
+              <option value="Com Problema">Com Problema</option>
+              <option value="Descartado">Descartado</option>
+            </select>
+            <label>Filtrar por Status</label>
+          </div>
+        </div>
+      </div>
+
+      <table id="tabela-cliche-mestre" class="striped highlight responsive-table">
+        <thead>
+          <tr>
+            <th class="col-id-cliche">ID Clichê</th>
+            <th class="col-id-produto">Cód. Produto</th>
+            <th class="col-cliente">Cliente</th>
+            <th class="col-descricao">Descrição</th>
+            <th class="col-laminas">Lâminas</th>
+            <th class="col-local">Localização</th>
+            <th class="col-status-geral">Status</th>
+            <th class="col-acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-cliche-corpo">
+          </tbody>
+      </table>
+      <p id="msg-sem-cliches" class="mensagem-vazia" style="display: none;">
+        Nenhum clichê encontrado.
+      </p>
+    </div>
+  </div> 
+  
+  <div id="footer-bar">
+     <button id="btnNovoPedidoCliche" class="btn waves-effect waves-light green" onclick="abrirModalNovoPedido()">
+       <i class="material-icons left">add</i>
+       Novo Pedido de Clichê
+     </button>
+  </div>
+
+  <div id="modalNovoPedidoCliche" class="modal">
+    <div class="modal-content">
+      <h4><i class="material-icons">add_circle</i> Novo Pedido de Clichê</h4>
+      
+      <div class="row">
+        <div class="input-field col s8">
+          <i class="material-icons prefix">search</i>
+          <input type="text" id="novo_produto_search">
+          <label for="novo_produto_search">1. Busque o Produto (ex: FC-0005)</label>
+        </div>
+        <div class="input-field col s4">
+          <i class="material-icons prefix">fingerprint</i>
+          <input type="text" id="novo_id_cliche" readonly>
+          <label for="novo_id_cliche" class="active">Novo ID Clichê</label>
+        </div>
+      </div>
+      
+      <div class="sub-tabela-container">
+        <h5>Lâminas Requeridas</h5>
+        <table id="novo-laminas-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">Estação</th>
+              <th style="width: 40%;">Tipo de Lâmina</th>
+              <th style="width: 45%;">Cód. Pantone</th>
+            </tr>
+          </thead>
+          <tbody id="novo-laminas-corpo">
+            <tr><td colspan="3" style="text-align: center; color: #999;"><i>Aguardando seleção do produto...</i></td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div id="pedido-cliche-fields">
+        <h5>Dados do Pedido de Compra</h5>
+        <div class="row">
+          <div class="input-field col s6">
+            <i class="material-icons prefix">person</i>
+            <select id="novo_arte_finalista">
+              <option value="" disabled selected>Selecione o Solicitante</option>
+              <? for (var i = 0; i < listas.arteFinalistas.length; i++) { ?>
+                <option value="<?= listas.arteFinalistas[i]; ?>"><?= listas.arteFinalistas[i]; ?></option>
+              <? } ?>
+            </select>
+            <label>Arte Finalista (Solicitante)</label>
+          </div>
+          <div class="input-field col s6">
+            <i class="material-icons prefix">store</i>
+            <select id="novo_fornecedor">
+              <option value="" disabled selected>Selecione a Clicheria</option>
+              <? for (var i = 0; i < listas.clicherias.length; i++) { ?>
+                <option value="<?= listas.clicherias[i]; ?>"><?= listas.clicherias[i]; ?></option>
+              <? } ?>
+            </select>
+            <label>Clicheria</label>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="input-field col s6">
+              <i class="material-icons prefix">label</i>
+              <input type="text" id="novo_tipo_pedido" value="Clichê Novo" readonly>
+              <label for="novo_tipo_pedido" class="active">Tipo de Pedido</label>
+          </div>
+        </div>
+
+      </div>
+      
+    </div>
+    <div class="modal-footer">
+      <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+      <button class="btn waves-effect green" id="btnConfirmarNovoPedido" onclick="salvarNovoCliche()">
+        Salvar Pedido de Clichê
+      </button>
+    </div>
+  </div>
+  
+  <div id="modalDetalhesCliche" class="modal" style="max-width: 1200px !important;">
+    <div class="modal-content">
+      <h4><i class="material-icons">edit</i> Detalhes do Clichê</h4>
+      
+      <div id="detalhes-loading" style="text-align: center; padding: 40px; display: none;">
+         <div class="preloader-wrapper active">...</div> <p>Buscando dados...</p>
+      </div>
+      
+      <div id="detalhes-conteudo" style="display:none;">
+        
+        <div class="detalhes-grid">
+            <div>
+                <span class="detalhes-label">ID Clichê</span>
+                <span id="detalhe_id_cliche" class="detalhes-valor">---</span>
+            </div>
+            <div>
+                <span class="detalhes-label">Produto Vinculado</span>
+                <span id="detalhe_id_produto" class="detalhes-valor">---</span>
+            </div>
+            <div>
+                <span class="detalhes-label">Cliente</span>
+                <span id="detalhe_cliente" class="detalhes-valor">---</span>
+            </div>
+            <div>
+                <span class="detalhes-label">Descrição</span>
+                <span id="detalhe_descricao" class="detalhes-valor">---</span>
+            </div>
+        </div>
+
+        <div class="row">
+          <div class="input-field col s6">
+            <i class="material-icons prefix">location_on</i>
+            <input id="detalhe_localizacao" type="text">
+            <label for="detalhe_localizacao">Localização (Gaveta)</label>
+          </div>
+          <div class="input-field col s6">
+            <i class="material-icons prefix">shield</i>
+            <select id="detalhe_status_geral">
+              <option value="Disponível">Disponível</option>
+              <option value="Em Fabricação">Em Fabricação</option>
+              <option value="Com Problema">Com Problema</option>
+              <option value="Descartado">Descartado</option>
+            </select>
+            <label>Status Geral</label>
+          </div>
+        </div>
+         <div class="row">
+           <div class="input-field col s12">
+             <i class="material-icons prefix">notes</i>
+             <textarea id="detalhe_obs" class="materialize-textarea"></textarea>
+             <label for="detalhe_obs">Observações</label>
+           </div>
+         </div>
+        
+        <div class="sub-tabela-container">
+          <h5>Status das Lâminas</h5>
+          <table id="detalhe-laminas-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Estação</th>
+                <th style="width: 35%;">Tipo de Lâmina</th>
+                <th style="width: 25%;">Cód. Pantone</th>
+                <th style="width: 25%;">Status Lâmina</th>
+              </tr>
+            </thead>
+            <tbody id="detalhe-laminas-corpo"></tbody>
+          </table>
+        </div>
+        
+      <div class="sub-tabela-container">
+        <h5><i class="material-icons" style="color:#c62828; font-size: 1.2rem; margin-right: 8px;">report</i> Histórico de Problemas</h5>
+          <table id="detalhe-problemas-table">
+            <thead>
+            <tr>
+            <th style="width: 20%;">Data Reporte</th>
+            <th style="width: 30%;">Lâminas Afetadas</th>
+            <th style="width: 50%;">Descrição do Problema</th>
+            </tr>
+            </thead>
+          <tbody id="detalhe-problemas-corpo"></tbody>
+          </table>
+           <p id="detalhe-problemas-vazio" class="mensagem-vazia" style="margin: 10px 0 0 0; display: none;">
+          Nenhum problema reportado para este clichê.
+          </p>
+      </div>
+
+        <div class="sub-tabela-container">
+          <h5>Histórico de Pedidos de Compra</h5>
+          <table id="detalhe-pedidos-table">
+            <thead>
+              <tr>
+                <th>Data Solic.</th>
+                <th>Solicitante</th>
+                <th>Fornecedor</th>
+                <th>Tipo de Pedido</th>
+                <th>Data Prev.</th>
+                <th>Data Receb.</th>
+                <th>Status Receb.</th>
+                <th>Valor</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="detalhe-pedidos-corpo"></tbody>
+          </table>
+          <p id="detalhe-pedidos-vazio" class="mensagem-vazia" style="margin: 10px 0 0 0; display: none;">
+              Nenhum pedido de compra registrado.
+          </p>
+        </div>
+        
+      </div>
+    </div>
+    <div class="modal-footer">
+    <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+    <button class="btn waves-effect waves-light red" id="btnAbrirModalReportarProblema" onclick="abrirModalReportarProblemaCliche()">
+      <i class="material-icons left">report_problem</i>
+      Reportar Problema
+    </button>
+    
+        <button class="btn waves-effect waves-light yellow darken-3" id="btnAbrirModalJogoInteiro" onclick="abrirModalJogoInteiro()">
+      <i class="material-icons left">build_circle</i>
+      Pedir Jogo Inteiro
+    </button>
+        <button class="btn waves-effect waves-light orange" id="btnAbrirModalReposicao" onclick="abrirModalReposicao()">
+      <i class="material-icons left">add_shopping_cart</i>
+      Pedir Lâmina Avulsa
+    </button>
+    <button class="btn waves-effect green" id="btnSalvarDetalhes" onclick="salvarDetalhesCliche()">
+      Salvar Alterações
+    </button>
+</div>
+  </div>
+
+  <div id="modalReposicao" class="modal" style="max-width: 700px !important;">
+    <div class="modal-content">
+      <h4><i class="material-icons">warning</i> Pedir Lâmina Avulsa (Reposição/Erro/Alt)</h4>
+      
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">style</i>
+          <select multiple id="repo_id_lamina">
+            </select>
+          <label>1. Selecione as Lâminas</label>
+        </div>
+      </div>
+      
+      <div id="pedido-reposicao-fields">
+        <h5>Dados do Pedido de Compra</h5>
+        <div class="row">
+          <div class="input-field col s6">
+            <i class="material-icons prefix">person</i>
+            <select id="repo_arte_finalista">
+              <option value="" disabled selected>Selecione o Solicitante</option>
+              <? for (var i = 0; i < listas.arteFinalistas.length; i++) { ?>
+                <option value="<?= listas.arteFinalistas[i]; ?>"><?= listas.arteFinalistas[i]; ?></option>
+              <? } ?>
+            </select>
+            <label>Arte Finalista (Solicitante)</label>
+          </div>
+          <div class="input-field col s6">
+            <i class="material-icons prefix">store</i>
+            <select id="repo_fornecedor">
+              <option value="" disabled selected>Selecione a Clicheria</option>
+              <? for (var i = 0; i < listas.clicherias.length; i++) { ?>
+                <option value="<?= listas.clicherias[i]; ?>"><?= listas.clicherias[i]; ?></option>
+              <? } ?>
+            </select>
+            <label>Fornecedor (Clicheria)</label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="input-field col s12">
+            <i class="material-icons prefix">help_outline</i>
+            <select id="repo_tipo_pedido">
+              <option value="" disabled selected>Selecione o Motivo</option>
+              <option value="Alteração">Alteração</option>
+              <option value="Regravação por Desgaste">Regravação por Desgaste</option>
+              <option value="Regravação por Erro Interno">Regravação por Erro Interno</option>
+              <option value="Reposição por Erro da Clicheria">Reposição por Erro da Clicheria</option>
+            </select>
+            <label>Motivo do Pedido</label>
+          </div>
+        </div>
+        <div class="row" id="repo_descricao_motivo_wrapper" style="display: none;">
+          <div class="input-field col s12">
+            <i class="material-icons prefix">edit</i>
+            <textarea id="repo_descricao_motivo" class="materialize-textarea"></textarea>
+            <label for="repo_descricao_motivo">Descrição do Motivo (Obrigatório se for Erro/Alteração)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+      <button class="btn waves-effect green" id="btnConfirmarReposicao" onclick="salvarPedidoReposicao()">
+        Confirmar Pedido de Reposição
+      </button>
+    </div>
+  </div>
+  
+  <div id="modalRecebimento" class="modal" style="max-width: 500px !important;">
+    <div class="modal-content">
+      <h4><i class="material-icons">local_shipping</i> Receber Pedido de Clichê</h4>
+      <p>Preencha os dados de recebimento para o Pedido <strong id="receber_id_pedido_cliche">...</strong></p>
+      
+      <div class="row" style="margin-bottom: 0 !important;">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">event_available</i>
+          <input id="receber_data" type="text" class="datepicker">
+          <label for="receber_data" class="active">Data Recebimento</label>
+        </div>
+        <div class="input-field col s12">
+          <i class="material-icons prefix">attach_money</i>
+          <input id="receber_valor_nf" type="number" step="0.01">
+          <label for="receber_valor_nf">Valor (R$)</label>
+        </div>
+        <div class="input-field col s12">
+          <i class="material-icons prefix">receipt</i>
+          <input id="receber_num_nf" type="text">
+          <label for="receber_num_nf">Nº NF / Documento</label>
+        </div>
+        <div class="input-field col s12">
+          <i class="material-icons prefix">qr_code_2</i>
+          <input id="receber_cod_lamina" type="text">
+          <label for="receber_cod_lamina">Cód. da Clicheria (Gravado)</label>
+        </div>
+      </div>
+      
+    </div>
+    <div class="modal-footer">
+      <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+      <button class="btn waves-effect green" id="btnConfirmarRecebimento" onclick="confirmarRecebimentoCliche()">
+        Confirmar Recebimento
+      </button>
+    </div>
+  </div>
+  
+  <div id="modalReportarProblemaCliche" class="modal">
+    <div class="modal-content">
+      <h4><i class="material-icons">report_problem</i> Reportar Problema</h4>
+      <p>Selecione os itens com problema e descreva o que aconteceu.</p>
+      
+      <div class="row" style="margin-bottom: 0 !important;">
+         <div class="input-field col s12">
+           <i class="material-icons prefix">layers</i>
+           <select multiple id="problema_id_lamina">
+             </select>
+           <label>1. Selecione as Lâminas (ou deixe em branco para "Jogo Inteiro")</label>
+         </div>
+        <div class="input-field col s12">
+          <i class="material-icons prefix">edit</i>
+          <textarea id="problema_motivo_descricao" class="materialize-textarea"></textarea>
+          <label for="problema_motivo_descricao">2. Descreva o Problema (Obrigatório)</label>
+        </div>
+      </div>
+      
+    </div>
+    <div class="modal-footer">
+      <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+      <button class="btn waves-effect red" id="btnConfirmarReporte" onclick="salvarReporteProblema()">
+        Confirmar Problema
+      </button>
+    </div>
+  </div>
+
+  <div id="modalJogoInteiro" class="modal" style="max-width: 700px !important;">
+  <div class="modal-content">
+    <h4><i class="material-icons">build_circle</i> Pedir Jogo Inteiro (Reposição/Erro)</h4>
+    <p>Esta ação irá criar um novo pedido de compra para o <b>jogo inteiro</b> (todas as lâminas) deste clichê.</p>
+    
+    <div id="pedido-jogo-inteiro-fields">
+      <h5>Dados do Pedido de Compra</h5>
+      <div class="row">
+        <div class="input-field col s6">
+          <i class="material-icons prefix">person</i>
+          <select id="jogo_arte_finalista">
+            <option value="" disabled selected>Selecione o Solicitante</option>
+            <? for (var i = 0; i < listas.arteFinalistas.length; i++) { ?>
+              <option value="<?= listas.arteFinalistas[i]; ?>"><?= listas.arteFinalistas[i]; ?></option>
+            <? } ?>
+          </select>
+          <label>Arte Finalista (Solicitante)</label>
+        </div>
+        <div class="input-field col s6">
+          <i class="material-icons prefix">store</i>
+          <select id="jogo_fornecedor">
+            <option value="" disabled selected>Selecione a Clicheria</option>
+            <? for (var i = 0; i < listas.clicherias.length; i++) { ?>
+              <option value="<?= listas.clicherias[i]; ?>"><?= listas.clicherias[i]; ?></option>
+            <? } ?>
+          </select>
+          <label>Fornecedor (Clicheria)</label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">help_outline</i>
+          <select id="jogo_tipo_pedido">
+            <option value="" disabled selected>Selecione o Motivo</option>
+            <option value="Regravação Jogo Inteiro (Erro)">Regravação Jogo Inteiro (Erro)</option>
+            <option value="Regravação Jogo Inteiro (Desgaste)">Regravação Jogo Inteiro (Desgaste)</option>
+          </select>
+          <label>Motivo do Pedido</label>
+        </div>
+      </div>
+      <div class="row" id="jogo_descricao_motivo_wrapper" style="display: none;">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">edit</i>
+          <textarea id="jogo_descricao_motivo" class="materialize-textarea"></textarea>
+          <label for="jogo_descricao_motivo">Descrição do Motivo (Obrigatório se for Erro)</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+    <button class="btn waves-effect green" id="btnConfirmarJogoInteiro" onclick="salvarPedidoJogoInteiro()">
+      Confirmar Pedido de Jogo Inteiro
+    </button>
+  </div>
+</div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  
+  <script>
+    // Carrega os dados iniciais injetados pelo backend
+    var dadosServidor = <?!= JSON.stringify(dados).replace(/</g, '\\u003c') ?>;
+    var listas = <?!= JSON.stringify(listas).replace(/</g, '\\u003c') ?>;
+    </script>
+
+  <script>
+    // ==================================================================
+    //
+    //           GESTÃO DE CLICHÊS - JAVASCRIPT v2.0 (Premium Layout Corrigido)
+    //
+    // ==================================================================
+
+    // --- Variáveis Globais ---
+    let todosCliches = [];      
+    let todasLaminas = {};      
+    let todosPedidos = {};
+    let todosProblemas = {};      
+    let listaProdutos = []; 
+    let listaProdutosAutocomplete = {}; 
+    let listaClicherias = listas.clicherias || []; 
+    let listaArteFinalistas = listas.arteFinalistas || []; 
+    let produtoSelecionado = null; 
+    let clicheAberto = null; 
+    let pedidoParaReceber = null; 
+
+    let modalNovoPedidoInstance, modalDetalhesInstance, modalReposicaoInstance, 
+        modalRecebimentoInstance, modalReportarProblemaInstance, modalJogoInteiroInstance;
+
+    const materializeSelectOptions = {
+      dropdownOptions: { container: document.body }
+    };
+    
+    // ===============================================
+    // INICIALIZAÇÃO
+    // ===============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        M.AutoInit(); // Inicializa todos os componentes Materialize
+        
+        // Pega as instâncias dos modais
+        modalNovoPedidoInstance = M.Modal.getInstance(document.getElementById('modalNovoPedidoCliche'));
+        modalDetalhesInstance = M.Modal.getInstance(document.getElementById('modalDetalhesCliche'));
+        modalReposicaoInstance = M.Modal.getInstance(document.getElementById('modalReposicao'));
+        modalRecebimentoInstance = M.Modal.getInstance(document.getElementById('modalRecebimento'));
+        modalReportarProblemaInstance = M.Modal.getInstance(document.getElementById('modalReportarProblemaCliche'));
+        modalJogoInteiroInstance = M.Modal.getInstance(document.getElementById('modalJogoInteiro'));
+        
+        // (V2.0) Reinicializa componentes que precisam de 'container: body'
+        M.Datepicker.init(document.querySelectorAll('.datepicker'), {
+          format: 'dd/mm/yyyy',
+          autoClose: true,
+          container: document.body, 
+          i18n: { months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'], weekdaysShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'], cancel: 'Cancelar', done: 'Ok' }
+        });
+        M.FormSelect.init(document.querySelectorAll('select'), materializeSelectOptions);
+
+        // Carrega os dados iniciais do servidor
+        todosCliches = dadosServidor.clichesMestre || [];
+        todasLaminas = dadosServidor.clichesLaminas || {};
+        todosPedidos = dadosServidor.clichesPedidos || {};
+        todosProblemas = dadosServidor.clichesProblemas || {};
+        listaProdutos = dadosServidor.listaProdutos || []; 
+        
+        // Cria o mapa de autocomplete
+        listaProdutosAutocomplete = {}; 
+        if (listaProdutos.length > 0) {
+          listaProdutos.forEach(p => {
+            listaProdutosAutocomplete[p.display] = null; 
+          });
+        }
+        
+        // (V2.0) Reinicializa Autocomplete com 'container: body'
+        M.Autocomplete.init(document.getElementById('novo_produto_search'), {
+            data: listaProdutosAutocomplete,
+            limit: 5,
+            onAutocomplete: onProdutoSelecionado,
+            dropdownOptions: { container: document.body }
+        });
+        // Inicializa o autocomplete do filtro (mesmo que não usado ativamente)
+        M.Autocomplete.init(document.getElementById('filtro-pesquisa'), { data: {}, limit: 5 }); 
+
+        setupListeners();
+        renderizarTabelaPrincipal();
+        popularFiltroCliente();
+    });
+
+    function setupListeners() {
+        document.getElementById('filtro-pesquisa').addEventListener('input', renderizarTabelaPrincipal);
+        document.getElementById('filtro-status').addEventListener('change', renderizarTabelaPrincipal);
+        document.getElementById('filtro-cliente').addEventListener('change', renderizarTabelaPrincipal);
+        
+        // --- Listeners do Modal "Reposição" ---
+        document.getElementById('repo_tipo_pedido').addEventListener('change', (e) => {
+            const wrapper = document.getElementById('repo_descricao_motivo_wrapper');
+            const motivo = e.target.value || "";
+            if (motivo.includes("Erro") || motivo.includes("Alteração")) {
+              wrapper.style.display = 'block';
+            } else {
+              wrapper.style.display = 'none';
+            }
+        });
+
+        document.getElementById('jogo_tipo_pedido').addEventListener('change', (e) => {
+            const wrapper = document.getElementById('jogo_descricao_motivo_wrapper');
+            const motivo = e.target.value || "";
+            if (motivo.includes("Erro")) {
+              wrapper.style.display = 'block';
+            } else {
+              wrapper.style.display = 'none';
+            }
+        });
+        
+        // --- Listener Delegado para as tabelas ---
+        document.getElementById('tabela-cliche-corpo').addEventListener('click', (e) => {
+          const botao = e.target.closest('button[data-action="detalhes"]');
+          if (botao) {
+            e.preventDefault();
+            const idCliche = botao.closest('tr').dataset.idCliche;
+            abrirModalDetalhes(idCliche);
+          }
+        });
+        
+        document.getElementById('detalhe-pedidos-corpo').addEventListener('click', (e) => {
+          const botao = e.target.closest('button.btn-receber');
+          if(botao) {
+            e.preventDefault();
+            abrirModalRecebimento(
+              botao.dataset.idPedidoCliche,
+              botao.dataset.idCliche,
+              botao.dataset.idLamina
+            );
+          }
+        });
+
+        // (V2.0) Listener para Selects de Status de Lâmina (para aplicar cor no input)
+        document.getElementById('detalhe-laminas-corpo').addEventListener('change', (e) => {
+          if (e.target && e.target.tagName === 'SELECT' && e.target.dataset.tipoChange === 'statusLamina') {
+              const select = e.target;
+              // Encontra o input.select-dropdown que o Materialize cria
+              const inputDropdown = select.parentElement.parentElement.querySelector('input.select-dropdown');
+              
+              if (!inputDropdown) return;
+
+              // Limpa classes antigas
+              inputDropdown.classList.remove('status-lamina-disponivel', 'status-lamina-danificada', 'status-lamina-em-reposicao', 'status-lamina-em-fabricacao');
+              
+              // Adiciona nova classe
+              const statusClassMap = {
+                "Disponível": "status-lamina-disponivel",
+                "Danificada": "status-lamina-danificada",
+                "Em Reposição": "status-lamina-em-reposicao",
+                "Em Fabricação": "status-lamina-em-fabricacao"
+              };
+              const classe = statusClassMap[select.value] || "";
+              if (classe) {
+                inputDropdown.classList.add(classe);
+              }
+          }
+        });
+    }
+
+    // ===============================================
+    // FUNÇÕES DE TOAST (Feedback)
+    // ===============================================
+    function showToast(message, type = 'green') {
+      const icon = type === 'green' ? 'check_circle' : 'error';
+      M.toast({
+        html: `<i class="material-icons">${icon}</i> ${message}`,
+        classes: type === 'green' ? 'green darken-1' : 'red darken-2',
+        displayLength: 4000,
+        container: '#toast-custom-container'
+      });
+    }
+
+    // ===============================================
+    // LÓGICA DA TELA PRINCIPAL (FILTRAR E RENDERIZAR)
+    // ===============================================
+
+    function popularFiltroCliente() {
+      const selectCliente = document.getElementById('filtro-cliente');
+      const clientes = [...new Set(todosCliches.map(c => c.cliente).filter(Boolean))].sort();
+      
+      let html = '<option value="">Todos os Clientes</option>';
+      clientes.forEach(cliente => {
+        html += `<option value="${cliente}">${cliente}</option>`;
+      });
+      selectCliente.innerHTML = html;
+      
+      M.FormSelect.init(selectCliente, materializeSelectOptions);
+    }
+
+    function renderizarTabelaPrincipal() {
+        const filtroTexto = document.getElementById('filtro-pesquisa').value.toUpperCase();
+        const filtroStatus = document.getElementById('filtro-status').value;
+        const filtroCliente = document.getElementById('filtro-cliente').value;
+        const corpoTabela = document.getElementById('tabela-cliche-corpo');
+        const msgVazia = document.getElementById('msg-sem-cliches');
+        
+        corpoTabela.innerHTML = '';
+        let contador = 0;
+        
+        const clichesFiltrados = todosCliches.filter(cliche => {
+            const statusMatch = !filtroStatus || cliche.statusGeral === filtroStatus;
+            const clienteMatch = !filtroCliente || cliche.cliente === filtroCliente;
+            
+            const textoMatch = !filtroTexto ||
+                                 cliche.idCliche.toUpperCase().includes(filtroTexto) ||
+                                 cliche.idProduto.toUpperCase().includes(filtroTexto) ||
+                                 (cliche.cliente && cliche.cliente.toUpperCase().includes(filtroTexto)) ||
+                                 cliche.descricao.toUpperCase().includes(filtroTexto) || 
+                                 (cliche.localizacao && cliche.localizacao.toUpperCase().includes(filtroTexto));
+                                 
+            return statusMatch && clienteMatch && textoMatch;
+        });
+        
+        clichesFiltrados.sort((a,b) => a.idCliche.localeCompare(b.idCliche)); 
+
+        clichesFiltrados.forEach(cliche => {
+            corpoTabela.appendChild(criarLinhaCliche(cliche));
+            contador++;
+        });
+        
+        msgVazia.style.display = (contador === 0) ? 'block' : 'none';
+        corpoTabela.style.display = (contador === 0) ? 'none' : '';
+    }
+
+    function criarLinhaCliche(cliche) {
+    const tr = document.createElement('tr');
+    tr.dataset.idCliche = cliche.idCliche;
+
+
+    const statusClasseMap = {
+      "Disponível": "status-disponivel",
+      "Em Fabricação": "status-em-fabricacao",
+      "Com Problema": "status-com-problema",
+      "Descartado": "status-descartado"
+    };
+    const statusTexto = cliche.statusGeral || "N/A";
+    const statusClasse = statusClasseMap[statusTexto] || "";
+
+    tr.innerHTML = `
+        <td class="col-id-cliche" title="${cliche.idCliche}">${cliche.idCliche}</td>
+        <td class="col-id-produto" title="${cliche.idProduto}">${cliche.idProduto}</td>
+        <td class="col-cliente" title="${cliche.cliente || ''}">${cliche.cliente || "---"}</td>
+        <td class="col-descricao" title="${cliche.descricao}">${cliche.descricao}</td>
+        <td class="col-laminas">${cliche.qtdLaminas}</td>
+        <td class="col-local" title="${cliche.localizacao || ''}">${cliche.localizacao || "---"}</td>
+        <td class="col-status-geral col-status-cell ${statusClasse}">
+            ${statusTexto}
+        </td>
+        <td class="col-acoes">
+            <button class="btn-small waves-effect waves-light blue" data-action="detalhes" title="Ver Detalhes">
+                <i class="material-icons">edit</i>
+            </button>
+        </td>
+    `;
+    return tr;
+}
+
+    // ===============================================
+    // LÓGICA DO MODAL "NOVO PEDIDO DE CLICHÊ"
+    // ===============================================
+
+    function abrirModalNovoPedido() {
+        document.getElementById('novo_produto_search').value = '';
+        document.getElementById('novo_id_cliche').value = '(Automático)';
+        document.getElementById('novo_fornecedor').value = '';
+        document.getElementById('novo_arte_finalista').value = '';
+        document.getElementById('novo_tipo_pedido').value = 'Clichê Novo';
+        document.getElementById('novo-laminas-corpo').innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999;"><i>Aguardando seleção do produto...</i></td></tr>';
+        
+        produtoSelecionado = null;
+        
+        // Re-inicializa selects
+        M.FormSelect.init(document.querySelectorAll('#modalNovoPedidoCliche select'), materializeSelectOptions);
+        
+        // Atualiza labels para o estado correto
+        M.updateTextFields();
+        
+        // Habilita/Desabilita o botão salvar
+        document.getElementById('btnConfirmarNovoPedido').disabled = true;
+        
+        modalNovoPedidoInstance.open();
+    }
+
+    function onProdutoSelecionado(displayNome) {
+        const produto = listaProdutos.find(p => p.display === displayNome);
+        
+        if (!produto) {
+          showToast("Produto inválido selecionado.", "red");
+          document.getElementById('btnConfirmarNovoPedido').disabled = true;
+          return;
+        }
+        
+        onFichaTecnicaCarregada(produto); 
+    }
+
+// ===============================================
+// SUBSTITUA A FUNÇÃO onFichaTecnicaCarregada
+// (Linha aproximada: 1766)
+// ===============================================
+
+function onFichaTecnicaCarregada(produto) {
+    if (!produto) {
+        showToast("Erro: Não foi possível carregar os dados deste produto.", "red");
+        document.getElementById('btnConfirmarNovoPedido').disabled = true;
+        return;
+    }
+    
+    produtoSelecionado = produto;
+    const corpoTabela = document.getElementById('novo-laminas-corpo');
+    corpoTabela.innerHTML = '';
+    
+    let ficha = [];
+    
+    // Debug: Mostra o que está vindo no console
+    // console.log("Produto selecionado:", produto);
+    // console.log("Campo fichaTecnicaCores:", produto.fichaTecnicaCores);
+    
+    // Tenta fazer o parse do JSON
+    try {
+        if (produto.fichaTecnicaCores) {
+            // Remove espaços em branco extras
+            const fichaLimpa = produto.fichaTecnicaCores.trim();
+            
+            if (fichaLimpa && fichaLimpa.length > 0) {
+                ficha = JSON.parse(fichaLimpa);
+                // console.log("Ficha técnica parseada:", ficha);
+            }
+        }
+    } catch(e) {
+        console.error("Erro ao fazer parse da ficha técnica:", e);
+        console.error("Conteúdo que causou erro:", produto.fichaTecnicaCores);
+    }
+    
+    // Valida se é realmente um array
+    if (!Array.isArray(ficha)) {
+        console.error("Ficha técnica não é um array:", ficha);
+        ficha = [];
+    }
+    
+    // ===================================================
+    // == CORREÇÃO: Filtrar a *exibição* das lâminas
+    // ===================================================
+    
+    // Lista de tipos de lâmina a IGNORAR na contagem e exibição
+    const tiposExcluidos = [
+        "VERNIZ BRILHO", 
+        "VERNIZ FOSCO", 
+        "LAMINAÇÃO BRILHO", 
+        "LAMINAÇÃO FOSCA", 
+        "NEUTRA"
+    ];
+
+    // Filtra a lista ANTES de exibir
+    const laminasExibiveis = ficha.filter(lamina => {
+        // Pega o tipo da lâmina (usando os campos 'cor' ou 'tipoLamina')
+        const tipo = (lamina.cor || lamina.tipoLamina || "").toUpperCase().trim();
+        
+        // Retorna true (mantém) se o tipo NÃO ESTIVER na lista de exclusão
+        return !tiposExcluidos.includes(tipo);
+    });
+    // ===================================================
+    
+    
+    // AGORA, usamos a lista filtrada 'laminasExibiveis'
+    
+    if (laminasExibiveis.length === 0) {
+        corpoTabela.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; color: #C62828;">
+                    <i>Produto não possui Lâminas (contáveis) cadastradas!</i>
+                </td>
+            </tr>`;
+        document.getElementById('btnConfirmarNovoPedido').disabled = true;
+    } else {
+        
+        // O loop agora é feito na lista JÁ FILTRADA
+        laminasExibiveis.forEach(lamina => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>Estação ${lamina.estacao || '?'}</td>
+                <td>${lamina.cor || lamina.tipoLamina || "---"}</td>
+                <td>${lamina.pantone || lamina.codPantone || "---"}</td>
+            `;
+            corpoTabela.appendChild(tr);
+        });
+        
+        // Busca o próximo ID e habilita o botão
+        google.script.run
+            .withSuccessHandler((novoId) => {
+                document.getElementById('novo_id_cliche').value = novoId;
+                M.updateTextFields();
+                document.getElementById('btnConfirmarNovoPedido').disabled = false;
+                showToast("Dados do produto carregados com sucesso!", "green");
+            })
+            .withFailureHandler((err) => {
+                showToast("Erro ao gerar ID do clichê: " + err.message, "red");
+                console.error("Erro:", err);
+            })
+            .getProximoIdCliche();
+    }
+}
+
+// ===============================================
+// FUNÇÃO DE DEBUG (ADICIONE NO FINAL DO CÓDIGO)
+// Para testar a estrutura dos dados
+// ===============================================
+
+function debugarDadosProdutos() {
+    console.log("=== DEBUG DE PRODUTOS ===");
+    console.log("Total de produtos:", listaProdutos.length);
+    
+    if (listaProdutos.length > 0) {
+        console.log("Exemplo do primeiro produto:", listaProdutos[0]);
+        console.log("Campos disponíveis:", Object.keys(listaProdutos[0]));
+        
+        // Testa se algum produto tem lâminas
+        const produtosComLaminas = listaProdutos.filter(p => {
+            try {
+                const ficha = JSON.parse(p.fichaTecnicaCores || "[]");
+                return ficha.length > 0;
+            } catch(e) {
+                return false;
+            }
+        });
+        console.log(`Produtos com lâminas cadastradas: ${produtosComLaminas.length}/${listaProdutos.length}`);
+        
+        if (produtosComLaminas.length > 0) {
+            console.log("Exemplo de produto com lâminas:", produtosComLaminas[0]);
+        }
+    }
+}
+
+function salvarNovoCliche() {
+        const btn = document.getElementById('btnConfirmarNovoPedido');
+        btn.disabled = true;
+        
+        // ===================================================
+        // == CORREÇÃO: Filtrar a lista ANTES de salvar
+        // ===================================================
+        let laminasCount = 0;
+        
+        const tiposExcluidos = [
+            "VERNIZ BRILHO", 
+            "VERNIZ FOSCO", 
+            "LAMINAÇÃO BRILHO", 
+            "LAMINAÇÃO FOSCA", 
+            "NEUTRA"
+        ];
+        
+        let fichaFiltradaJSON = "[]"; // String JSON vazia por padrão
+        let laminasContaveis = [];
+
+        try {
+            const ficha = JSON.parse(produtoSelecionado.fichaTecnicaCores || "[]");
+            
+            if (Array.isArray(ficha)) {
+                // Filtra a lista
+                laminasContaveis = ficha.filter(lamina => {
+                    const tipo = (lamina.cor || lamina.tipoLamina || "").toUpperCase().trim();
+                    return !tiposExcluidos.includes(tipo);
+                });
+                
+                // A contagem é da lista filtrada
+                laminasCount = laminasContaveis.length;
+                
+                // Transforma a lista FILTRADA de volta em string JSON
+                fichaFiltradaJSON = JSON.stringify(laminasContaveis);
+            }
+        } catch (e) {
+            laminasCount = 0;
+            console.error("Erro ao contar/filtrar lâminas da ficha:", e);
+        }
+        // ===================================================
+        
+        const dados = {
+          idCliche: document.getElementById('novo_id_cliche').value,
+          idProduto: produtoSelecionado.codigo,
+          cliente: produtoSelecionado.cliente,
+          descricao: produtoSelecionado.descricao,
+          qtdLaminas: laminasCount, // Salva a contagem correta (ex: 6)
+          statusGeral: "Em Fabricação",
+          localizacao: "", 
+          obsMestre: "",
+          // Envia o JSON JÁ FILTRADO (com 6 itens) para o backend
+          fichaLaminasJSON: fichaFiltradaJSON, 
+          
+          arteFinalista: document.getElementById('novo_arte_finalista').value, 
+          fornecedor: document.getElementById('novo_fornecedor').value,
+          tipoPedido: "Clichê Novo", 
+          descricaoMotivo: ""
+        };
+        
+        if (!dados.idProduto || !dados.idCliche || dados.idCliche === "(Automático)") {
+          showToast("Erro: Produto ou ID de Clichê inválido.", "red");
+          btn.disabled = false; return;
+        }
+        if (!dados.fornecedor || !dados.arteFinalista) {
+          showToast("Erro: Solicitante e Fornecedor são obrigatórios.", "red");
+          btn.disabled = false; return;
+        }
+        
+        if (laminasCount === 0) {
+            showToast("Erro: Este produto não tem lâminas contáveis.", "red");
+            btn.disabled = false; return;
+        }
+
+        showToast("Salvando novo clichê e pedido de compra...", "green");
+        google.script.run
+          .withSuccessHandler(onSalvoComSucesso)
+          .withFailureHandler((err) => {
+            showToast(err.message, 'red');
+            btn.disabled = false;
+          })
+          .salvarNovoPedidoCliche(dados);
+    }
+
+    function abrirModalDetalhes(idCliche) {
+        const cliche = todosCliches.find(c => c.idCliche === idCliche);
+        if (!cliche) {
+          showToast("Erro: Clichê não encontrado.", "red");
+          return;
+        }
+        clicheAberto = cliche; 
+        
+        document.getElementById('detalhes-loading').style.display = 'block';
+        document.getElementById('detalhes-conteudo').style.display = 'none';
+        modalDetalhesInstance.open();
+        
+        const laminas = todasLaminas[idCliche] || [];
+        const pedidos = todosPedidos[idCliche] || [];
+        const problemas = todosProblemas[idCliche] || [];
+
+        const tiposExcluidos = [
+            "VERNIZ BRILHO", 
+            "VERNIZ FOSCO", 
+            "LAMINAÇÃO BRILHO", 
+            "LAMINAÇÃO FOSCA", 
+            "NEUTRA"
+        ];
+        
+        const laminasExibiveis = laminas.filter(lamina => {
+            const tipo = (lamina.tipoLamina || "").toUpperCase().trim();
+            return !tiposExcluidos.includes(tipo);
+        });
+
+        // Preenche dados do Mestre
+        document.getElementById('detalhe_id_cliche').textContent = cliche.idCliche;
+        document.getElementById('detalhe_id_produto').textContent = cliche.idProduto;
+        document.getElementById('detalhe_cliente').textContent = cliche.cliente || "---";
+        document.getElementById('detalhe_descricao').textContent = cliche.descricao;
+        document.getElementById('detalhe_localizacao').value = cliche.localizacao;
+        document.getElementById('detalhe_status_geral').value = cliche.statusGeral;
+        document.getElementById('detalhe_obs').value = cliche.obsMestre;
+        
+        // Preenche a tabela de Lâminas
+        const laminasCorpo = document.getElementById('detalhe-laminas-corpo');
+        laminasCorpo.innerHTML = '';
+        const statusOptions = `
+            <option value="Disponível">Disponível</option>
+            <option value="Danificada">Danificada</option>
+            <option value="Em Reposição">Em Reposição</option>
+            <option value="Em Fabricação">Em Fabricação</option>
+        `;
+        const statusClassMap = {
+          "Disponível": "status-lamina-disponivel",
+          "Danificada": "status-lamina-danificada",
+          "Em Reposição": "status-lamina-em-reposicao",
+          "Em Fabricação": "status-lamina-em-fabricacao"
+        };
+        
+        laminasExibiveis.forEach(lamina => {
+            const tr = document.createElement('tr');
+            tr.dataset.idLamina = lamina.idLamina;
+            
+            tr.innerHTML = `
+                <td>Estação ${lamina.estacao}</td>
+                <td>${lamina.tipoLamina || "---"}</td>
+                <td>${lamina.codPantone || "---"}</td>
+                <td>
+                    <div class="input-field">
+                        <select id="status_lamina_${lamina.idLamina.replace(/\//g, '-')}" data-tipo-change="statusLamina">
+                            ${statusOptions}
+                        </select>
+                    </div>
+                </td>
+            `;
+            laminasCorpo.appendChild(tr);
+            const select = document.getElementById(`status_lamina_${lamina.idLamina.replace(/\//g, '-')}`);
+            select.value = lamina.statusLamina;
+        });
+
+        // Preenche Histórico de Problemas
+        const problemasCorpo = document.getElementById('detalhe-problemas-corpo');
+        const msgProblemasVazio = document.getElementById('detalhe-problemas-vazio');
+        problemasCorpo.innerHTML = '';
+        if (problemas.length === 0) {
+          msgProblemasVazio.style.display = 'block';
+          problemasCorpo.parentElement.style.display = 'none';
+        } else {
+          msgProblemasVazio.style.display = 'none';
+          problemasCorpo.parentElement.style.display = '';
+          problemas.sort((a,b) => new Date(b.dataReporte.split('/').reverse().join('-')) - new Date(a.dataReporte.split('/').reverse().join('-')));
+          
+          problemas.forEach(problema => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${problema.dataReporte}</td>
+                <td>${problema.laminasAfetadas || "Jogo Inteiro"}</td>
+                <td>${problema.descricaoMotivo}</td>
+            `;
+            problemasCorpo.appendChild(tr);
+          });
+        }
+        
+        // Preenche Histórico de Pedidos
+        const pedidosCorpo = document.getElementById('detalhe-pedidos-corpo');
+        const msgPedidosVazio = document.getElementById('detalhe-pedidos-vazio');
+        pedidosCorpo.innerHTML = '';
+        if (pedidos.length === 0) {
+          msgPedidosVazio.style.display = 'block';
+          pedidosCorpo.parentElement.style.display = 'none'; 
+        } else {
+          msgPedidosVazio.style.display = 'none';
+          pedidosCorpo.parentElement.style.display = ''; 
+          pedidos.sort((a,b) => new Date(b.dataSolicitacao.split('/').reverse().join('-')) - new Date(a.dataSolicitacao.split('/').reverse().join('-')));
+          
+          pedidos.forEach(pedido => {
+            const tr = document.createElement('tr');
+            
+            let btnReceber = '';
+            if (!pedido.dataRecebimento) { 
+              btnReceber = `
+                <button class="btn-small btn-receber waves-effect waves-light" 
+                        title="Registrar Recebimento"
+                        data-id-pedido-cliche="${pedido.idPedidoCliche}"
+                        data-id-cliche="${pedido.idCliche}"
+                        data-id-lamina="${pedido.idLamina || ''}">
+                  <i class="material-icons">local_shipping</i>
+                </button>`;
+            }
+            
+            let statusRecebTexto = '';
+            let statusRecebClasse = '';
+            
+            if (pedido.dataRecebimento) {
+              statusRecebTexto = pedido.statusRecebimento;
+              statusRecebClasse = (pedido.statusRecebimento === 'No Prazo') ? 'status-no-prazo' : 'status-atrasado';
+            } else {
+              const hoje = new Date();
+              const dataPrevParts = (pedido.dataPrevista || "").split('/');
+              if (dataPrevParts.length === 3) {
+                const dataPrev = new Date(dataPrevParts.reverse().join('-'));
+                hoje.setHours(0,0,0,0);
+                dataPrev.setHours(0,0,0,0);
+                if (hoje > dataPrev) {
+                  statusRecebTexto = "Atrasado";
+                  statusRecebClasse = "status-atrasado";
+                } else {
+                  statusRecebTexto = "Pendente";
+                  statusRecebClasse = "status-pendente";
+                }
+              } else {
+                statusRecebTexto = "Pendente";
+                statusRecebClasse = "status-pendente";
+              }
+            }
+
+            // ==================
+            // == CORREÇÃO (V4.4) - Filtrar IDs não numéricos
+            // ==================
+            let laminasTexto = '';
+            if (pedido.idLamina && pedido.idLamina.trim() !== "") {
+                
+                // 1. Get IDs: -> ["CL-0001/1", "CL-0001/3"]  OU ["1", "CL-0002"]
+                const ids = pedido.idLamina.split(',').map(s => s.trim()).filter(Boolean);
+                
+                // 2. Get numbers: -> ["1", "3"]  OU ["1", "CL-0002"]
+                const potentialNumbers = ids.map(id => {
+                    const parts = id.split('/');
+                    return parts.length > 1 ? parts[1] : id; // Pega o número da estação ou o valor sujo
+                });
+
+                // 3. FILTRA para manter apenas números
+                //    ["1", "3"] -> ["1", "3"]
+                //    ["1", "CL-0002"] -> ["1"]
+                const stationNumbers = potentialNumbers.filter(val => {
+                    return !isNaN(parseInt(val, 10)); 
+                });
+
+                // 4. Format: -> (Lâm. 1 e 3) OU (Lâm. 1)
+                if (stationNumbers.length === 1) {
+                    laminasTexto = `(Lâm. ${stationNumbers[0]})`;
+                } else if (stationNumbers.length === 2) {
+                    laminasTexto = `(Lâm. ${stationNumbers[0]} e ${stationNumbers[1]})`;
+                } else if (stationNumbers.length > 2) {
+                    const last = stationNumbers.pop();
+                    const allButLast = stationNumbers.join(', ');
+                    laminasTexto = `(Lâm. ${allButLast} e ${last})`;
+                }
+            }
+            // ==================
+            
+            tr.innerHTML = `
+                <td>${pedido.dataSolicitacao}</td>
+                <td>${pedido.arteFinalista || 'N/A'}</td>
+                <td>${pedido.fornecedor}</td>
+                <td>${pedido.tipoPedido} ${laminasTexto}</td>
+                <td>${pedido.dataPrevista || "N/A"}</td>
+                <td>${pedido.dataRecebimento || "---"}</td>
+                <td class="col-status-cell ${statusRecebClasse}">${statusRecebTexto}</td>
+                <td>R$ ${pedido.valorNF || "0,00"}</td>
+                <td>${btnReceber}</td>
+            `;
+            pedidosCorpo.appendChild(tr);
+          });
+        }
+        
+        M.FormSelect.init(document.querySelectorAll('#modalDetalhesCliche select'), materializeSelectOptions);
+        
+        laminasCorpo.querySelectorAll('select[data-tipo-change="statusLamina"]').forEach(select => {
+          const inputDropdown = select.parentElement.parentElement.querySelector('input.select-dropdown');
+          if (inputDropdown) {
+            const classe = statusClassMap[select.value] || "";
+            if(classe) {
+              inputDropdown.classList.add(classe);
+            }
+          }
+        });
+
+        M.textareaAutoResize(document.getElementById('detalhe_obs'));
+        M.updateTextFields(); 
+        
+        document.getElementById('detalhes-loading').style.display = 'none';
+        document.getElementById('detalhes-conteudo').style.display = 'block';
+    }
+
+    function salvarDetalhesCliche() {
+        const btn = document.getElementById('btnSalvarDetalhes');
+        btn.disabled = true;
+        
+        const dadosMestre = {
+          idCliche: clicheAberto.idCliche,
+          localizacao: document.getElementById('detalhe_localizacao').value,
+          statusGeral: document.getElementById('detalhe_status_geral').value,
+          obsMestre: document.getElementById('detalhe_obs').value
+        };
+        
+        const laminasAtualizadas = [];
+        const laminasRows = document.getElementById('detalhe-laminas-corpo').querySelectorAll('tr');
+        laminasRows.forEach(tr => {
+            const idLamina = tr.dataset.idLamina;
+            const novoStatus = tr.querySelector('select[data-tipo-change="statusLamina"]').value;
+            laminasAtualizadas.push({
+              idLamina: idLamina,
+              statusLamina: novoStatus
+            });
+        });
+        
+        showToast("Salvando alterações...", "green");
+        google.script.run
+          .withSuccessHandler(onSalvoComSucesso_AtualizarDetalhes)
+          .withFailureHandler((err) => {
+            showToast(err.message, 'red');
+            btn.disabled = false;
+          })
+          .atualizarDadosCliche(dadosMestre, laminasAtualizadas);
+    }
+
+    function abrirModalReposicao() {
+        if (!clicheAberto) return;
+        
+        const laminasDoJob = todasLaminas[clicheAberto.idCliche] || [];
+        const selectLamina = document.getElementById('repo_id_lamina');
+        
+        // MUDANÇA AQUI: Texto do placeholder para select múltiplo
+        selectLamina.innerHTML = '<option value="" disabled>Selecione uma ou mais lâminas</option>';
+        
+        const laminasNaoCompraveis = [
+          "NEUTRA", "VERNIZ BRILHO", "VERNIZ FOSCO", "LAMINAÇÃO BRILHO", "LAMINAÇÃO FOSCA"
+        ];
+
+        const laminasCompraveis = laminasDoJob.filter(l => {
+          const tipoLaminaUpper = (l.tipoLamina || "").toUpperCase().trim();
+          return !laminasNaoCompraveis.includes(tipoLaminaUpper); 
+        });
+        
+        if (laminasCompraveis.length === 0) {
+            selectLamina.innerHTML += '<option value="" disabled>Nenhuma lâmina comprável encontrada.</option>';
+        } else {
+            laminasCompraveis.forEach(l => {
+              selectLamina.innerHTML += `<option value="${l.idLamina}">Estação ${l.estacao}: ${l.tipoLamina} (${l.statusLamina})</option>`;
+            });
+        }
+        
+        // Limpa o resto do formulário
+        document.getElementById('repo_fornecedor').value = '';
+        document.getElementById('repo_arte_finalista').value = ''; // Limpa solicitante também
+        document.getElementById('repo_tipo_pedido').value = '';
+        document.getElementById('repo_descricao_motivo').value = '';
+        document.getElementById('repo_descricao_motivo_wrapper').style.display = 'none';
+
+        M.FormSelect.init(document.querySelectorAll('#modalReposicao select'), materializeSelectOptions);
+        M.updateTextFields();
+        
+        modalReposicaoInstance.open();
+    }
+
+    function salvarPedidoReposicao() {
+        const btn = document.getElementById('btnConfirmarReposicao');
+        btn.disabled = true;
+
+        // 1. Pegar todos os dados comuns
+        const arteFinalista = document.getElementById('repo_arte_finalista').value; 
+        const fornecedor = document.getElementById('repo_fornecedor').value;
+        const tipoPedido = document.getElementById('repo_tipo_pedido').value; 
+        const descricaoMotivo = document.getElementById('repo_descricao_motivo').value;
+
+        // 2. Pegar a LISTA de lâminas selecionadas
+        const select = document.getElementById('repo_id_lamina');
+        const idsLaminas = M.FormSelect.getInstance(select).getSelectedValues(); // Isto é um array
+
+        // 3. Validações
+        if (idsLaminas.length === 0) {
+            showToast("Erro: Selecione pelo menos uma lâmina.", "red");
+            btn.disabled = false; return;
+        }
+
+        if (!fornecedor || !tipoPedido || !arteFinalista) {
+          showToast("Erro: Solicitante, Fornecedor e Motivo são obrigatórios.", "red");
+          btn.disabled = false; return;
+        }
+        
+        const motivo = tipoPedido || "";
+        if ( (motivo.includes("Erro") || motivo.includes("Alteração")) && !descricaoMotivo) {
+          showToast("Erro: A Descrição do Motivo é obrigatória.", "red");
+          btn.disabled = false; return;
+        }
+        
+        // Mensagem de confirmação única
+        showToast(`Salvando 1 pedido para ${idsLaminas.length} lâmina(s)...`, "green");
+
+        // 4. Monta o objeto de dados UMA VEZ
+        const dados = {
+          idCliche: clicheAberto.idCliche,
+          idProduto: clicheAberto.idProduto, 
+          idsLaminas: idsLaminas, // <--- MUDANÇA: envia o ARRAY de IDs
+          idLamina: "", // Deixa vazio para compatibilidade (não é mais usado)
+          arteFinalista: arteFinalista, 
+          fornecedor: fornecedor,
+          tipoPedido: tipoPedido, 
+          descricaoMotivo: descricaoMotivo
+        };
+
+        // 5. Chama o backend UMA VEZ
+        google.script.run
+            .withSuccessHandler(onSalvoComSucesso_AtualizarDetalhes) // <- Usando a sua função de recarregar
+            .withFailureHandler((err) => {
+                showToast(`Erro ao salvar pedido: ${err.message}`, 'red');
+                btn.disabled = false;
+            })
+            .salvarPedidoReposicao(dados); // Envia o objeto 'dados'
+    }
+    
+    // ===============================================
+    // ADIÇÃO: LÓGICA DO MODAL "PEDIR JOGO INTEIRO"
+    // ===============================================
+
+    function abrirModalJogoInteiro() {
+        if (!clicheAberto) return;
+        
+        // Preenche o solicitante (arte finalista)
+        const selectAF = document.getElementById('jogo_arte_finalista');
+        selectAF.innerHTML = '<option value="" disabled selected>Selecione o Solicitante</option>';
+        listaArteFinalistas.forEach(nome => {
+            selectAF.innerHTML += `<option value="${nome}">${nome}</option>`;
+        });
+        
+        // Limpa o resto do formulário
+        document.getElementById('jogo_fornecedor').value = '';
+        document.getElementById('jogo_tipo_pedido').value = '';
+        document.getElementById('jogo_descricao_motivo').value = '';
+        document.getElementById('jogo_descricao_motivo_wrapper').style.display = 'none';
+
+        M.FormSelect.init(document.querySelectorAll('#modalJogoInteiro select'), materializeSelectOptions);
+        M.updateTextFields();
+        modalJogoInteiroInstance.open();
+    }
+
+    function salvarPedidoJogoInteiro() {
+        const btn = document.getElementById('btnConfirmarJogoInteiro');
+        btn.disabled = true;
+
+        const dados = {
+          idCliche: clicheAberto.idCliche,
+          idProduto: clicheAberto.idProduto, 
+          idLamina: "", // Deixa vazio para indicar que é o jogo inteiro
+          arteFinalista: document.getElementById('jogo_arte_finalista').value, 
+          fornecedor: document.getElementById('jogo_fornecedor').value,
+          tipoPedido: document.getElementById('jogo_tipo_pedido').value, 
+          descricaoMotivo: document.getElementById('jogo_descricao_motivo').value
+        };
+        
+        if (!dados.fornecedor || !dados.tipoPedido || !dados.arteFinalista) {
+          showToast("Erro: Solicitante, Fornecedor e Motivo são obrigatórios.", "red");
+          btn.disabled = false; return;
+        }
+        const motivo = dados.tipoPedido || "";
+        if ( motivo.includes("Erro") && !dados.descricaoMotivo) {
+          showToast("Erro: A Descrição do Motivo é obrigatória.", "red");
+          btn.disabled = false; return;
+        }
+        
+        showToast("Salvando pedido de jogo inteiro...", "green");
+        // Reutiliza a função 'salvarPedidoReposicao' do backend,
+        // pois ela já lida com idLamina vazio (jogo inteiro)
+        google.script.run
+          .withSuccessHandler(onSalvoComSucesso_AtualizarDetalhes)
+          .withFailureHandler((err) => {
+            showToast(err.message, 'red');
+            btn.disabled = false;
+          })
+          .salvarPedidoReposicao(dados); 
+    }
+    
+    // ===============================================
+    // LÓGICA DO MODAL "RECEBIMENTO"
+    // ===============================================
+    
+    function abrirModalRecebimento(idPedidoCliche, idCliche, idLamina) {
+      pedidoParaReceber = { 
+        idPedidoCliche, 
+        idCliche, 
+        idLamina: idLamina || "",
+        idProduto: todosCliches.find(c => c.idCliche === idCliche)?.idProduto || ""
+      };
+      
+      document.getElementById('receber_id_pedido_cliche').textContent = idPedidoCliche;
+      document.getElementById('receber_valor_nf').value = '';
+      document.getElementById('receber_num_nf').value = '';
+      document.getElementById('receber_cod_lamina').value = '';
+      
+      const datepicker = M.Datepicker.getInstance(document.getElementById('receber_data'));
+      datepicker.setDate(new Date());
+      
+      M.updateTextFields();
+      modalRecebimentoInstance.open();
+    }
+    
+    function confirmarRecebimentoCliche() {
+  const btn = document.getElementById('btnConfirmarRecebimento');
+  btn.disabled = true;
+  
+  // Pega a instância do datepicker para obter a data corretamente
+  const datepicker = M.Datepicker.getInstance(document.getElementById('receber_data'));
+  const dataRecebimento = datepicker.toString(); // Pega a data formatada
+  
+  const dadosRecebimento = {
+    dataRecebimento: dataRecebimento,
+    valorNF: document.getElementById('receber_valor_nf').value,
+    numNF: document.getElementById('receber_num_nf').value,
+    codLamina: document.getElementById('receber_cod_lamina').value,
+    idProduto: pedidoParaReceber.idProduto 
+  };
+  
+  // Validação melhorada
+  if (!dataRecebimento || dataRecebimento === '') {
+    showToast("Erro: Selecione a data de recebimento.", "red");
+    btn.disabled = false;
+    return;
+  }
+  
+  if (!dadosRecebimento.valorNF || dadosRecebimento.valorNF === '' || parseFloat(dadosRecebimento.valorNF) <= 0) {
+    showToast("Erro: Informe um valor válido.", "red");
+    btn.disabled = false;
+    return;
+  }
+  
+  if (!dadosRecebimento.numNF || dadosRecebimento.numNF.trim() === '') {
+    showToast("Erro: Informe o número da NF.", "red");
+    btn.disabled = false;
+    return;
+  }
+  
+  if (!dadosRecebimento.codLamina || dadosRecebimento.codLamina.trim() === '') {
+    showToast("Erro: Informe o código da lâmina.", "red");
+    btn.disabled = false;
+    return;
+  }
+  
+  showToast("Registrando recebimento...", "green");
+  google.script.run
+    .withSuccessHandler(onSalvoComSucesso_AtualizarDetalhes)
+    .withFailureHandler((err) => {
+      showToast(err.message, 'red');
+      btn.disabled = false;
+    })
+    .receberPedidoCliche(
+      pedidoParaReceber.idPedidoCliche,
+      pedidoParaReceber.idCliche,
+      pedidoParaReceber.idLamina,
+      dadosRecebimento
+    );
+}
+    
+    // ===============================================
+    // LÓGICA DO MODAL "REPORTAR PROBLEMA"
+    // ===============================================
+
+    function abrirModalReportarProblemaCliche() {
+      if (!clicheAberto) return;
+      
+      const laminas = todasLaminas[clicheAberto.idCliche] || [];
+      const selectLamina = document.getElementById('problema_id_lamina');
+      selectLamina.innerHTML = '<option value="" disabled>Selecione lâminas (opcional)</option>';
+      
+      laminas.forEach(l => {
+         selectLamina.innerHTML += `<option value="${l.idLamina}">Estação ${l.estacao}: ${l.tipoLamina} (${l.statusLamina})</option>`;
+      });
+      
+      document.getElementById('problema_motivo_descricao').value = '';
+      
+      M.FormSelect.init(selectLamina, materializeSelectOptions);
+      M.updateTextFields();
+      
+      modalReportarProblemaInstance.open();
+    }
+    
+    function salvarReporteProblema() {
+      const btn = document.getElementById('btnConfirmarReporte');
+      btn.disabled = true;
+
+      const select = document.getElementById('problema_id_lamina');
+      const idsLaminas = M.FormSelect.getInstance(select).getSelectedValues();
+      const motivo = document.getElementById('problema_motivo_descricao').value;
+      
+      if (!motivo || motivo.trim().length < 5) {
+        showToast("Erro: Descreva o problema (mín. 5 caracteres).", "red");
+        btn.disabled = false;
+        return;
+      }
+      
+      showToast("Reportando problema...", "green");
+      google.script.run
+        .withSuccessHandler(onSalvoComSucesso_AtualizarDetalhes)
+        .withFailureHandler((err) => {
+          showToast(err.message, 'red');
+          btn.disabled = false;
+        })
+        .reportarProblemaCliche(clicheAberto.idCliche, idsLaminas, motivo);
+    }
+
+    // ===============================================
+    // CALLBACKS GERAIS DE SUCESSO
+    // ===============================================
+
+    function onSalvoComSucesso(novosDados) {
+        showToast("Operação realizada com sucesso!", "green");
+        
+        // Atualiza os dados locais
+        todosCliches = novosDados.clichesMestre || [];
+        todasLaminas = novosDados.clichesLaminas || {};
+        todosPedidos = novosDados.clichesPedidos || {};
+        todosProblemas = novosDados.clichesProblemas || {}
+        listaProdutos = novosDados.listaProdutos || [];
+        
+        // Reconstrói o mapa de autocomplete
+        listaProdutosAutocomplete = {};
+        if (listaProdutos.length > 0) {
+          listaProdutos.forEach(p => {
+            listaProdutosAutocomplete[p.display] = null;
+          });
+        }
+        
+        const novoAutocomplete = M.Autocomplete.getInstance(document.getElementById('novo_produto_search'));
+        if (novoAutocomplete) {
+          novoAutocomplete.updateData(listaProdutosAutocomplete);
+        }
+        
+        // Fecha todos os modais
+        modalNovoPedidoInstance.close();
+        modalDetalhesInstance.close();
+        modalReposicaoInstance.close();
+        modalRecebimentoInstance.close();
+        modalReportarProblemaInstance.close();
+        modalJogoInteiroInstance.close();
+        
+        renderizarTabelaPrincipal();
+        popularFiltroCliente(); 
+    }
+
+    // ===================================================
+    // == NOVA FUNÇÃO DE CALLBACK (PARA MANTER MODAL ABERTO)
+    // ===================================================
+    // Callback para salvar dados DE DENTRO do modal de Detalhes,
+    // sem fechar o modal principal.
+    function onSalvoComSucesso_AtualizarDetalhes(novosDados) {
+        showToast("Operação realizada com sucesso!", "green");
+        
+        // Atualiza os dados locais (mesma lógica do original)
+        todosCliches = novosDados.clichesMestre || [];
+        todasLaminas = novosDados.clichesLaminas || {};
+        todosPedidos = novosDados.clichesPedidos || {};
+        todosProblemas = novosDados.clichesProblemas || {}
+        
+        // Fecha APENAS os modais "filhos"
+        modalReposicaoInstance.close();
+        modalRecebimentoInstance.close();
+        modalReportarProblemaInstance.close();
+        modalJogoInteiroInstance.close();
+        
+        // NÃO FECHA O MODAL DE DETALHES
+        // modalDetalhesInstance.close(); 
+        
+        // Re-renderiza a tabela principal (em segundo plano)
+        renderizarTabelaPrincipal(); 
+        
+        // Força a re-renderização do modal de detalhes com os novos dados
+        if (clicheAberto && clicheAberto.idCliche) {
+            // Encontra o clichê atualizado nos novos dados
+            const clicheAtualizado = todosCliches.find(c => c.idCliche === clicheAberto.idCliche);
+            if (clicheAtualizado) {
+                clicheAberto = clicheAtualizado; // Atualiza a variável global
+            }
+            // Reconstrói o modal
+            abrirModalDetalhes(clicheAberto.idCliche);
+        }
+
+        // Re-habilita os botões que podem ter sido desabilitados
+        document.getElementById('btnSalvarDetalhes').disabled = false;
+        document.getElementById('btnConfirmarRecebimento').disabled = false;
+        document.getElementById('btnConfirmarReposicao').disabled = false;
+        document.getElementById('btnConfirmarJogoInteiro').disabled = false;
+        document.getElementById('btnConfirmarReporte').disabled = false;
+    }
+  </script>
+
+</body>
+</html>
