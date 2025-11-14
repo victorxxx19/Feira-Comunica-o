@@ -1355,35 +1355,40 @@ function buscarSugestoesProduto(termo, tipoBusca) {
   }
 }
 
-//
-// SUBSTITUA A FUNÇÃO 'getDadosCompletosProduto' PELA VERSÃO ABAIXO
-//
+// CÓDIGO.gs (Substitua a sua função getDadosCompletosProduto completamente)
+
+/**
+ * Busca todos os dados de um produto (código ou descrição) e verifica o status
+ * da faca e clichê relacionados, além de determinar o Tipo de Pedido.
+ * @param {string} identificador - Código ou Descrição do Produto.
+ * @param {string} tipoBusca - 'codigo' ou 'descricao'.
+ * @returns {object|null} - Dados completos do produto, status dos insumos e tipoPedido.
+ */
 function getDadosCompletosProduto(identificador, tipoBusca) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaProdutos = ss.getSheetByName(NOME_ABA_PRODUTOS);
-    const abaFacasInventario = ss.getSheetByName("Facas_Inventario"); // (NOVO)
-    const abaClicheMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE); // (NOVO)
+    const abaFacasInventario = ss.getSheetByName("Facas_Inventario"); 
+    const abaClicheMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE); 
+    const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS); 
     
     // --- Mapas de busca (Desempenho) ---
-    // Cria um mapa de Facas Disponíveis (ex: {"fx 278": true, "fx 300": true})
     const facasDisponiveis = new Set();
     if (abaFacasInventario.getLastRow() > 1) {
-      const dadosFacasInv = abaFacasInventario.getRange(2, 2, abaFacasInventario.getLastRow() - 1, 2).getValues(); // Col B (Modelo), Col C (Status)
+      const dadosFacasInv = abaFacasInventario.getRange(2, 2, abaFacasInventario.getLastRow() - 1, 2).getValues(); 
       for (const f of dadosFacasInv) {
-        if (f[1].trim().toLowerCase() === "disponível") {
-          facasDisponiveis.add(f[0].trim().toLowerCase()); // Adiciona o Modelo (ex: "fx 278")
+        if (f[1].toString().trim().toLowerCase() === "disponível") {
+          facasDisponiveis.add(f[0].toString().trim().toLowerCase()); 
         }
       }
     }
     
-    // Cria um mapa de Clichês Disponíveis (ex: {"cl-0001": true, "cl-0002": true})
     const clichesDisponiveis = new Set();
     if (abaClicheMestre.getLastRow() > 1) {
-      const dadosCliches = abaClicheMestre.getRange(2, 1, abaClicheMestre.getLastRow() - 1, 7).getValues(); // Col A (ID), Col G (Status)
+      const dadosCliches = abaClicheMestre.getRange(2, 1, abaClicheMestre.getLastRow() - 1, 7).getValues(); 
       for (const c of dadosCliches) {
-        if (c[6].trim().toLowerCase() === "disponível") {
-          clichesDisponiveis.add(c[0].trim().toLowerCase()); // Adiciona o ID (ex: "cl-0001")
+        if (c[6].toString().trim().toLowerCase() === "disponível") {
+          clichesDisponiveis.add(c[0].toString().trim().toLowerCase()); 
         }
       }
     }
@@ -1393,20 +1398,27 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
     const dadosProdutos = abaProdutos.getRange(2, 1, abaProdutos.getLastRow() - 1, abaProdutos.getLastColumn()).getValues();
     const termoBusca = identificador.trim().toLowerCase();
 
-    const colunaBuscaKey = (tipoBusca === 'codigo') ? "Código do Produto" : "Descrição do Produto";
-    const colunaBuscaIndex = mapa[colunaBuscaKey];
-    const idxClicheVinculado = mapa["ID_Cliche_Vinculado"];
+    // =========================================================
+    // ✅ FIX: Usar índice numérico para COLUNAS PRINCIPAIS
+    // =========================================================
+    const idxCodigo = COL_PRODUTO_CODIGO - 1; 
+    const idxDescricao = COL_PRODUTO_DESCRICAO - 1;
+    
+    const colunaBuscaIndex = (tipoBusca === 'codigo') ? idxCodigo : idxDescricao;
 
-    if (colunaBuscaIndex === undefined) {
-      throw new Error(`A coluna "${colunaBuscaKey}" não foi encontrada.`);
+    // Colunas que dependem do nome do cabeçalho
+    const idxClicheVinculado = mapa["ID_Cliche_Vinculado"];
+    const idxDataAlteracaoArte = mapa["Data - Alteração de Arte"]; 
+
+    // Mensagem de erro robusta
+    if (colunaBuscaIndex === undefined || dadosProdutos.length === 0) {
+      throw new Error(`A coluna de busca (${tipoBusca}) não foi encontrada. Verifique os nomes do cabeçalho.`);
     }
-    if (idxClicheVinculado === undefined) {
-      Logger.log("AVISO: A coluna 'ID_Cliche_Vinculado' não foi encontrada na aba 'Produtos'.");
-    }
+    // =========================================================
 
     let produtoEncontrado = null;
     let codigoProdutoFinal = "";
-    let dataAlteracaoArteObj = null;
+    let produtoDataAlteracaoArte = null; 
 
     let statusFaca = "Inexistente";
     let statusCliche = "Inexistente";
@@ -1416,23 +1428,29 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
       const valorPlanilha = linha[colunaBuscaIndex].toString().trim().toLowerCase();
 
       if (valorPlanilha === termoBusca) {
-        codigoProdutoFinal = linha[mapa["Código do Produto"]];
-        dataAlteracaoArteObj = linha[mapa["Data - Alteração de Arte"]];
+        codigoProdutoFinal = linha[idxCodigo];
         const statusProduto = linha[mapa["Status"]] || "Ativo";
-
-        if (statusProduto === "Bloqueado" || statusProduto === "Cancelado") {
-           return { /* Lógica de bloqueio (mantida) */ };
+        
+        // Extrai a Data de Alteração de Arte
+        if(idxDataAlteracaoArte !== undefined && linha[idxDataAlteracaoArte]) {
+            produtoDataAlteracaoArte = parseDate(linha[idxDataAlteracaoArte]);
+        }
+        
+        if (statusProduto.toLowerCase() === "bloqueado" || statusProduto.toLowerCase() === "cancelado") {
+           return {
+             sucesso: false, 
+             bloqueado: true,
+             motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]] || "Motivo não especificado.",
+             status: statusProduto
+           };
         }
 
-        // --- INÍCIO DA NOVA LÓGICA DE VERIFICAÇÃO (FACA E CLICHÊ) ---
-        
-        // 1. Verifica a Faca
+        // --- LÓGICA DE VERIFICAÇÃO (FACA E CLICHÊ) ---
         const facaDoProduto = linha[mapa["Faca"]].toString().trim().toLowerCase();
         if (facaDoProduto && facasDisponiveis.has(facaDoProduto)) {
-          statusFaca = "Existente";
+           statusFaca = "Existente";
         }
 
-        // 2. Verifica o Clichê
         const clicheVinculado = (idxClicheVinculado !== undefined) ? linha[idxClicheVinculado] : "";
         if (clicheVinculado && clicheVinculado.trim() !== "") {
           idCliche = clicheVinculado.trim();
@@ -1440,14 +1458,17 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
             statusCliche = "Existente";
           }
         }
-        // --- FIM DA NOVA LÓGICA ---
+        // --- FIM DA LÓGICA ---
+
+        // Formata a data de alteração para exibição no frontend
+        const dataAlteracaoArteObj = linha[mapa["Data - Alteração de Arte"]];
+        const dataFormatada = dataAlteracaoArteObj ? Utilities.formatDate(new Date(dataAlteracaoArteObj), Session.getScriptTimeZone(), "dd/MM/yyyy") : "";
 
         produtoEncontrado = {
           codigo: codigoProdutoFinal,
           cliente: linha[mapa["Cliente"]],
-          descricao: linha[mapa["Descrição do Produto"]],
+          descricao: linha[idxDescricao],
           faca: linha[mapa["Faca"]],
-          // ... (todos os outros campos do produto mantidos) ...
           substrato: linha[mapa["Substrato"]],
           tipoCola: linha[mapa["Tipo de Cola"]],
           largura: linha[mapa["Largura (mm)"]],
@@ -1455,10 +1476,11 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
           puxada: linha[mapa["Puxada (mm)"]],
           qtdCores: linha[mapa["Quantidade de Cores"]], 
           carreiras: linha[mapa["Carreiras"]],
+          dataAlteracaoArte: dataFormatada,
           status: statusProduto,
-          dataAlteracaoArte: dataAlteracaoArteObj ? Utilities.formatDate(new Date(dataAlteracaoArteObj), Session.getScriptTimeZone(), "dd/MM/yyyy") : "",
           acabamento: linha[mapa["Tipo de Acabamento"]],
           cold: linha[mapa["Cold"]],
+          motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]],
           tipoRotulo: linha[mapa["Tipo do Rótulo"]] || "Único",
           fichaTecnicaCores: linha[mapa["FichaTecnicaCores"]] || "[]",
           diametroTubete: linha[mapa["Diametro Tubete"]],
@@ -1474,16 +1496,75 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
       return null;
     }
 
-    // --- Lógica do Tipo de Pedido (mantida) ---
-    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    // ==========================================================
+    // CÁLCULO DE TIPO DE PEDIDO (Nova Lógica)
+    // ==========================================================
     let tipoPedido = "Primeira Fabricação";
-    // ... (seu código de verificação de tipo de pedido existente) ...
-    // (Esta parte não precisa mudar)
+    const codigoBuscaPedidos = produtoEncontrado.codigo.trim().toUpperCase();
 
-    // (NOVO) Retorna os dados do produto + o status dos insumos
+    if (abaPedidos.getLastRow() > 1) {
+        const colunaFinalLeitura = Math.max(COL_PEDIDO_PRODUTO_CODIGO, COL_PEDIDO_DATA_PEDIDO);
+        const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, 10).getValues(); 
+        
+        let encontrouPedido = false;
+        
+        for (const linhaPedido of dadosPedidos) {
+            const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
+            
+            if (codProdPedido === codigoBuscaPedidos) {
+                encontrouPedido = true;
+                tipoPedido = "Repetição";
+                
+                if (produtoDataAlteracaoArte) {
+                    const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
+                    
+                    if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
+                        tipoPedido = "Repetição"; 
+                        break; 
+                    }
+                }
+            }
+        }
+        
+        if (!encontrouPedido) {
+            tipoPedido = "Primeira Fabricação";
+        } else if (tipoPedido === "Repetição" && produtoDataAlteracaoArte) {
+             let ultimoPedidoAnterior = false;
+             for (const linhaPedido of dadosPedidos) {
+                const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
+                if (codProdPedido === codigoBuscaPedidos) {
+                    const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
+                    if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
+                        ultimoPedidoAnterior = true;
+                    }
+                }
+             }
+
+             if (!ultimoPedidoAnterior) {
+                 tipoPedido = "Primeira Fabricação";
+             }
+        }
+    }
+    // ==========================================================
+    // FIM CÁLCULO DE TIPO DE PEDIDO
+    // ==========================================================
+    
+
+    // === NOVO: FLAG DE ARTE ALTERADA RECENTEMENTE ===
+    let arteAlteradaRecentemente = false;
+    if (produtoDataAlteracaoArte && produtoDataAlteracaoArte.getFullYear() > 1970) {
+        // Se há uma data válida, a arte foi alterada.
+        arteAlteradaRecentemente = true;
+    }
+    // ==========================================================
+
+
+    // Retorna os dados do produto + o status dos insumos
     return {
+      sucesso: true,
       dadosDoProduto: produtoEncontrado,
       tipoPedido: tipoPedido,
+      arteAlteradaRecentemente: arteAlteradaRecentemente, // <-- NOVA FLAG
       statusFaca: statusFaca,
       statusCliche: statusCliche,
       idCliche: idCliche
@@ -1491,17 +1572,12 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
 
   } catch (e) {
     Logger.log(`Erro ao buscar dados completos do produto: ${e}`);
-    throw new Error(`Erro ao buscar dados do produto: ${e.message}.`);
+    throw new Error(`Erro ao buscar dados completos do produto: Erro ao buscar produto: A coluna "Código do Produto" não foi encontrada. Por favor, verifique se o nome do cabeçalho na linha 1 da aba "Produtos" corresponde a "Código do Produto" ou altere a constante no Código.gs.`);
   }
 }
 
 
-/**
- * NOVO (V1.6): Analisa o JSON da Ficha Técnica e extrai o primeiro
- * Acabamento e Cold para preencher as colunas antigas (O e P).
- * @param {string} fichaJSON A string JSON da FichaTecnicaCores.
- * @returns {object} {acabamento: string, cold: string}
- */
+
 function _extrairAcabamentoECold(fichaJSON) {
   let acabamento = "";
   let cold = "";
@@ -5618,11 +5694,103 @@ function abrirFormDashboard() {
   SpreadsheetApp.getUi().showModalDialog(html, " ");
 }
 
+// CÓDIGO.gs (Adicione estas novas funções auxiliares em um local apropriado)
+
 /**
- * FUNÇÃO PRINCIPAL: Registra um problema de produção,
- * limpa a programação e atualiza o status do pedido.
- * (Chamada pelo FormProducao.html)
+ * NOVO: Helper para buscar IDs de Insumos (Clichê, Faca) de um pedido.
  */
+function _buscarInsumosPedido(linhaPlanilha) {
+  const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+  // Lendo as colunas AU (47) e AV (48)
+  const range = abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_ID_CLICHE, 1, 2);
+  const [idCliche, idUnicoFaca] = range.getDisplayValues()[0];
+  
+  // Como precisamos do Modelo da Faca para o status agregado e do ID Único para o log,
+  // vamos extrair o modelo aqui (o ID Único tem o formato MODELO/SEQ).
+  let codFacaModelo = "";
+  if (idUnicoFaca && idUnicoFaca.includes('/')) {
+    codFacaModelo = idUnicoFaca.split('/')[0].trim();
+  } else {
+    // Se não for o ID Único (ex: 'FX 278'), tenta ler da COL_PEDIDO_FACA (13)
+    codFacaModelo = abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_FACA).getDisplayValue().trim();
+  }
+
+  return {
+    idCliche: idCliche.trim() || null,
+    idUnicoFaca: idUnicoFaca.trim() || null,
+    codFacaModelo: codFacaModelo || null
+  };
+}
+
+/**
+ * FUNÇÃO AUXILIAR: Loga o problema do Clichê, danifica as lâminas e retorna o novo status.
+ */
+function _logarProblemaClicheProducao(idCliche, motivoProblema) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaLaminas = ss.getSheetByName(NOME_ABA_CLICHE_LAMINAS);
+    const abaMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE);
+    const abaProblemas = ss.getSheetByName(NOME_ABA_CLICHE_PROBLEMAS);
+
+    // 1. Salva o registro na aba Cliche_Problemas (Jogo Inteiro Afetado)
+    const dataHoje = new Date();
+    const idProblema = `PR-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
+    abaProblemas.appendRow([
+      idProblema, idCliche, dataHoje, 
+      'Jogo Inteiro (Produção)', // Lâminas Afetadas
+      `[PRODUÇÃO] ${motivoProblema}`
+    ]);
+    
+    // 2. Atualiza TODAS as Cliche_Laminas desse ID para "Danificada"
+    const dadosLaminas = abaLaminas.getRange(2, 1, abaLaminas.getLastRow() - 1, 6).getValues();
+    const rangesParaAtualizar = [];
+    
+    for (let i = 0; i < dadosLaminas.length; i++) {
+        if (dadosLaminas[i][1] == idCliche) { // Col B = ID_Cliche
+            rangesParaAtualizar.push(abaLaminas.getRange(i + 2, 6)); // Coluna F
+        }
+    }
+    for (const range of rangesParaAtualizar) {
+        range.setValue("Danificada");
+    }
+    
+    // 3. Re-calcula o status mestre
+    _verificarEAtualizarStatusMestre(idCliche, abaMestre, abaLaminas);
+    
+    return "Aguardando Clichê";
+}
+
+/**
+ * FUNÇÃO AUXILIAR: Loga o problema da Faca, danifica o item e retorna o novo status.
+ */
+function _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivoProblema) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaInventario = ss.getSheetByName(NOME_ABA_FACAS_INVENTARIO);
+    const abaProblemas = ss.getSheetByName(NOME_ABA_FACAS_PROBLEMAS);
+    
+    // 1. Atualiza o Facas_Inventario para "Danificada"
+    const dadosInv = abaInventario.getRange(2, 1, abaInventario.getLastRow() - 1, 3).getValues(); // A-C
+    for (let i = 0; i < dadosInv.length; i++) {
+        if (dadosInv[i][0] == idUnicoFaca) { // Col A
+            abaInventario.getRange(i + 2, 3).setValue("Danificada"); // Col C (Status)
+            break;
+        }
+    }
+    
+    // 2. Salva o registro na aba Facas_Problemas
+    const dataHoje = new Date();
+    const idProblema = `PR-Faca-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
+    abaProblemas.appendRow([
+      idProblema, idUnicoFaca, dataHoje, 
+      `[PRODUÇÃO] ${motivoProblema}`
+    ]);
+    
+    // 3. Atualiza o status agregado do Modelo (o agregador vai decidir se fica "Indisponível")
+    _atualizarStatusAgregadoFaca(codFacaModelo);
+    
+    return "Aguardando Faca";
+}
+
+
 function registrarProblemaProducao(dadosDoProblema) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) {
@@ -5630,41 +5798,63 @@ function registrarProblemaProducao(dadosDoProblema) {
   }
 
   try {
-    const { numPedido, tipo, descricao } = dadosDoProblema;
+    const { numPedido, ferramenta, tipo, descricao } = dadosDoProblema;
 
-    // 1. Validação simples
-    if (!numPedido || !tipo || !descricao) {
-      throw new Error("Todos os campos (Pedido, Tipo e Descrição) são obrigatórios.");
-    }
-    if (descricao.trim().length < 10) {
-      throw new Error("A descrição do problema precisa ser mais detalhada (mínimo 10 caracteres).");
-    }
-
-    // 2. Acha a linha do pedido (usa a função auxiliar existente)
+    // 1. Validação e Busca de Linha
     const linhaPlanilha = getLinhaPedidoPeloNumero(numPedido);
+    
+    // 2. Busca IDs de Insumos
+    const { idCliche, idUnicoFaca, codFacaModelo } = _buscarInsumosPedido(linhaPlanilha);
+    
+    // 3. Determina quais insumos precisam ser logados/danificados
+    const logarClichê = (ferramenta === "Clichê" || ferramenta === "Ambos");
+    const logarFaca = (ferramenta === "Faca" || ferramenta === "Ambos");
 
-    // 3. Determina o novo status
-    let novoStatus = "";
-    if (tipo.startsWith("Clichê")) {
-      novoStatus = "Aguardando Clichê";
-    } else if (tipo.startsWith("Faca")) {
-      novoStatus = "Aguardando Faca";
-    } else {
-      // Você pode adicionar mais tipos aqui se precisar
-      novoStatus = "Aguardando Insumos"; // Um status genérico
+    let novoStatus = "Aguardando Insumos"; // Status padrão de problema
+    let aguardandoFaca = false;
+    let aguardandoCliche = false;
+
+    // 4. Loga e danifica os insumos específicos
+    if (logarClichê) {
+      if (!idCliche || idCliche.toUpperCase() === "N/A") {
+          Logger.log(`AVISO: Clichê reportado, mas ID Clichê (${idCliche}) não encontrado no pedido.`);
+      } else {
+        const statusRetornado = _logarProblemaClicheProducao(idCliche, `[${tipo}] ${descricao}`);
+        Logger.log(`Problema logado no Clichê ${idCliche}. Status de espera: ${statusRetornado}`);
+      }
+      aguardandoCliche = true;
     }
 
-    // 4. Formata o texto do problema
-    const textoProblema = `${tipo}: ${descricao.trim()}`;
+    if (logarFaca) {
+      if (!idUnicoFaca || idUnicoFaca.toUpperCase().includes("DIGITAL")) {
+          Logger.log(`AVISO: Faca reportada, mas ID Único Faca (${idUnicoFaca}) não encontrado no pedido ou é DIGITAL.`);
+      } else {
+        const statusRetornado = _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, `[${tipo}] ${descricao}`);
+        Logger.log(`Problema logado na Faca ${idUnicoFaca}. Status de espera: ${statusRetornado}`);
+      }
+      aguardandoFaca = true;
+    } 
 
-    // 5. Atualiza a planilha
+    // 5. Determina o Novo Status para a linha do Pedido
+    if (aguardandoFaca && aguardandoCliche) {
+      novoStatus = "Aguardando Faca e Clichê";
+    } else if (aguardandoFaca) {
+      novoStatus = "Aguardando Faca";
+    } else if (aguardandoCliche) {
+      novoStatus = "Aguardando Clichê";
+    }
+
+    // 6. Formata o texto do problema
+    const textoProblema = `[${tipo}] ${descricao.trim()}`;
+
+    // 7. Atualiza a planilha Pedidos
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
 
     // Limpa a programação de produção
     abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_MAQUINA).clearContent();     // Col W
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_FILA).clearContent();        // Col X
     abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_IMPRESSOR).clearContent();  // Col AD
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_FILA).clearContent();
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_PROD).clearContent();        // Col X
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_PROD).clearContent(); // Col AL
 
     // Registra o problema e o novo status
     abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue(novoStatus);              // Col I
@@ -5672,14 +5862,11 @@ function registrarProblemaProducao(dadosDoProblema) {
 
     SpreadsheetApp.flush();
 
-    // ===============================================
-    // ==== INÍCIO DA ADIÇÃO DE E-MAIL (NOVO) ====
-    // ===============================================
+    // 8. Envia e-mail de notificação (Lógica simplificada, usa o mesmo e-mail)
     try {
-      // Busca dados para o e-mail (Cliente e Descrição do Produto)
       const dadosEmail = abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_CLIENTE, 1, 2).getDisplayValues()[0];
-      const cliente = dadosEmail[0]; // Col K
-      const descricaoProduto = dadosEmail[1]; // Col L
+      const cliente = dadosEmail[0];
+      const descricaoProduto = dadosEmail[1];
 
       const assunto = `ALERTA PRODUÇÃO: Pedido ${numPedido} com Problema`;
       const titulo = "Problema Reportado na Produção";
@@ -5688,6 +5875,7 @@ function registrarProblemaProducao(dadosDoProblema) {
         <p><strong>Nº Pedido:</strong> ${numPedido}</p>
         <p><strong>Cliente:</strong> ${cliente}</p>
         <p><strong>Produto:</strong> ${descricaoProduto}</p>
+        <p><strong>Ferramenta(s) Afetada(s):</strong> ${ferramenta}</p>
         <br>
         <p><strong>Novo Status:</strong> ${novoStatus}</p>
         <p><strong>Problema Reportado (Tipo):</strong> ${tipo}</p>
@@ -5696,35 +5884,23 @@ function registrarProblemaProducao(dadosDoProblema) {
           ${descricao.trim()}
         </p>
       `;
-      
-      // Envia o e-mail usando sua função centralizada
       enviarEmailSistema(assunto, titulo, corpoHtml);
-      Logger.log(`E-mail de problema de produção enviado para o pedido ${numPedido}.`);
 
     } catch (e) {
       Logger.log(`ERRO AO ENVIAR E-MAIL de problema de produção (Pedido ${numPedido}): ${e.message}`);
-      // Não lança erro, pois o registro principal já foi salvo.
     }
-    // ===============================================
-    // ==== FIM DA ADIÇÃO DE E-MAIL (NOVO) ====
-    // ===============================================
 
     return `Problema do Pedido ${numPedido} reportado. Status atualizado para '${novoStatus}'.`;
 
   } catch (e) {
     Logger.log(`Erro ao registrar problema de produção: ${e.message}`);
-    throw new Error(e.message); // Repassa o erro para o front-end
+    throw new Error(e.message);
   } finally {
     lock.releaseLock();
   }
 }
 
-/**
- * FUNÇÃO AUXILIAR: Busca um pedido pelo número e retorna sua linha.
- * @param {string} numPedido O número do pedido.
- * @returns {number} A linha da planilha (base 1).
- * @throws {Error} Se o pedido não for encontrado, ou se já estiver Concluído/Cancelado.
- */
+
 function getLinhaPedidoPeloNumero(numPedido) {
   const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
   // Lê da Col A (Nº Pedido) até a Col I (Status)
@@ -7505,6 +7681,68 @@ function reportarProblemaCliche(idCliche, idsLaminas, motivoProblema) {
   }
 }
 
+// CÓDIGO.gs (Adicione esta nova função em um local apropriado)
+
+/**
+ * NOVO: Busca IDs e listas necessárias para o modal de Reporte Integrado.
+ * @param {string} numPedido - Número do Pedido.
+ * @returns {object} Dados do Clichê/Faca vinculados ao pedido.
+ */
+function getDadosInsumosParaReporte(numPedido) {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    const abaLaminas = ss.getSheetByName(NOME_ABA_CLICHE_LAMINAS);
+    
+    // 1. Achar a linha do pedido para pegar o ID do Clichê/Faca
+    const dadosPedido = buscarDadosPedido(numPedido);
+    if (!dadosPedido.sucesso) {
+        throw new Error(`Pedido ${numPedido} não encontrado.`);
+    }
+    const linhaPlanilha = dadosPedido.linhaPlanilha;
+
+    // Lendo as colunas AU (ID_Cliche) e AV (ID_Unico_Faca)
+    const insumos = _buscarInsumosPedido(linhaPlanilha); // Reutiliza o helper existente
+
+    // 2. Buscar Lâminas do Clichê (se houver ID)
+    let laminasDoCliche = [];
+    if (insumos.idCliche && insumos.idCliche !== "N/A") {
+        if (abaLaminas.getLastRow() > 1) {
+            // Lendo todas as lâminas e filtrando no JS para performance
+            const dadosLaminas = abaLaminas.getRange(2, 1, abaLaminas.getLastRow() - 1, 6).getValues(); 
+            for (const lamina of dadosLaminas) {
+                if (lamina[1] === insumos.idCliche) { // Col B = ID_Cliche
+                    laminasDoCliche.push({
+                        idLamina: lamina[0],
+                        estacao: lamina[2],
+                        tipoLamina: lamina[3],
+                        statusLamina: lamina[5]
+                    });
+                }
+            }
+        }
+    }
+    
+    // 3. Buscar listas de motivos (reutilizando listas do Gestão Facas)
+    const tiposProblemaFaca = [
+        "Desgaste por Uso", "Faca Cega/Corte insuficiente", 
+        "Degolando Liner", "Faca com Dente", "Outro (descrever)"
+    ];
+    const tiposProblemaCliche = [
+        "Falha de tonalidade", "Erro de gravação", "Clichê com desgaste", 
+        "Descolamento de Base", "Outro (descrever)"
+    ];
+
+    return {
+        idCliche: insumos.idCliche,
+        laminasDoCliche: laminasDoCliche,
+        idUnicoFaca: insumos.idUnicoFaca,
+        codFacaModelo: insumos.codFacaModelo,
+        tiposProblemaCliche: tiposProblemaCliche,
+        tiposProblemaFaca: tiposProblemaFaca,
+        numPedido: dadosPedido.numPedido // Retorna o número limpo para o front
+    };
+}
+
 
 function abrirFormGestaoFacas() {
   const html = HtmlService.createTemplateFromFile("FormGestaoFacas");
@@ -7539,12 +7777,6 @@ function abrirFormGestaoFacas() {
   );
 }
 
-
-/**
- * (SUBSTITUA SUA FUNÇÃO 'buscarDadosIniciaisFacas' POR ESTA)
- * * MOTIVO: Corrigido o erro "is not defined" e adicionada a leitura
- * da nova coluna G (Observacao).
- */
 function buscarDadosIniciaisFacas() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const abaModelos = ss.getSheetByName(NOME_ABA_FACAS_MODELOS);
@@ -7637,18 +7869,36 @@ function buscarDadosIniciaisFacas() {
 
   // 5. Buscar Log_Uso_Facas (Histórico de Uso)
   const facasLogUso = {};
+  
+  // NOVO: Criar mapa de detalhes de pedidos (busca o Cód. Produto, Cliente e Descrição)
+  const mapaDetalhesPedidos = _criarMapaDetalhesPedidos();
+  
   if (abaLogUso.getLastRow() > 1) {
+    // Lê 4 colunas (Data_Uso, Num_Pedido_Feira, ID_Unico_Faca, Metros_Consumidos)
     const dadosLog = abaLogUso.getRange(2, 1, abaLogUso.getLastRow() - 1, 4).getDisplayValues();
     for (const linha of dadosLog) {
       const idUnico = linha[2]; // Col C (ID_Unico_Faca)
       if (!idUnico) continue;
       if (!facasLogUso[idUnico]) facasLogUso[idUnico] = [];
       
+      const numPedido = linha[1]; // Col B (Num_Pedido_Feira)
+      
+      // CORREÇÃO DE ERRO: Garante que o valor é uma string antes de tentar 'replace' e 'parseFloat'
+      const metrosConsumidosRaw = linha[3];
+      const metrosConsumidos = parseFloat(String(metrosConsumidosRaw || "").replace(',', '.')) || 0;
+      
+      // Enriquecer o log com os detalhes do Pedido
+      const detalhes = mapaDetalhesPedidos[numPedido] || { codProduto: 'N/A', cliente: 'N/A', descricaoProduto: 'Pedido não encontrado' };
+
       facasLogUso[idUnico].push({
         dataUso: linha[0],
-        numPedidoFeira: linha[1],
+        numPedidoFeira: numPedido,
         idUnicoFaca: linha[2],
-        metrosConsumidos: parseFloat(linha[3]) || 0
+        metrosConsumidos: metrosConsumidos,
+        // CAMPOS ADICIONADOS
+        codProduto: detalhes.codProduto,
+        nomeCliente: detalhes.cliente,
+        descricaoProduto: detalhes.descricaoProduto
       });
     }
   }
@@ -8435,4 +8685,34 @@ function _atualizarPedidosPendentesPorInsumo(idClicheRecebido, idFacaModeloReceb
   } catch (e) {
     Logger.log(`ERRO GRAVE em _atualizarPedidosPendentesPorInsumo: ${e.message} ${e.stack}`);
   }
+}
+
+function _criarMapaDetalhesPedidos() {
+    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    if (!abaPedidos || abaPedidos.getLastRow() < 2) return {};
+
+    // Lê Col A (Num Pedido), Col J (Cod Prod), Col K (Cliente), Col L (Descricao)
+    const COL_START = COL_PEDIDO_NUMERO; // 1
+    const COL_END = COL_PEDIDO_DESCRICAO; // 12 (L)
+    const dados = abaPedidos.getRange(2, COL_START, abaPedidos.getLastRow() - 1, COL_END).getDisplayValues();
+    
+    const mapa = {};
+    
+    for (const linha of dados) {
+        // CORREÇÃO: Usa String() para garantir que é uma string antes de trim()
+        const numPedido = String(linha[COL_PEDIDO_NUMERO - 1] || "").trim();
+        if (!numPedido) continue; // Pula se o número do pedido for vazio
+        
+        // CORREÇÃO: Usa String() e || "" para evitar undefined e forçar a ser string
+        const codProduto = String(linha[COL_PEDIDO_PRODUTO_CODIGO - 1] || "");
+        const cliente = String(linha[COL_PEDIDO_CLIENTE - 1] || "");
+        const descricao = String(linha[COL_PEDIDO_DESCRICAO - 1] || "");
+
+        mapa[numPedido] = {
+            codProduto: codProduto,
+            cliente: cliente,
+            descricaoProduto: descricao
+        };
+    }
+    return mapa;
 }
