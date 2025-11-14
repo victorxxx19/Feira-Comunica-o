@@ -5706,7 +5706,7 @@ function _logarProblemaClicheProducao(idCliche, motivoProblema, idsLaminas = [])
     const abaMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE);
     const abaProblemas = ss.getSheetByName(NOME_ABA_CLICHE_PROBLEMAS);
     
-    const ehJogoInteiro = idsLaminas.length === 0;
+    const ehJogoInteiro = (idsLaminas.length === 0);
 
     // 1. Salva o registro na aba Cliche_Problemas
     const dataHoje = new Date();
@@ -5716,7 +5716,7 @@ function _logarProblemaClicheProducao(idCliche, motivoProblema, idsLaminas = [])
     abaProblemas.appendRow([
       idProblema, idCliche, dataHoje, 
       laminasAfetadasTexto, 
-      motivoProblema
+      String(motivoProblema) // 🚀 CORREÇÃO 2: Garante que o motivo é uma String quando salvo no log.
     ]);
 
     // 2. Atualiza Cliche_Laminas desse ID para "Danificada"
@@ -5727,17 +5727,21 @@ function _logarProblemaClicheProducao(idCliche, motivoProblema, idsLaminas = [])
     for (let i = 0; i < dadosLaminas.length; i++) {
         // Se a lâmina pertence ao clichê
         if (dadosLaminas[i][1] == idCliche) { 
+       
             const idLamina = dadosLaminas[i][0];
             const linhaLamina = i + 2;
             
             // Se for jogo inteiro OU a lâmina estiver na lista
+         
             if (ehJogoInteiro || setLaminas.has(idLamina)) {
                 rangesParaAtualizar.push(abaLaminas.getRange(linhaLamina, 6)); // Coluna F
+       
             }
         }
     }
 
     for (const range of rangesParaAtualizar) {
+        
         range.setValue("Danificada");
     }
   
@@ -5756,20 +5760,31 @@ function _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivoProblema) 
     const abaProblemas = ss.getSheetByName(NOME_ABA_FACAS_PROBLEMAS);
     
     // 1. Atualiza o Facas_Inventario para "Danificada"
-    const dadosInv = abaInventario.getRange(2, 1, abaInventario.getLastRow() - 1, 3).getValues(); // A-C
+    // 🚀 CORREÇÃO 3: Usa getDisplayValues() para garantir strings formatadas para comparação
+    const dadosInv = abaInventario.getRange(2, 1, abaInventario.getLastRow() - 1, 3).getDisplayValues(); // A-C
+    
+    let linhaInvParaAtualizar = -1;
+    
     for (let i = 0; i < dadosInv.length; i++) {
-        if (dadosInv[i][0] == idUnicoFaca) { // Col A
-            abaInventario.getRange(i + 2, 3).setValue("Danificada"); // Col C (Status)
+        // 🚀 CORREÇÃO 4: Compara strings limpas
+        if (String(dadosInv[i][0]).trim() === String(idUnicoFaca).trim()) { // Col A
+            linhaInvParaAtualizar = i + 2;
             break;
         }
     }
+    
+    if(linhaInvParaAtualizar === -1) {
+        throw new Error(`Erro Crítico: Item de inventário de faca "${idUnicoFaca}" não encontrado para danificar.`);
+    }
+
+    abaInventario.getRange(linhaInvParaAtualizar, 3).setValue("Danificada"); // Col C (Status)
     
     // 2. Salva o registro na aba Facas_Problemas
     const dataHoje = new Date();
     const idProblema = `PR-Faca-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
     abaProblemas.appendRow([
       idProblema, idUnicoFaca, dataHoje, 
-      motivoProblema // Salva o motivo formatado (ex: "[Desgaste por Uso] ...")
+      String(motivoProblema) // 🚀 CORREÇÃO 5: Garante que o motivo é String
     ]);
     
     // 3. Atualiza o status agregado do Modelo (o agregador vai decidir se fica "Indisponível")
@@ -5777,7 +5792,6 @@ function _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivoProblema) 
     
     return "Aguardando Faca";
 }
-
 
 /**
  * Função antiga (simples) de reporte, substituída pela versão Integrada.
@@ -5824,8 +5838,9 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
       if (!idCliche || idCliche.toUpperCase() === "N/A") {
          Logger.log(`AVISO: Clichê reportado, mas ID Clichê (${idCliche}) não encontrado no pedido.`);
       } else {
-        // CORREÇÃO: Monta o motivo combinado para o log
-        const motivo = `[${dadosIntegrados.tipoCliche}] ${dadosIntegrados.descCliche}`;
+        // 🚀 CORREÇÃO 6: Garante que o dado é uma string antes de concatenar (log)
+        const descCliche = String(dadosIntegrados.descCliche || "");
+        const motivo = `[${dadosIntegrados.tipoCliche}] ${descCliche}`;
         _logarProblemaClicheProducao(idCliche, motivo, idsLaminas); 
         problemasLogados.push(`Clichê (${idCliche}): ${dadosIntegrados.tipoCliche}`);
       }
@@ -5834,10 +5849,11 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
 
     if (logarFaca) {
       if (!idUnicoFaca || idUnicoFaca.toUpperCase().includes("DIGITAL") || idUnicoFaca.toUpperCase().includes("N/A")) {
-         Logger.log(`AVISO: Faca reportada, mas ID Único Faca (${idUnicoFaca}) não encontrado no pedido ou é DIGITAL.`);
+          Logger.log(`AVISO: Faca reportada, mas ID Único Faca (${idUnicoFaca}) não encontrado no pedido ou é DIGITAL. Pulando log da faca.`);
       } else {
-        // CORREÇÃO: Monta o motivo combinado para o log
-        const motivo = `[${dadosIntegrados.tipoFaca}] ${dadosIntegrados.descFaca}`;
+        // 🚀 CORREÇÃO 7: Garante que o dado é uma string antes de concatenar (log)
+        const descFaca = String(dadosIntegrados.descFaca || "");
+        const motivo = `[${dadosIntegrados.tipoFaca}] ${descFaca}`;
         _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivo);
         problemasLogados.push(`Faca (${idUnicoFaca}): ${dadosIntegrados.tipoFaca}`);
       }
@@ -5885,7 +5901,7 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
       const assunto = `ALERTA PRODUÇÃO: Pedido ${numPedido} com Problema (${ferramenta})`;
       const titulo = "Problema Reportado na Produção";
       const corpoHtml = `
-        <p>Um problema foi reportado na produção, e o pedido foi <strong>removido da fila</strong> e teve seu status alterado.</p>
+      <p>Um problema foi reportado na produção, e o pedido foi <strong>removido da fila</strong> e teve seu status alterado.</p>
         <p><strong>Nº Pedido:</strong> ${numPedido}</p>
         <p><strong>Cliente:</strong> ${cliente}</p>
         <p><strong>Produto:</strong> ${descricaoProduto}</p>
