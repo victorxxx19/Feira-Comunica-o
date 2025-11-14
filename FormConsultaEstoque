@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    
+    <style>
+        body { background-color: #f9faff; margin: 0; padding: 0 0 80px 0; }
+        
+        /* --- CORREÇÃO DE ALINHAMENTO --- */
+        main { 
+            padding: 20px 30px; 
+            max-width: 1400px; /* Limita a largura máxima */
+            margin: 0 auto;     /* Centraliza o conteúdo */
+        }
+        
+        .header-container {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 30px; background-color: #ffffff;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #0047BB, #C8E154) 1;
+        }
+        .header-container h4 {
+            font-size: 1.8rem; font-weight: 600; color: #0047BB;
+            display: flex; align-items: center; margin: 0;
+        }
+        .header-container h4 > i { font-size: 2.2rem; margin-right: 10px; }
+        
+        .section-card {
+            background: #ffffff; border-radius: 8px; padding: 25px;
+            margin-top: 25px; border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .section-title {
+            font-size: 1.5rem; font-weight: 500; color: #0047BB;
+            display: flex; align-items: center; margin: -5px 0 20px 0;
+        }
+        .section-title i { margin-right: 10px; font-size: 2rem; }
+        
+        /* Tabela */
+        .responsive-table {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .responsive-table thead th {
+            background-color: #0047BB;
+            color: #fff;
+            padding: 12px 10px;
+            text-align: center;
+            padding-left: 15px;
+        }
+        .responsive-table th.text-center, .responsive-table td.text-center {
+            text-align: center;
+        }
+        .responsive-table th.text-right, .responsive-table td.text-right {
+            text-align: right;
+            padding-right: 15px;
+            font-weight: 500;
+        }
+        .responsive-table tbody td {
+            padding: 10px 10px;
+            color: #333;
+            font-size: 0.95rem;
+            padding-left: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .responsive-table tbody tr.clickable:hover {
+            background-color: #e3f2fd;
+            cursor: pointer;
+        }
+        .responsive-table td.total-metragem {
+            color: #00695c;
+            font-weight: 700;
+        }
+
+        /* --- CORREÇÃO DE ALINHAMENTO: Filtro --- */
+        .filtro-container {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px 20px 0 20px; /* Padding ajustado */
+            margin-top: 15px;
+        }
+        /* Novo: Alinha os campos do filtro na base */
+        .filtro-container .row {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 0; /* Remove a margem padrão */
+        }
+        .filtro-container .input-field { 
+            margin-top: 5px; 
+            /* REMOVIDO: top: 20px !important; */
+        }
+        /* Novo: Ajusta a coluna do botão "Limpar" */
+        .filtro-container .input-field.col.m1 {
+             padding-bottom: 1rem; /* Alinha a base do botão com os selects */
+             text-align: right;
+        }
+        .filtro-container .select-wrapper input.select-dropdown:focus { border-bottom: 1px solid #0047BB !important; }
+        .dropdown-content li > span { color: #0047BB !important; }
+        .btn-flat { color: #0047BB !important; font-weight: 500; }
+        /* --- FIM DA CORREÇÃO DE FILTRO --- */
+
+        /* Loader */
+        #loader { text-align: center; padding: 40px; }
+        .msg-vazio { display:none; text-align:center; padding: 20px; font-style: italic; color: #777; }
+        
+        /* === ESTILOS DO MODAL (VERSÃO CORRIGIDA) === */
+        
+        .modal { 
+            max-height: 85%; 
+            width: 70%; 
+            max-width: 900px; 
+            overflow-y: auto !important;
+            display: flex; 
+            flex-direction: column;
+        }
+        .modal .modal-content {
+            padding: 0; 
+            height: 100%;
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+        
+        #modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #0047BB, #C8E154) 1;
+            flex-shrink: 0; 
+        }
+        #modal-header h4 { 
+            color: #0047BB; 
+            font-weight: 600; 
+            font-size: 1.8rem; 
+            margin: 0 0 5px 0;
+        }
+        #modal-header p { 
+            color: #555; 
+            font-size: 1.1rem; 
+            margin: 0;
+        }
+
+        #modal-corpo {
+            padding: 20px 24px;
+            flex: 1 1 auto; 
+            overflow-y: auto; 
+        }
+        
+        #modal-corpo table {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+        #modal-corpo th {
+            background-color: #0047BB;
+            color: #fff;
+            padding: 12px 10px;
+            text-align: center;
+        }
+        #modal-corpo td {
+            padding: 10px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        #modal-corpo th.text-center, #modal-corpo td.text-center {
+             text-align: center;
+        }
+         #modal-corpo th.text-right, #modal-corpo td.text-right {
+             text-align: right;
+             padding-right: 15px;
+        }
+        #modal-corpo tr:nth-child(even) {
+            background-color: #f5f7fa;
+        }
+        
+        .modal-footer {
+            background-color: #f5f7fa;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0; 
+        }
+        .modal-footer .btn-secundario {
+             background-color: #C8E154 !important; color: #333 !important;
+        }
+        .modal-footer .btn-secundario:hover {
+            background-color: #afc741 !important;
+        }
+
+        /* --- CSS DE IMPRESSÃO --- */
+        @media print {
+            body > *:not(#modal-detalhes) {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            html, body {
+                visibility: visible !important;
+                height: auto !important;
+                width: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            #modal-detalhes, 
+            #modal-detalhes .modal-content, 
+            #modal-corpo {
+                visibility: visible !important;
+                display: block !important; 
+                position: static !important;
+                width: 100% !important;
+                height: auto !important; 
+                max-height: none !important;
+                min-height: 0 !important;
+                overflow: visible !important; 
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .modal-footer, #modal-loader { 
+                display: none !important; 
+            }
+            #modal-header { 
+                padding: 20px 0; 
+                border-bottom: 2px solid #333; 
+            }
+            #modal-header h4, #modal-header p { 
+                text-align: center; 
+            }
+            #modal-corpo { 
+                padding: 10px 0 0 0; 
+            }
+            table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                page-break-inside: auto;
+            }
+            tr { 
+                page-break-inside: avoid; 
+                page-break-after: auto; 
+            }
+            th, td { 
+                border: 1px solid #ccc; 
+                padding: 8px 5px !important; 
+                text-align: center !important; 
+                font-size: 9pt !important; 
+            }
+            th { 
+                background-color: #eee !important; 
+                color: #000 !important; 
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-container">
+        <h4>
+            <i class="material-icons">inventory</i>
+            Consulta de Estoque
+        </h4>
+    </div>
+
+    <main>
+        <div class="filtro-container">
+            <div class="row">
+                <div class="input-field col s12 m4">
+                    <select id="filtro-substrato">
+                        <option value="" selected>Todos os Substratos</option>
+                    </select>
+                    <label>Filtrar por Substrato</label>
+                </div>
+                <div class="input-field col s12 m4">
+                    <select id="filtro-cola">
+                        <option value="" selected>Todas as Colas</option>
+                    </select>
+                    <label>Filtrar por Tipo de Cola</label>
+                </div>
+                <div class="input-field col s12 m3">
+                    <select id="filtro-fornecedor">
+                        <option value="" selected>Todos os Fornecedores</option>
+                    </select>
+                    <label>Filtrar por Fornecedor</label>
+                </div>
+                <div class="input-field col s12 m1">
+                    <button id="btn-limpar-filtros" class="btn-flat waves-effect">LIMPAR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loader">
+            <div class="preloader-wrapper big active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left"><div class="circle"></div></div>
+                    <div class="gap-patch"><div class="circle"></div></div>
+                    <div class="circle-clipper right"><div class="circle"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="conteudo-estoque" style="display:none;">
+            
+            <div class="section-card">
+                <h5 class="section-title"><i class="material-icons">view_carousel</i>Estoque Pronto para Uso (Bobinas-Filhas)</h5>
+                <div class="responsive-table">
+                    <table id="tabela-filha" class="highlight">
+                        <thead>
+                            <tr>
+                                <th>Substrato</th>
+                                <th>Tipo de Cola</th>
+                                <th>Fornecedor</th>
+                                <th class="text-center">Largura (m)</th>
+                                <th class="text-center">Qtd. Bobinas</th>
+                                <th class="text-right">Metragem Total (m)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-filha-corpo"></tbody>
+                    </table>
+                </div>
+                <p id="msg-sem-filha" class="msg-vazio">Nenhuma bobina-filha encontrada com os filtros selecionados.</p>
+            </div>
+
+            <div class="section-card">
+                <h5 class="section-title"><i class="material-icons">view_module</i>Estoque Bruto (Bobinas-Mãe)</h5>
+                <div class="responsive-table">
+                    <table id="tabela-mae" class="highlight">
+                        <thead>
+                            <tr>
+                                <th>Substrato</th>
+                                <th>Tipo de Cola</th>
+                                <th>Fornecedor</th>
+                                <th class="text-center">Qtd. Bobinas</th>
+                                <th class="text-right">Largura Total (m)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-mae-corpo"></tbody>
+                    </table>
+                </div>
+                <p id="msg-sem-mae" class="msg-vazio">Nenhuma bobina-mãe encontrada com os filtros selecionados.</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-detalhes" class="modal" style="display: none;"> 
+      <div class="modal-content">
+        
+        <div id="modal-header">
+          <h4 id="modal-titulo">Detalhes do Lote</h4>
+          <p id="modal-subtitulo">...</p>
+        </div>
+        
+        <div id="modal-loader" style="text-align:center; padding: 20px; display: none;">
+          <div class="preloader-wrapper active">
+            <div class="spinner-layer spinner-blue-only">
+              <div class="circle-clipper left"><div class="circle"></div></div>
+              <div class="gap-patch"><div class="circle"></div></div>
+              <div class="circle-clipper right"><div class="circle"></div></div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="modal-corpo">
+          </div>
+
+      </div>
+      <div class="modal-footer">
+        <button onclick="imprimirModal()" class="btn waves-effect waves-light btn-secundario">
+          <i class="material-icons left">print</i>Imprimir
+        </button>
+        <button class="modal-close btn-flat waves-effect">Fechar</button>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+        let globalCache = {
+            bobinasMae: [],
+            bobinasFilhas: [],
+            substratos: new Set(),
+            fornecedores: new Set(),
+            colas: new Set()
+        };
+        let modalInstance; 
+
+        document.addEventListener("DOMContentLoaded", function() {
+            M.FormSelect.init(document.querySelectorAll('select'));
+            modalInstance = M.Modal.init(document.getElementById('modal-detalhes')); 
+            
+            carregarDados();
+            
+            document.getElementById('filtro-substrato').addEventListener('change', renderizarTabelas);
+            document.getElementById('filtro-fornecedor').addEventListener('change', renderizarTabelas);
+            // --- CORREÇÃO: Faltava o listener do filtro de cola ---
+            document.getElementById('filtro-cola').addEventListener('change', renderizarTabelas);
+            document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
+        });
+
+        function carregarDados() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('conteudo-estoque').style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(onDadosCarregados)
+                .withFailureHandler(onFailure)
+                .getResumoDeEstoqueAgrupado();
+        }
+
+        function onDadosCarregados(dados) {
+            document.getElementById('loader').style.display = 'none';
+            
+            if (dados.sucesso) {
+                // A função de backend (versão corrigida) retorna 'bobinasMae' e 'bobinasFilhas'
+                globalCache.bobinasMae = dados.bobinasMae || [];
+                globalCache.bobinasFilhas = dados.bobinasFilhas || [];
+
+                (dados.bobinasMae || []).forEach(b => {
+                    if (b.substrato) globalCache.substratos.add(b.substrato);
+                    if (b.fornecedor) globalCache.fornecedores.add(b.fornecedor);
+                    if (b.tipoDeCola) globalCache.colas.add(b.tipoDeCola);
+                });
+                (dados.bobinasFilhas || []).forEach(b => {
+                    if (b.substrato) globalCache.substratos.add(b.substrato);
+                    if (b.fornecedor) globalCache.fornecedores.add(b.fornecedor);
+                    if (b.tipoDeCola) globalCache.colas.add(b.tipoDeCola);
+                });
+                
+                popularFiltros();
+                renderizarTabelas(); 
+                document.getElementById('conteudo-estoque').style.display = 'block';
+            } else {
+                onFailure({ message: dados.mensagem });
+            }
+        }
+        
+        function popularFiltros() {
+            const selSubstrato = document.getElementById('filtro-substrato');
+            const selFornecedor = document.getElementById('filtro-fornecedor');
+            const selCola = document.getElementById('filtro-cola');
+            
+            Array.from(globalCache.substratos).sort().forEach(s => {
+                selSubstrato.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+            
+            Array.from(globalCache.fornecedores).sort().forEach(f => {
+                selFornecedor.innerHTML += `<option value="${f}">${f}</option>`;
+            });
+
+            Array.from(globalCache.colas).sort().forEach(c => {
+                selCola.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+            
+            M.FormSelect.init(document.querySelectorAll('select'));
+        }
+
+        function renderizarTabelas() {
+            const filtroSubstrato = document.getElementById('filtro-substrato').value;
+            const filtroFornecedor = document.getElementById('filtro-fornecedor').value;
+            const filtroCola = document.getElementById('filtro-cola').value;
+            
+            renderizarTabelaFilha(filtroSubstrato, filtroFornecedor, filtroCola);
+            renderizarTabelaMae(filtroSubstrato, filtroFornecedor, filtroCola);
+        }
+
+        function renderizarTabelaFilha(filtroSubstrato, filtroFornecedor, filtroCola) {
+            const corpoFilha = document.getElementById('tabela-filha-corpo');
+            corpoFilha.innerHTML = "";
+            let htmlFilha = "";
+            let countFilha = 0;
+
+            globalCache.bobinasFilhas.forEach(b => {
+                if (filtroSubstrato && b.substrato !== filtroSubstrato) return;
+                if (filtroFornecedor && b.fornecedor !== filtroFornecedor) return;
+                if (filtroCola && b.tipoDeCola !== filtroCola) return;
+
+                htmlFilha += `
+                    <tr class="clickable" onclick="abrirModalFilha('${b.substrato}', '${b.tipoDeCola}', '${b.fornecedor}', '${b.largura}')">
+                        <td>${b.substrato}</td>
+                        <td>${b.tipoDeCola}</td>
+                        <td>${b.fornecedor}</td>
+                        <td class="text-center">${b.largura} m</td>
+                        <td class="text-center">${b.qtd}</td>
+                        <td class="text-right total-metragem">${b.metragemTotal.toLocaleString('pt-BR', {maximumFractionDigits: 0})} m</td>
+                    </tr>`;
+                countFilha++;
+            });
+            corpoFilha.innerHTML = htmlFilha;
+            document.getElementById('msg-sem-filha').style.display = (countFilha === 0) ? 'block' : 'none';
+        }
+
+        function renderizarTabelaMae(filtroSubstrato, filtroFornecedor, filtroCola) {
+            const corpoMae = document.getElementById('tabela-mae-corpo');
+            corpoMae.innerHTML = "";
+            let htmlMae = "";
+            let countMae = 0;
+
+            globalCache.bobinasMae.forEach(b => {
+                if (filtroSubstrato && b.substrato !== filtroSubstrato) return;
+                if (filtroFornecedor && b.fornecedor !== filtroFornecedor) return;
+                if (filtroCola && b.tipoDeCola !== filtroCola) return;
+            
+                htmlMae += `
+                    <tr class="clickable" onclick="abrirModalMae('${b.substrato}', '${b.tipoDeCola}', '${b.fornecedor}')">
+                        <td>${b.substrato}</td>
+                        <td>${b.tipoDeCola}</td>
+                        <td>${b.fornecedor}</td>
+                        <td class="text-center">${b.qtd}</td>
+                        <td class="text-right total-metragem">${b.larguraTotal.toLocaleString('pt-BR', {maximumFractionDigits: 3})} m</td>
+                    </tr>`;
+                countMae++;
+            });
+            corpoMae.innerHTML = htmlMae;
+            document.getElementById('msg-sem-mae').style.display = (countMae === 0) ? 'block' : 'none';
+        }
+        
+        function limparFiltros() {
+            document.getElementById('filtro-substrato').value = "";
+            document.getElementById('filtro-fornecedor').value = "";
+            document.getElementById('filtro-cola').value = "";
+            M.FormSelect.init(document.querySelectorAll('select'));
+            renderizarTabelas();
+        }
+
+        function onFailure(erro) {
+            document.getElementById('loader').style.display = 'none';
+            M.toast({html: 'Erro fatal: ' + erro.message, classes: 'red darken-2', displayLength: 5000});
+        }
+        
+        function abrirModalMae(substrato, tipoDeCola, fornecedor) {
+            document.getElementById('modal-titulo').innerText = "Detalhe do Estoque Bruto (Mãe)";
+            document.getElementById('modal-subtitulo').innerText = `${substrato} - ${fornecedor} - ${tipoDeCola}`; // Adicionado Tipo de Cola
+            document.getElementById('modal-corpo').innerHTML = ""; 
+            document.getElementById('modal-loader').style.display = 'block';
+            modalInstance.open();
+            
+            google.script.run
+                .withSuccessHandler(onModalMaeSuccess)
+                .withFailureHandler(onModalFailure)
+                .getDetalhesLoteMae(substrato, tipoDeCola, fornecedor);
+        }
+        
+        function onModalMaeSuccess(dados) {
+            document.getElementById('modal-loader').style.display = 'none';
+            if (!dados.sucesso) {
+                onModalFailure({ message: dados.mensagem });
+                return;
+            }
+            
+            let html = `
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th>Lote do Fornecedor</th>
+                            <th class="text-center">Qtd. Bobinas</th>
+                            <th class="text-right">Largura Total Disp. (m)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            dados.detalhes.forEach(lote => {
+                html += `
+                    <tr>
+                        <td>${lote.lote}</td>
+                        <td class="text-center">${lote.qtd}</td>
+                        <td class="text-right">${lote.larguraTotal.toLocaleString('pt-BR', {maximumFractionDigits: 3})} m</td>
+                    </tr>`;
+            });
+            
+            html += "</tbody></table>";
+            document.getElementById('modal-corpo').innerHTML = html;
+        }
+
+        function abrirModalFilha(substrato, tipoDeCola, fornecedor, largura) {
+            document.getElementById('modal-titulo').innerText = "Detalhe do Estoque Pronto (Filha)";
+            document.getElementById('modal-subtitulo').innerText = `${substrato} - ${forneDOR} - ${tipoDeCola} (${largura}m)`; // Adicionado Tipo de Cola
+            document.getElementById('modal-corpo').innerHTML = ""; 
+            document.getElementById('modal-loader').style.display = 'block';
+            modalInstance.open();
+            
+            google.script.run
+                .withSuccessHandler(onModalFilhaSuccess)
+                .withFailureHandler(onModalFailure)
+                .getDetalhesBobinaFilha(substrato, tipoDeCola, fornecedor, largura);
+        }
+        
+        function onModalFilhaSuccess(dados) {
+            document.getElementById('modal-loader').style.display = 'none';
+            if (!dados.sucesso) {
+                onModalFailure({ message: dados.mensagem });
+                return;
+            }
+            
+            let html = `
+                <table class="striped">
+                    <thead>
+                        <tr>
+                            <th>ID Bobina-Filha</th>
+                            <th>Lote</th>
+                            <th class="text-right">Metragem Disp. (m)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            dados.detalhes.forEach(bobina => {
+                html += `
+                    <tr>
+                        <td>${bobina.idBobinaFilha}</td>
+                        <td>${bobina.lote}</td>
+                        <td class="text-right">${bobina.saldoReal.toLocaleString('pt-BR', {maximumFractionDigits: 0})} m</td>
+                    </tr>`;
+            });
+            
+            html += "</tbody></table>";
+            document.getElementById('modal-corpo').innerHTML = html;
+        }
+        
+        function onModalFailure(erro) {
+            document.getElementById('modal-loader').style.display = 'none';
+            document.getElementById('modal-corpo').innerHTML = `<p class="red-text">Erro ao carregar detalhes: ${erro.message}</p>`;
+        }
+        
+        function imprimirModal() {
+            window.print();
+        }
+        
+    </script>
+</body>
+</html>
