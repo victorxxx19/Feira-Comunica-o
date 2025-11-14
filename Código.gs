@@ -5668,11 +5668,7 @@ function abrirFormDashboard() {
   SpreadsheetApp.getUi().showModalDialog(html, " ");
 }
 
-// CÓDIGO.gs (Adicione estas novas funções auxiliares em um local apropriado)
 
-/**
- * NOVO: Helper para buscar IDs de Insumos (Clichê, Faca) de um pedido.
- */
 function _buscarInsumosPedido(linhaPlanilha) {
   const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
   // Lendo as colunas AU (47) e AV (48)
@@ -5696,118 +5692,7 @@ function _buscarInsumosPedido(linhaPlanilha) {
   };
 }
 
-/**
- * FUNÇÃO AUXILIAR: Loga o problema do Clichê, danifica as lâminas e retorna o novo status.
- * MODIFICADO para receber IDs de Lâmina (ou array vazio para Jogo Inteiro).
- */
-function _logarProblemaClicheProducao(idCliche, motivoProblema, idsLaminas = []) {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const abaLaminas = ss.getSheetByName(NOME_ABA_CLICHE_LAMINAS);
-    const abaMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE);
-    const abaProblemas = ss.getSheetByName(NOME_ABA_CLICHE_PROBLEMAS);
-    
-    const ehJogoInteiro = (idsLaminas.length === 0);
 
-    // 1. Salva o registro na aba Cliche_Problemas
-    const dataHoje = new Date();
-    const idProblema = `PR-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
-    const laminasAfetadasTexto = ehJogoInteiro ? 'Jogo Inteiro (Produção)' : idsLaminas.join(', ');
-
-    abaProblemas.appendRow([
-      idProblema, idCliche, dataHoje, 
-      laminasAfetadasTexto, 
-      String(motivoProblema) // 🚀 CORREÇÃO 2: Garante que o motivo é uma String quando salvo no log.
-    ]);
-
-    // 2. Atualiza Cliche_Laminas desse ID para "Danificada"
-    const dadosLaminas = abaLaminas.getRange(2, 1, abaLaminas.getLastRow() - 1, 6).getValues();
-    const rangesParaAtualizar = [];
-    const setLaminas = new Set(idsLaminas);
-    
-    for (let i = 0; i < dadosLaminas.length; i++) {
-        // Se a lâmina pertence ao clichê
-        if (dadosLaminas[i][1] == idCliche) { 
-       
-            const idLamina = dadosLaminas[i][0];
-            const linhaLamina = i + 2;
-            
-            // Se for jogo inteiro OU a lâmina estiver na lista
-         
-            if (ehJogoInteiro || setLaminas.has(idLamina)) {
-                rangesParaAtualizar.push(abaLaminas.getRange(linhaLamina, 6)); // Coluna F
-       
-            }
-        }
-    }
-
-    for (const range of rangesParaAtualizar) {
-        
-        range.setValue("Danificada");
-    }
-  
-    // 3. Re-calcula o status mestre
-    _verificarEAtualizarStatusMestre(idCliche, abaMestre, abaLaminas);
-    
-    return "Aguardando Clichê";
-}
-
-/**
- * FUNÇÃO AUXILIAR: Loga o problema da Faca, danifica o item e retorna o novo status.
- */
-function _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivoProblema) {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const abaInventario = ss.getSheetByName(NOME_ABA_FACAS_INVENTARIO);
-    const abaProblemas = ss.getSheetByName(NOME_ABA_FACAS_PROBLEMAS);
-    
-    // 1. Atualiza o Facas_Inventario para "Danificada"
-    // 🚀 CORREÇÃO 3: Usa getDisplayValues() para garantir strings formatadas para comparação
-    const dadosInv = abaInventario.getRange(2, 1, abaInventario.getLastRow() - 1, 3).getDisplayValues(); // A-C
-    
-    let linhaInvParaAtualizar = -1;
-    
-    for (let i = 0; i < dadosInv.length; i++) {
-        // 🚀 CORREÇÃO 4: Compara strings limpas
-        if (String(dadosInv[i][0]).trim() === String(idUnicoFaca).trim()) { // Col A
-            linhaInvParaAtualizar = i + 2;
-            break;
-        }
-    }
-    
-    if(linhaInvParaAtualizar === -1) {
-        throw new Error(`Erro Crítico: Item de inventário de faca "${idUnicoFaca}" não encontrado para danificar.`);
-    }
-
-    abaInventario.getRange(linhaInvParaAtualizar, 3).setValue("Danificada"); // Col C (Status)
-    
-    // 2. Salva o registro na aba Facas_Problemas
-    const dataHoje = new Date();
-    const idProblema = `PR-Faca-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
-    abaProblemas.appendRow([
-      idProblema, idUnicoFaca, dataHoje, 
-      String(motivoProblema) // 🚀 CORREÇÃO 5: Garante que o motivo é String
-    ]);
-    
-    // 3. Atualiza o status agregado do Modelo (o agregador vai decidir se fica "Indisponível")
-    _atualizarStatusAgregadoFaca(codFacaModelo);
-    
-    return "Aguardando Faca";
-}
-
-/**
- * Função antiga (simples) de reporte, substituída pela versão Integrada.
- * O FormProducao.html foi atualizado para chamar 'registrarProblemaProducaoIntegrado'.
- */
-function registrarProblemaProducao(dadosDoProblema) { 
-  // Esta função é a versão antiga/simples. A nova é a "Integrada". 
-  // O FormProducao.html foi atualizado para chamar 'registrarProblemaProducaoIntegrado'.
-  throw new Error("Erro: Chamada à função de reporte simples. Use a função 'registrarProblemaProducaoIntegrado'.");
-}
-
-
-/**
- * NOVO (V5.0): Registra um problema de produção de forma integrada (Clichê, Faca ou Ambos).
- * @param {object} dadosIntegrados - Dados do formulário do frontend.
- */
 function registrarProblemaProducaoIntegrado(dadosIntegrados) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) {
@@ -5820,8 +5705,18 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
     // 1. Validação e Busca de Linha
     const linhaPlanilha = getLinhaPedidoPeloNumero(numPedido);
     
-    // 2. Busca IDs de Insumos (do pedido na linhaPlanilha)
-    const { idCliche, idUnicoFaca, codFacaModelo } = _buscarInsumosPedido(linhaPlanilha);
+    // 🚀 CORREÇÃO 1: USA OS IDs QUE VIERAM DO FRONTEND (dadosIntegrados)
+    let idCliche = dadosIntegrados.idCliche || "";
+    let idUnicoFaca = dadosIntegrados.idUnicoFaca || "";
+    let codFacaModelo = dadosIntegrados.codFacaModelo || "";
+    
+    // 🚀 NOVO: Se não vieram do frontend, busca da linha do pedido (fallback)
+    if (!idCliche || !idUnicoFaca || !codFacaModelo) {
+      const insumosPedido = _buscarInsumosPedido(linhaPlanilha);
+      idCliche = idCliche || insumosPedido.idCliche;
+      idUnicoFaca = idUnicoFaca || insumosPedido.idUnicoFaca;
+      codFacaModelo = codFacaModelo || insumosPedido.codFacaModelo;
+    }
     
     // 3. Determina quais insumos precisam ser logados/danificados
     const logarClichê = (ferramenta === "Clichê" || ferramenta === "Ambos");
@@ -5831,18 +5726,31 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
     let aguardandoFaca = false;
     let aguardandoCliche = false;
     
-    const problemasLogados = [];
+    const fullLogText = []; // Array para salvar a descrição completa
     
     // 4. Loga e danifica os insumos específicos
     if (logarClichê) {
       if (!idCliche || idCliche.toUpperCase() === "N/A") {
-         Logger.log(`AVISO: Clichê reportado, mas ID Clichê (${idCliche}) não encontrado no pedido.`);
+          Logger.log(`AVISO: Clichê reportado, mas ID Clichê (${idCliche}) não encontrado no pedido.`);
       } else {
-        // 🚀 CORREÇÃO 6: Garante que o dado é uma string antes de concatenar (log)
-        const descCliche = String(dadosIntegrados.descCliche || "");
-        const motivo = `[${dadosIntegrados.tipoCliche}] ${descCliche}`;
-        _logarProblemaClicheProducao(idCliche, motivo, idsLaminas); 
-        problemasLogados.push(`Clichê (${idCliche}): ${dadosIntegrados.tipoCliche}`);
+        // 🚀 CORREÇÃO 2: GARANTE que descCliche não seja undefined
+        const tipoCliche = dadosIntegrados.tipoCliche || "Problema Não Especificado";
+        const descCliche = String(dadosIntegrados.descCliche || "Sem descrição fornecida").trim();
+        
+        // 🚀 CORREÇÃO 3: Valida se a descrição foi preenchida
+        if (descCliche.length < 5) {
+          throw new Error(`Erro: A descrição do problema do Clichê está vazia ou muito curta (${descCliche.length} caracteres). Mínimo: 5 caracteres.`);
+        }
+        
+        const motivoCompleto = `${tipoCliche}: ${descCliche}`;
+        
+        // =================================================================
+        // ✅✅✅ ALTERAÇÃO PRINCIPAL ✅✅✅
+        // Chama a função principal que já salva na aba Cliche_Problemas e atualiza status
+        reportarProblemaCliche(idCliche, idsLaminas, motivoCompleto);
+        // =================================================================
+        
+        fullLogText.push(`CLICHÊ (${idCliche}) - ${motivoCompleto}`);
       }
       aguardandoCliche = true;
     }
@@ -5851,12 +5759,30 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
       if (!idUnicoFaca || idUnicoFaca.toUpperCase().includes("DIGITAL") || idUnicoFaca.toUpperCase().includes("N/A")) {
           Logger.log(`AVISO: Faca reportada, mas ID Único Faca (${idUnicoFaca}) não encontrado no pedido ou é DIGITAL. Pulando log da faca.`);
       } else {
-        // 🚀 CORREÇÃO 7: Garante que o dado é uma string antes de concatenar (log)
-        const descFaca = String(dadosIntegrados.descFaca || "");
-        const motivo = `[${dadosIntegrados.tipoFaca}] ${descFaca}`;
-        _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivo);
-        problemasLogados.push(`Faca (${idUnicoFaca}): ${dadosIntegrados.tipoFaca}`);
+        // 🚀 CORREÇÃO 4: GARANTE que descFaca não seja undefined
+        const tipoFaca = dadosIntegrados.tipoFaca || "Problema Não Especificado";
+        const descFaca = String(dadosIntegrados.descFaca || "Sem descrição fornecida").trim();
+        
+        // 🚀 CORREÇÃO 5: Valida se a descrição foi preenchida
+        if (descFaca.length < 5) {
+          throw new Error(`Erro: A descrição do problema da Faca está vazia ou muito curta (${descFaca.length} caracteres). Mínimo: 5 caracteres.`);
+        }
+        
+        const motivoCompleto = `${tipoFaca}: ${descFaca}`;
+        
+        // =================================================================
+        // ✅✅✅ ALTERAÇÃO PRINCIPAL ✅✅✅
+        // Chama a função principal que já salva na aba Facas_Problemas E atualiza o Inventário
+        reportarProblemaFaca(idUnicoFaca, motivoCompleto);
+        
+        // 🚀 As funções abaixo tornam-se redundantes e podem ser removidas
+        // _logarProblemaFacaProducao(idUnicoFaca, codFacaModelo, motivoCompleto);
+        // _alterarStatusFacaInventario(idUnicoFaca, "Danificada");
+        // =================================================================
+        
+        fullLogText.push(`FACA (${idUnicoFaca}) - ${motivoCompleto}`);
       }
+      
       aguardandoFaca = true;
     } 
 
@@ -5868,29 +5794,33 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
     } else if (aguardandoCliche) {
       novoStatus = "Aguardando Clichê";
     }
+  
+    // 🚀 CORREÇÃO 8: Salva a descrição completa na Coluna AI (com validação)
+    const textoProblema = fullLogText.length > 0 ? fullLogText.join(' | ') : "Problema reportado sem detalhes.";
     
-    // Formata o texto do problema para salvar no Pedido (Col AI)
-    const textoProblema = problemasLogados.join(' | ');
+    Logger.log(`📝 TEXTO DO PROBLEMA A SER SALVO NA COLUNA AI: "${textoProblema}"`);
 
     // 6. Atualiza a planilha Pedidos (limpa a produção e define o novo status)
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
 
-    // Limpa a programação de produção (como solicitado)
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_MAQUINA).clearContent();     // Col W
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_FILA).clearContent();        // Col X
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_IMPRESSOR).clearContent();  // Col AD
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_PROD).clearContent(); // Col AL
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_FIM_PROD).clearContent(); // Col AM
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_SETUP).clearContent(); // Col AS
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_FIM_SETUP).clearContent(); // Col AT
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_TEMPO_SETUP_MIN).clearContent(); // Col AR
+    // Limpa a programação de produção
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_MAQUINA).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_FILA).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_IMPRESSOR).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_PROD).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_FIM_PROD).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_INICIO_SETUP).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_FIM_SETUP).clearContent();
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_TEMPO_SETUP_MIN).clearContent();
 
-
-    // Registra o problema e o novo status
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue(novoStatus);              // Col I
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_PROBLEMAS_PRODUCAO).setValue(textoProblema); // Col AI
-
-    SpreadsheetApp.flush();
+    // 🚀 CORREÇÃO 9: SALVA O STATUS E O PROBLEMA (com validação dupla)
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue(novoStatus);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_PROBLEMAS_PRODUCAO).setValue(textoProblema);
+    
+    // 🚀 NOVO: Valida se realmente salvou
+    SpreadsheetApp.flush(); // Garante que a escrita seja concluída
+    const valorSalvo = abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_PROBLEMAS_PRODUCAO).getValue();
+    Logger.log(`✅ VALIDAÇÃO: Valor salvo na coluna AI: "${valorSalvo}"`);
 
     // 7. Envia e-mail de notificação
     try {
@@ -5909,7 +5839,7 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
         <br>
         <p><strong>Novo Status:</strong> ${novoStatus}</p>
         <p><strong>Problemas Logados:</strong></p>
-        <ul>${problemasLogados.map(p => `<li>${p}</li>`).join('')}</ul>
+        <ul>${fullLogText.map(p => `<li>${p}</li>`).join('')}</ul>
       `;
       enviarEmailSistema(assunto, titulo, corpoHtml);
 
@@ -5920,7 +5850,8 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
     return `Problema do Pedido ${numPedido} reportado. Status atualizado para '${novoStatus}'.`;
 
   } catch (e) {
-    Logger.log(`Erro ao registrar problema de produção (Integrado): ${e.message}`);
+    Logger.log(`❌ ERRO ao registrar problema de produção (Integrado): ${e.message}`);
+    Logger.log(`Stack trace: ${e.stack}`);
     throw new Error(e.message);
   } finally {
     lock.releaseLock();
