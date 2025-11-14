@@ -3486,43 +3486,7 @@ function getDetalhesCompletosDoPedido(linhaPlanilha) {
   }
 }
 
-function buscarDadosPedido(numPedido) {
-  const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-  
-  // Lê os dados brutos (getValues) e os dados formatados (getDisplayValues) de uma vez.
-  const dados = abaPedidos.getDataRange().getValues(); 
-  const dadosDisplay = abaPedidos.getDataRange().getDisplayValues();
-  
-  // O valor digitado (String)
-  const numBusca = String(numPedido).trim();
 
-  // Procura o pedido pelo número na Coluna A (COL_PEDIDO_NUMERO)
-  for (let i = 1; i < dados.length; i++) {
-    // Converte o valor BRUTO da célula para String antes de comparar
-    const numPlanilha = String(dados[i][COL_PEDIDO_NUMERO - 1]).trim(); 
-
-    if (numPlanilha === numBusca) {
-      
-      // Se for encontrado, usa os valores de exibição (formatados) para o retorno
-      const linhaDisplay = dadosDisplay[i];
-      
-      return {
-        linhaPlanilha: i + 1, // Linha real da planilha
-        cliente: linhaDisplay[COL_PEDIDO_CLIENTE - 1],
-        descricao: linhaDisplay[COL_PEDIDO_DESCRICAO - 1],
-        dataEntregaAtual: linhaDisplay[COL_PEDIDO_DATA_ENTREGA - 1],
-        sucesso: true
-      };
-    }
-  }
-
-  return { sucesso: false, mensagem: "Pedido não encontrado." };
-}
-
-
-/**
- * Abre o formulário de alteração de data de entrega
- */
 function abrirFormAlteracaoData() {
   const html = HtmlService.createHtmlOutputFromFile('FormAlteracaoData')
     .setWidth(800)
@@ -7737,48 +7701,80 @@ function reportarProblemaCliche(idCliche, idsLaminas, motivoProblema) {
 }
 
 
+// --- SUBSTITUIÇÃO NO ARQUIVO Código.gs ---
+
 function getDadosInsumosParaReporte(numPedido) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
     const abaLaminas = ss.getSheetByName(NOME_ABA_CLICHE_LAMINAS);
     
-    // 1. Achar a linha do pedido para pegar o ID do Clichê/Faca
-    const dadosPedido = buscarDadosPedido(numPedido);
-    if (!dadosPedido.sucesso) {
-        throw new Error(`Pedido ${numPedido} não encontrado.`);
-    }
-    const linhaPlanilha = dadosPedido.linhaPlanilha;
+    // Lê os dados brutos (getValues) e os dados formatados (getDisplayValues)
+    const dados = abaPedidos.getDataRange().getValues(); 
+    const dadosDisplay = abaPedidos.getDataRange().getDisplayValues(); // <-- NOVO
 
-    // 2. Buscar IDs de Insumos (usando o helper existente)
+    const numBusca = String(numPedido).trim();
+    let linhaPlanilha = -1;
+    let pedidoStatus = "";
+    let pedidoCliente = ""; // <-- NOVO
+    let pedidoDescricao = ""; // <-- NOVO
+
+    // 1. Achar a linha do pedido, status e fazer a validação inicial
+    for (let i = 1; i < dados.length; i++) {
+        const numPlanilha = String(dados[i][COL_PEDIDO_NUMERO - 1]).trim(); 
+        
+        if (numPlanilha === numBusca) {
+            linhaPlanilha = i + 1; // Linha real da planilha (Base 1)
+            pedidoStatus = String(dados[i][COL_PEDIDO_STATUS - 1]).trim(); 
+            
+            // EXTRAI CLIENTE E DESCRIÇÃO (Usando dadosDisplay que contém strings)
+            pedidoCliente = String(dadosDisplay[i][COL_PEDIDO_CLIENTE - 1]).trim(); // Col K
+            pedidoDescricao = String(dadosDisplay[i][COL_PEDIDO_DESCRICAO - 1]).trim(); // Col L
+            
+            const statusNorm = pedidoStatus.toLowerCase();
+
+            // Validações de Bloqueio (FIX: status de bloqueio)
+            if (statusNorm === "concluído" || statusNorm === "cancelado") {
+                throw new Error(`O Pedido ${numPedido} já está ${pedidoStatus} e não pode ter problemas reportados.`);
+            }
+            
+            if (statusNorm.includes("aguardando faca") || statusNorm.includes("aguardando clichê") || statusNorm.includes("aguardando insumos")) {
+                 throw new Error(`O Pedido ${numPedido} já está em status de espera (${pedidoStatus}). Resolva o problema de insumos ou crie uma nova solicitação se necessário.`);
+            }
+            
+            break; 
+        }
+    }
+    
+    if (linhaPlanilha === -1) {
+        throw new Error(`Pedido ${numPedido} não encontrado na planilha.`);
+    }
+    
+    // 2. Busca IDs de Insumos (usando a linha encontrada)
     const insumos = _buscarInsumosPedido(linhaPlanilha); 
 
-    // 3. Buscar Lâminas do Clichê (se houver ID)
+    // 3. Busca Lâminas do Clichê (se houver ID)
     let laminasDoCliche = [];
     if (insumos.idCliche && insumos.idCliche !== "N/A" && abaLaminas.getLastRow() > 1) {
         
-        // CORREÇÃO DE LEITURA: Leitura direta do ID Clichê (Col B) e Status Lamina (Col F)
-        // Lemos apenas as colunas relevantes
         const dadosLaminas = abaLaminas.getRange(2, 1, abaLaminas.getLastRow() - 1, 6).getValues(); 
         const ID_CLICHE_COL = 1; // Coluna B (índice 1)
         
         for (const lamina of dadosLaminas) {
-            // Se a lâmina pertence ao clichê E NÃO é de acabamento (Verniz, Laminação, Neutra)
-            const tipoLamina = lamina[3].toString().trim().toUpperCase(); // Coluna D (índice 3)
+            const tipoLamina = lamina[3].toString().trim().toUpperCase(); 
             const tiposExcluidos = ["VERNIZ BRILHO", "VERNIZ FOSCO", "LAMINAÇÃO BRILHO", "LAMINAÇÃO FOSCA", "NEUTRA"];
             
             if (lamina[ID_CLICHE_COL] === insumos.idCliche && !tiposExcluidos.includes(tipoLamina)) { 
                 laminasDoCliche.push({
-                    idLamina: lamina[0], // Coluna A (índice 0)
-                    estacao: lamina[2], // Coluna C (índice 2)
+                    idLamina: lamina[0], 
+                    estacao: lamina[2], 
                     tipoLamina: lamina[3],
-                    statusLamina: lamina[5] // Coluna F (índice 5)
+                    statusLamina: lamina[5] 
                 });
             }
         }
     }
     
-    // 4. Buscar listas de motivos (reutilizando listas do Gestão Facas)
-    // Usamos as listas mais completas aqui:
+    // 4. Busca listas de motivos (reutilizando listas do Gestão Facas)
     const tiposProblemaFaca = [
         "Desgaste por Uso", "Faca Cega/Corte insuficiente", 
         "Degolando Liner", "Faca com Dente", "Outro (descrever)"
@@ -7795,7 +7791,11 @@ function getDadosInsumosParaReporte(numPedido) {
         codFacaModelo: insumos.codFacaModelo,
         tiposProblemaCliche: tiposProblemaCliche,
         tiposProblemaFaca: tiposProblemaFaca,
-        numPedido: dadosPedido.numPedido // Retorna o número limpo para o front
+        numPedido: numBusca, 
+        statusPedido: pedidoStatus,
+        // CAMPOS CORRIGIDOS PARA O FRONTEND:
+        cliente: pedidoCliente, 
+        descricao: pedidoDescricao 
     };
 }
 
