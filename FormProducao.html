@@ -328,13 +328,24 @@
 #modalReportarProblema h4 {
     border-bottom: 2px solid;
     border-image: linear-gradient(to right, #37417c, #C8E154) 1;
-    padding-bottom: 15px; margin-bottom: 20px !important;
+    padding-bottom: 15px; margin-bottom: 30px !important;
     font-size: 1.5rem !important; display: flex;
     align-items: center;
 }
 
 #modalReportarProblema .modal-content {
     padding-bottom: 30px !important;
+}
+
+#modalReportarProblema .input-field > label{
+position: fixed;
+margin-top: 10px !important;
+top: 70px !important;
+left: 20px !important;
+transform: none !important;
+font-size: 0.75rem;
+color: #37417c;
+font-weight: 600;
 }
 
 /* 1. Estilo base para os inputs do MODAL - CRÍTICO: Borda azul no CONTAINER! */
@@ -779,7 +790,6 @@
                 <option value="Faca">Faca</option>
                 <option value="Ambos">Ambos</option>
             </select>
-            <label for="problema_ferramenta">2. Insumo com Problema</label>
         </div>
     </div>
     
@@ -2554,7 +2564,13 @@ function onPreencherAniloxErro(err) {
     }
 
 
-// ... (código existente) ...
+// MODAL REPORTAR PROBLEMA //
+
+function abrirModalReportarProblema() {
+    _resetReporteModal();
+    problemaModalInstance.open();
+    M.updateTextFields();
+}
 
 function _showLoadingReporte(show) {
     const loading = document.getElementById('problema_loading');
@@ -2567,25 +2583,26 @@ function _showLoadingReporte(show) {
 
     if (show) {
         loading.style.display = 'block';
-        content.style.display = 'none';
+        // Apenas oculta os blocos condicionais, mantendo o Nº Pedido visível
+        // content.style.display = 'none'; // <-- LINHA REMOVIDA PARA MANTER O Nº PEDIDO VISÍVEL
         blocoCliche.style.display = 'none';
         blocoFaca.style.display = 'none';
         document.getElementById('btnCancelarReporte').disabled = true;
         problemaBtnConfirm.disabled = true;
     } else {
         loading.style.display = 'none';
-        content.style.display = 'flex'; // Exibir a linha de Pedido/Ferramenta
+        // content.style.display = 'flex'; // <-- LINHA REMOVIDA
         document.getElementById('btnCancelarReporte').disabled = false;
     }
 }
 
 function _resetReporteModal() {
     dadosInsumosReporte = null;
-    problemaNumPedidoInput.value = '';
+    // NÃO limpa o input do Pedido aqui
     
     // Limpa os selects
     problemaFerramentaSelect.value = '';
-    // Corrigido: Inicializa o select de ferramenta sem "Aguardando..." para que a busca o preencha
+    // CORREÇÃO: Habilita o select para que a busca o preencha, e usa o texto de reset
     problemaFerramentaSelect.disabled = true; 
     problemaFerramentaSelect.innerHTML = '<option value="" disabled selected>Aguardando Nº Pedido...</option><option value="Clichê">Clichê</option><option value="Faca">Faca</option><option value="Ambos">Ambos</option>';
     
@@ -2611,12 +2628,6 @@ function _resetReporteModal() {
     M.updateTextFields();
 }
 
-function abrirModalReportarProblema() {
-    _resetReporteModal();
-    problemaModalInstance.open();
-    M.updateTextFields();
-}
-
 function handlePedidoReporteChange() {
     const numPedido = problemaNumPedidoInput.value.trim();
     if (numPedido.length < 5 || isNaN(parseInt(numPedido))) {
@@ -2625,7 +2636,8 @@ function handlePedidoReporteChange() {
     }
 
     // 1. Reset e Mostra Loading
-    _resetReporteModal();
+    // Garante que o input do pedido não seja limpo aqui
+    _resetReporteModal(); 
     _showLoadingReporte(true);
 
     // 2. Busca Dados
@@ -2636,6 +2648,9 @@ function handlePedidoReporteChange() {
             _showLoadingReporte(false);
             if (!data || data.erro || !data.numPedido) {
                 showErrorToast(data.erro || `Pedido ${numPedido} não encontrado, já cancelado/concluído ou erro de servidor.`);
+                // Reset sem limpar o input do número do pedido
+                _resetReporteModal(); 
+                problemaNumPedidoInput.value = numPedido;
                 return;
             }
             
@@ -2645,6 +2660,9 @@ function handlePedidoReporteChange() {
         (erro) => {
             _showLoadingReporte(false);
             showErrorToast(`Erro ao buscar dados: ${erro.message}`);
+            // Reset sem limpar o input do número do pedido
+            _resetReporteModal(); 
+            problemaNumPedidoInput.value = numPedido;
             dadosInsumosReporte = null;
         }
     );
