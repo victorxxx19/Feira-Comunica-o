@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    
+    <style>
+        body { background-color: #f9faff; display: flex; flex-direction: column; }
+        main { flex: 1 0 auto; padding: 20px 30px 40px 30px; } 
+        
+        .header-container {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 30px; background-color: #ffffff;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #0047BB, #C8E154) 1;
+        }
+        .header-container h4 {
+            font-size: 1.8rem; font-weight: 600; color: #0047BB;
+            display: flex; align-items: center; margin: 0;
+        }
+        .header-container h4 > i { font-size: 2.2rem; margin-right: 10px; }
+
+        .input-field input:focus + label, .input-field textarea:focus + label { color: #0047BB !important; }
+        .input-field input:focus, .input-field textarea:focus {
+            border-bottom: 1px solid #0047BB !important;
+            box-shadow: 0 1px 0 0 #0047BB !important;
+        }
+        .btn { background-color: #0047BB !important; }
+        .btn:hover { background-color: #003a9a !important; }
+        .btn-secundario { background-color: #C8E154 !important; color: #333 !important; }
+        .btn-secundario:hover { background-color: #afc741 !important; }
+        .select-wrapper input.select-dropdown:focus { border-bottom: 1px solid #0047BB !important; }
+        .dropdown-content li > span { color: #0047BB !important; }
+        
+        .section-card {
+            background: #ffffff; border-radius: 8px; padding: 25px;
+            margin-top: 25px; border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .section-title {
+            font-size: 1.3rem; font-weight: 600; color: #0047BB;
+            display: flex; align-items: center; margin: -5px 0 25px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .section-title i { margin-right: 10px; }
+
+        .info-box {
+            background-color: #f5f7fa; border: 1px dashed #ccc;
+            border-radius: 6px; padding: 15px; margin-top: 10px;
+            display: none; 
+        }
+        .info-box .value {
+            font-size: 1.1rem; color: #000; font-weight: 500;
+        }
+        
+        #loader-container-lote, #loader-pedido-lote, #loader-lote { display: none; }
+        
+        #tabela-lote-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+            overflow-anchor: none; 
+        }
+        #tabela-lote {
+            width: 100%; 
+        }
+        #tabela-lote th {
+           padding: 10px 8px; position: sticky; top: 0; background: #f1f1f1;
+        }
+        
+        #tabela-lote th.th-check {
+             width: 50px !important; text-align: center; padding-left: 12px;
+        }
+        #tabela-lote td.td-check {
+            width: 50px; text-align: center; padding-left: 12px;
+        }
+        #tabela-lote th.th-id, #tabela-lote td.td-id {
+             text-align: left;
+        }
+        #tabela-lote th.th-larg, #tabela-lote td.td-larg {
+             text-align: right; padding-right: 15px;
+        }
+        
+        #tabela-lote td {
+            padding: 6px 8px;
+        }
+        #tabela-lote tr.desabilitada {
+            background-color: #f5f5f5;
+            color: #999;
+            font-style: italic;
+        }
+        #lote-total {
+            font-size: 1.2rem; font-weight: 700;
+            color: #0047BB;
+            text-align: right; margin-top: 15px;
+        }
+        #lote-total.verde {
+            color: #4CAF50;
+        }
+        #lote-total.vermelho {
+            color: #F44336;
+        }
+        
+        [type="checkbox"]:checked+span:not(.lever):before {
+            border-right-color: #0047BB !important;
+            border-bottom-color: #0047BB !important;
+        }
+        [type="checkbox"]:disabled+span:not(.lever):before {
+            border-color: #999 !important;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <div class="header-container">
+        <h4>
+            <i class="material-icons">content_cut</i>
+            Corte de Bobinas para Produção
+        </h4>
+    </div>
+
+    <main>
+        <div id="modo-lote">
+            <div class="section-card">
+                <h5 class="section-title"><i class="material-icons">filter_list</i>Passo 1: Filtrar Estoque Bruto</h5>
+                <div class="row">
+                    <div class="input-field col s12 m4">
+                        <select id="filtro-substrato-lote">
+                            <option value="" disabled selected>Selecione...</option>
+                        </select>
+                        <label>Substrato</label>
+                    </div>
+                    <div class="input-field col s12 m4">
+                        <select id="filtro-cola-lote">
+                            <option value="" disabled selected>Selecione...</option>
+                        </select>
+                        <label>Tipo de Cola</label>
+                    </div>
+                    <div class="input-field col s12 m4">
+                        <select id="filtro-fornecedor-lote">
+                            <option value="" disabled selected>Selecione...</option>
+                        </select>
+                        <label>Fornecedor</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h5 class="section-title"><i class="material-icons">splitscreen</i>Passo 2: Definir Parâmetros</h5>
+                
+                <div class="row">
+                    <div class="input-field col s12 m6">
+                        <input id="largura_corte_lote" type="text" placeholder="Ex: 0,250">
+                        <label for="largura_corte_lote">Largura de Cada Corte (em metros)</label>
+                    </div>
+                    <div class="input-field col s12 m6">
+                        <input id="num_bobinas_filhas_lote" type="number" min="1" value="1">
+                        <label for="num_bobinas_filhas_lote">Nº de Filhas POR Bobina-Mãe</label>
+                    </div>
+                </div>
+                
+                <div class="row" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px;">
+                    <div class="input-field col s12 m8">
+                        <input id="pedido_alocado_lote" type="text" placeholder="Deixe em branco para 'Cortar para Estoque'">
+                        <label for="pedido_alocado_lote">Nº do Pedido para Alocar (Opcional)</label>
+                    </div>
+                    <div class="col s12 m4" style="padding-top: 15px;">
+                        <button id="btnVerificarPedidoLote" class="btn waves-effect waves-light" style="width: 100%;">
+                            <i class="material-icons left">check_circle</i>Verificar
+                        </button>
+                    </div>
+                </div>
+                <div id="info-pedido-lote" class="info-box"></div>
+                <div id="loader-pedido-lote" class="center-align" style="padding: 10px;">...</div>
+                
+                <div class="row" style="text-align: center; margin-bottom: 0; margin-top: 20px;">
+                    <div class="col s12">
+                         <button id="btnBuscarLote" class="btn waves-effect waves-light" style="width: 50%;">
+                            <i class="material-icons left">search</i>Buscar Bobinas-Mãe
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h5 class="section-title"><i class="material-icons">checklist</i>Passo 3: Selecionar Bobinas-Mãe para Cortar</h5>
+                <p id="msg-lote-disponivel">Preencha os filtros e clique em "Buscar".</p>
+                <div id="loader-lote" class="center-align" style="padding: 10px;">...</div>
+
+                <div id="tabela-lote-container">
+                    <table id="tabela-lote" class="highlight">
+                        <thead>
+                            <tr>
+                                <th class="th-check">
+                                    <label>
+                                        <input type="checkbox" id="check-all-lote" onchange="toggleAllLote(this.checked)" />
+                                        <span></span>
+                                    </label>
+                                </th>
+                                <th class="th-id">ID Bobina-Mãe</th>
+                                <th class="th-larg">Largura Disp. (m)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-lote-corpo">
+                            </tbody>
+                    </table>
+                </div>
+                <h6 id="lote-total">Total Selecionado: 0 bobina(s) (0 m)</h6>
+                
+                <div class="row" style="text-align: center; margin-top: 30px; margin-bottom: 0;">
+                    <div class="col s12">
+                        <button id="btnSalvarCorteLote" class="btn-large waves-effect waves-light btn-secundario" disabled>
+                            <i class="material-icons left">save</i>
+                            Confirmar Corte em Lote
+                        </button>
+                        <div id="loader-container-lote" style="text-align: center; margin-top: 20px;">
+                            <div class="preloader-wrapper big active">
+                                <div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+        let pedidoInfo = null;
+        let cacheBobinasMae = [];
+
+        document.addEventListener("DOMContentLoaded", function() {
+            M.updateTextFields();
+            M.FormSelect.init(document.querySelectorAll('select'));
+            
+            google.script.run
+                .withSuccessHandler(onDadosIniciaisSuccess)
+                .withFailureHandler(onFailure)
+                .getDadosIniciaisBobina(); 
+            
+            document.getElementById('btnVerificarPedidoLote').addEventListener('click', verificarPedidoLote);
+            document.getElementById('btnBuscarLote').addEventListener('click', buscarLoteMaes);
+            document.getElementById('btnSalvarCorteLote').addEventListener('click', salvarCorteLote);
+            
+            document.getElementById('largura_corte_lote').addEventListener('input', renderizarTabelaLote);
+            document.getElementById('num_bobinas_filhas_lote').addEventListener('input', renderizarTabelaLote);
+        });
+        
+// ARQUIVO: FormCorteBobina.docx (HTML/JS)
+// FUNÇÃO CORRIGIDA
+
+function onDadosIniciaisSuccess(dados) {
+  const selFornecedor = document.getElementById('filtro-fornecedor-lote');
+  selFornecedor.innerHTML = '<option value="" disabled selected>Selecione o Fornecedor</option>';
+  dados.fornecedores.forEach(f => {
+    selFornecedor.innerHTML += `<option value="${f}">${f}</option>`;
+  });
+
+  const selSubstrato = document.getElementById('filtro-substrato-lote');
+  selSubstrato.innerHTML = '<option value="" disabled selected>Selecione o Substrato</option>';
+  dados.substratos.forEach(s => {
+    selSubstrato.innerHTML += `<option value="${s}">${s}</option>`;
+  });
+  
+  const selColaLote = document.getElementById('filtro-cola-lote');
+  selColaLote.innerHTML = '<option value="" disabled selected>Selecione o Tipo de Cola</option>';
+  
+  // --- CORREÇÃO APLICADA AQUI ---
+  // O backend envia 'tipoDeCola', não 'colas'.
+  dados.tipoDeCola.forEach(c => { 
+    selColaLote.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+  
+  M.FormSelect.init(document.querySelectorAll('select')); // Agora esta linha será executada
+}
+        
+        function verificarPedidoLote() {
+            const numPedido = document.getElementById('pedido_alocado_lote').value;
+            if (!numPedido) {
+                pedidoInfo = null;
+                atualizarTotalLote();
+                document.getElementById('info-pedido-lote').style.display = 'none';
+                return;
+            }
+            
+            const infoBox = document.getElementById('info-pedido-lote');
+            const loader = document.getElementById('loader-pedido-lote');
+            loader.style.display = 'block';
+            infoBox.style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(onVerificarPedidoLoteSuccess)
+                .withFailureHandler(onFailure)
+                .buscarMetragemPedido(numPedido);
+        }
+        
+        function onVerificarPedidoLoteSuccess(dados) {
+            const infoBox = document.getElementById('info-pedido-lote');
+            const loader = document.getElementById('loader-pedido-lote');
+            loader.style.display = 'none';
+            
+            if (dados.sucesso) {
+                pedidoInfo = { 
+                   metragem: parseFloat(dados.metragem) || 0,
+                   substrato: dados.substrato,
+                   tipoDeCola: dados.colas
+                };
+
+                const substratoSel = document.getElementById('filtro-substrato-lote').value;
+                const colaSel = document.getElementById('filtro-cola-lote').value;
+                let cor = "green-text text-darken-2";
+                let aviso = "";
+                if (substratoSel && substratoSel.toUpperCase() !== dados.substrato.toUpperCase()) {
+                    cor = "red-text text-darken-2";
+                    aviso = `<i class='material-icons tiny'>warning</i> <b>ALERTA:</b> Substrato do pedido (${dados.substrato}) não bate com o Substrato filtrado (${substratoSel})!`;
+                } else if (colaSel && colaSel.toUpperCase() !== dados.colas.toUpperCase()) {
+                    cor = "red-text text-darken-2";
+                    aviso = `<i class='material-icons tiny'>warning</i> <b>ALERTA:</b> Tipo de Cola do pedido (${dados.colas}) não bate com a Cola filtrada (${colaSel})!`;
+                }
+                infoBox.innerHTML = `<p class="value ${cor}" style="margin: 0; font-size: 1.2rem;"><i class="material-icons">info_outline</i> Pedido ${dados.numPedido}: <b>${dados.metragem}m</b> de <b>${dados.substrato} + ${dados.colas}</b></p><p style="margin-top: 5px;" class="${cor}">${aviso}</p>`;
+                infoBox.style.display = 'block';
+                
+                atualizarTotalLote(); 
+            } else {
+                pedidoInfo = null; 
+                onFailure({ message: dados.mensagem });
+                infoBox.innerHTML = "";
+                infoBox.style.display = 'none';
+                atualizarTotalLote(); 
+            }
+        }
+
+// ADICIONE ESTA FUNÇÃO CORRIGIDA NO LUGAR
+
+function buscarLoteMaes() {
+    const substrato = document.getElementById('filtro-substrato-lote').value;
+    const fornecedor = document.getElementById('filtro-fornecedor-lote').value;
+    const tipoDeCola = document.getElementById('filtro-cola-lote').value;
+
+    // VALIDAÇÃO DOS 3 FILTROS
+    if (!substrato || !fornecedor || !tipoDeCola) {
+        M.toast({html: 'Erro: Selecione Substrato, Tipo de Cola e Fornecedor.', classes: 'red darken-2'});
+        return;
+    }
+
+    // CALCULA A LARGURA TOTAL ANTES DE BUSCAR
+    const larguraCorte = parseFloat(document.getElementById('largura_corte_lote').value.replace(",", ".")) || 0;
+    const numFilhas = parseInt(document.getElementById('num_bobinas_filhas_lote').value, 10) || 0;
+
+    if (larguraCorte <= 0 || numFilhas <= 0) {
+        M.toast({html: 'Erro: Preencha a Largura do Corte e o Nº de Filhas antes de buscar.', classes: 'red darken-2'});
+        return;
+    }
+
+    const larguraTotalNecessaria = larguraCorte * numFilhas;
+
+    document.getElementById('loader-lote').style.display = 'block';
+    document.getElementById('tabela-lote-container').style.display = 'none';
+    document.getElementById('msg-lote-disponivel').innerText = "Buscando bobinas...";
+
+    // PASSA OS 4 ARGUMENTOS CORRETOS PARA O BACKEND
+    google.script.run
+        .withSuccessHandler(onBuscarLoteSuccess) // <--- Esta função já existe no seu código
+        .withFailureHandler(onFailure)           // <--- Esta função já existe no seu código
+        .buscarMaesDisponiveis(substrato, fornecedor, tipoDeCola, larguraTotalNecessaria);
+}
+
+// ARQUIVO: FormCorteBobina.docx (HTML/JS)
+// ADICIONE ESTA FUNÇÃO QUE ESTÁ FALTANDO
+
+function onBuscarLoteSuccess(dados) {
+    document.getElementById('loader-lote').style.display = 'none';
+    
+    if (!dados.sucesso) {
+        onFailure({ message: dados.mensagem });
+        return;
+    }
+
+    cacheBobinasMae = dados.bobinas; // Salva os resultados no cache global
+    renderizarTabelaLote(); // Chama a renderização da tabela
+}
+
+
+
+
+        function renderizarTabelaLote() {
+            const corpoTabela = document.getElementById('tabela-lote-corpo');
+            const msgEstoque = document.getElementById('msg-lote-disponivel');
+            corpoTabela.innerHTML = "";
+            
+            const larguraCorte = parseFloat(document.getElementById('largura_corte_lote').value.replace(",", ".")) || 0;
+            const numFilhas = parseInt(document.getElementById('num_bobinas_filhas_lote').value, 10) || 0;
+            const larguraTotalNecessaria = larguraCorte * numFilhas;
+            
+            if (cacheBobinasMae.length === 0) {
+                msgEstoque.innerText = "Nenhuma bobina-mãe encontrada com estes filtros.";
+                document.getElementById('tabela-lote-container').style.display = 'none';
+                return;
+            }
+            
+            if (larguraTotalNecessaria <= 0) {
+                msgEstoque.innerText = "Digite os parâmetros de corte (largura e nº de filhas) para habilitar a seleção.";
+                document.getElementById('tabela-lote-container').style.display = 'none';
+                return; 
+            }
+            
+            let bobinasAptas = 0;
+            cacheBobinasMae.forEach(b => {
+                const isDisabled = (b.larguraDisponivel < larguraTotalNecessaria);
+                if (!isDisabled) bobinasAptas++;
+                
+                corpoTabela.innerHTML += `
+                    <tr class="${isDisabled ? 'desabilitada' : ''}">
+                        <td class="td-check">
+                            <label>
+                                <input type="checkbox" class="bobina-check-lote" 
+                                       data-id="${b.idBobinaMae}"
+                                       data-comprimento="${b.comprimento}" 
+                                       onchange="atualizarTotalLote()" 
+                                       ${isDisabled ? 'disabled' : ''} />
+                                <span></span>
+                            </label>
+                        </td>
+                        <td class="td-id">${b.idBobinaMae} ${isDisabled ? `(Larg. ${b.larguraDisponivel.toFixed(3)}m Insuf.)` : ''}</td>
+                        <td class="td-larg">${b.larguraDisponivel.toLocaleString('pt-BR', {minimumFractionDigits: 3})} m</td>
+                    </tr>
+                `;
+            });
+            
+            msgEstoque.innerText = `Encontradas ${cacheBobinasMae.length} bobinas (${bobinasAptas} aptas para o corte).`;
+            document.getElementById('tabela-lote-container').style.display = 'block';
+            document.getElementById('check-all-lote').checked = false;
+            atualizarTotalLote();
+        }
+
+        function toggleAllLote(checked) {
+            document.querySelectorAll('.bobina-check-lote:not(:disabled)').forEach(chk => {
+                chk.checked = checked;
+            });
+            atualizarTotalLote();
+        }
+        
+        function atualizarTotalLote() {
+            let totalComprimentoFinal = 0;
+            let totalBobinas = 0;
+            
+            const numFilhas = parseInt(document.getElementById('num_bobinas_filhas_lote').value, 10) || 0;
+            
+            document.querySelectorAll('.bobina-check-lote:checked').forEach(chk => {
+                totalBobinas++;
+                totalComprimentoFinal += (parseFloat(chk.dataset.comprimento) * numFilhas);
+            });
+            
+            const elTotal = document.getElementById('lote-total');
+            const btnSalvar = document.getElementById('btnSalvarCorteLote');
+            
+            elTotal.innerHTML = `Total Selecionado: ${totalBobinas} bobina(s) (${totalComprimentoFinal.toLocaleString('pt-BR')} m)`;
+            
+            elTotal.classList.remove("verde", "vermelho");
+            btnSalvar.disabled = false;
+
+            if (totalBobinas === 0) {
+                 btnSalvar.disabled = true;
+            }
+            
+            if (pedidoInfo && pedidoInfo.metragem > 0) {
+                if (totalComprimentoFinal >= pedidoInfo.metragem) {
+                    elTotal.classList.add("verde");
+                } else {
+                    elTotal.classList.add("vermelho");
+                    if (totalComprimentoFinal > 0) {
+                         M.toast({html: 'Metragem selecionada é INFERIOR à do pedido!', classes: 'red darken-2'});
+                         btnSalvar.disabled = true;
+                    }
+                }
+            }
+        }
+        
+        function salvarCorteLote() {
+            const listaIdsMaes = [];
+            document.querySelectorAll('.bobina-check-lote:checked').forEach(chk => {
+                listaIdsMaes.push(chk.dataset.id);
+            });
+
+            if (listaIdsMaes.length === 0) {
+                M.toast({html: 'Erro: Nenhuma bobina-mãe foi selecionada.', classes: 'red darken-2'});
+                return;
+            }
+            
+            const dadosCorte = {
+                larguraCorte: document.getElementById('largura_corte_lote').value,
+                numFilhas: document.getElementById('num_bobinas_filhas_lote').value,
+                pedidoAlocado: document.getElementById('pedido_alocado_lote').value
+            };
+            
+            showLoader(true, 'btnSalvarCorteLote');
+            
+            google.script.run
+                .withSuccessHandler(onSalvarLoteSuccess)
+                .withFailureHandler(onFailure)
+                .salvarCorteEmLote(listaIdsMaes, dadosCorte);
+        }
+
+        function onSalvarLoteSuccess(resposta) {
+            showLoader(false, 'btnSalvarCorteLote');
+            if (resposta.sucesso) {
+                M.toast({html: resposta.mensagem, classes: 'green', displayLength: 4000});
+                resetarFormularioLote();
+            } else {
+                onFailure({ message: resposta.mensagem });
+            }
+        }
+        
+        function resetarFormularioLote() {
+            document.getElementById('tabela-lote-container').style.display = 'none';
+            document.getElementById('msg-lote-disponivel').innerText = "Preencha os filtros acima para buscar as bobinas-mãe.";
+            document.getElementById('tabela-lote-corpo').innerHTML = "";
+            document.getElementById('check-all-lote').checked = false;
+            
+            document.getElementById('largura_corte_lote').value = "";
+            document.getElementById('num_bobinas_filhas_lote').value = "1";
+            document.getElementById('pedido_alocado_lote').value = "";
+            document.getElementById('info-pedido-lote').style.display = 'none';
+            
+            pedidoInfo = null; 
+            cacheBobinasMae = []; 
+            atualizarTotalLote(); 
+            M.updateTextFields();
+        }
+
+        function onFailure(erro) {
+            showLoader(false, 'btnSalvarCorteLote');
+            document.getElementById('loader-pedido-lote').style.display = 'none';
+            document.getElementById('loader-lote').style.display = 'none';
+            M.toast({html: 'Erro: ' + erro.message, classes: 'red darken-2', displayLength: 5000});
+        }
+
+        function showLoader(isLoading, buttonId) {
+            const loaderLote = document.getElementById('loader-container-lote');
+            const btnLote = document.getElementById('btnSalvarCorteLote');
+            
+            if (buttonId === 'btnSalvarCorteLote') {
+                loaderLote.style.display = isLoading ? 'block' : 'none';
+                btnLote.disabled = isLoading;
+            }
+        }
+    </script>
+</body>
+</html>
