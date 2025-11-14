@@ -475,7 +475,9 @@ table tbody tr:hover {
 #detalhe-pedidos-table tbody td,
 #detalhe-problemas-table tbody td,
 #detalhe-loguso-table tbody td {
-  padding: 8px 10px !important;
+  padding: 4px 8px !important; /* Reduz o padding vertical para 4px */
+  vertical-align: middle !important; /* Garante o alinhamento no centro */
+  line-height: 1.8 !important; /* Reduz a altura da linha de texto */
   font-size: 0.85rem;
 }
 
@@ -1601,17 +1603,18 @@ table tbody tr:hover {
         logUso.sort((a,b) => new Date(b.dataUso.split('/').reverse().join('-')) - new Date(a.dataUso.split('/').reverse().join('-'))); // Mais recente primeiro
         
         logUso.forEach(log => {
-          totalMetros += log.metrosConsumidos;
-          // Nova string formatada para a coluna Cliente/Produto
-          const clienteProduto = `(${log.codProduto} | ${log.nomeCliente} - ${log.descricaoProduto})`; 
-          
-          logCorpo.innerHTML += `
-            <tr>
-              <td>${log.dataUso}</td>
-              <td>${log.numPedidoFeira}</td>
-              <td>${clienteProduto}</td>               <td style="text-align: left !important;">${log.metrosConsumidos.toFixed(2)} m</td>
-            </tr>`;
-        });
+        // CORREÇÃO: Garante que metrosConsumidos não é undefined antes de somar
+          const metrosConsumidos = log.metrosConsumidos || 0; 
+          totalMetros += metrosConsumidos;
+          const clienteProduto = `(${log.codProduto || 'N/A'} | ${log.nomeCliente || 'N/A'} - ${log.descricaoProduto || 'N/A'})`; 
+          logCorpo.innerHTML += `
+          <tr>
+              <td>${log.dataUso}</td>
+              <td>${log.numPedidoFeira}</td>
+              <td>${clienteProduto}</td> 
+              <td style="text-align: left !important;">${metrosConsumidos.toFixed(0)} m</td>
+              </tr>`;
+          });
       }
       document.getElementById('detalhe_total_metros').textContent = `${totalMetros.toFixed(0)} m`;
 
