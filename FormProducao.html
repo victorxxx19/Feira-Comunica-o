@@ -1028,8 +1028,8 @@
             </div>
             <div class="row">
                 <div class="input-field col s12">                    
-                    <textarea id="problema_descricao_cliche" class="materialize-textarea" data-length="200"></textarea>
-                    <label for="problema_descricao_cliche">3c. Descreva o Problema (Obrigatório)</label>
+                    <textarea id="problema_descricao_cliche" class="materialize-textarea""></textarea>
+                    <label for="problema_descricao_clichee">3c. Descreva o Problema (Obrigatório)</label>
                 </div>
             </div>
         </div>
@@ -1050,7 +1050,7 @@
             </div>
             <div class="row">
                 <div class="input-field col s12">                    
-                    <textarea id="problema_descricao_faca" class="materialize-textarea" data-length="200"></textarea>
+                    <textarea id="problema_descricao_faca" class="materialize-textarea"></textarea>
                     <label for="problema_descricao_faca">4b. Descreva o Problema (Obrigatório)</label>
                 </div>
             </div>
@@ -3077,44 +3077,112 @@ function checkReporteInputs() {
 }
 
 function confirmarReporteProblema() {
-    problemaBtnConfirm.disabled = true;
-    _showLoadingReporte(true);
+    // --- 1. BUSCAR ELEMENTOS (COM OS NOVOS IDs) ---
+    const problemaBtnConfirm = document.getElementById('btnConfirmarReporteProblema');
+    const problemaNumPedidoInput = document.getElementById('problema_numPedido');
+    const problemaFerramentaSelect = document.getElementById('problema_ferramenta');
+    
+    // ✅✅✅ MUDANÇA DE ID ✅✅✅
+    const textareaCliche = document.getElementById('problema_motivo_descricao_cliche'); 
+    const textareaFaca = document.getElementById('problema_motivo_descricao_faca');
+    // ✅✅✅ FIM DA MUDANÇA ✅✅✅
 
-    const ferramenta = problemaFerramentaSelect.value;
-    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
-    const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
-    
-    // --- 1. Montar o Objeto de Dados
-    const dados = {
-        numPedido: problemaNumPedidoInput.value.trim(),
-        ferramenta: ferramenta, // "Clichê", "Faca" ou "Ambos"
-        
-        // Dados Clichê (Só preenche se for visível)
-        tipoCliche: isClichêBlocoVisivel ? document.getElementById('problema_tipo_cliche').value : "",
-        descCliche: isClichêBlocoVisivel ? String(document.getElementById('problema_descricao_cliche').value).trim() : "",
-        idsLaminas: isClichêBlocoVisivel ? M.FormSelect.getInstance(document.getElementById('problema_id_lamina')).getSelectedValues() : [],
-        
-        // Dados Faca (Só preenche se for visível)
-        tipoFaca: isFacaBlocoVisivel ? document.getElementById('problema_tipo_faca').value : "",
-        descFaca: isFacaBlocoVisivel ? String(document.getElementById('problema_descricao_faca').value).trim() : ""
-    };
+    const selectTipoCliche = document.getElementById('problema_tipo_cliche');
+    const selectTipoFaca = document.getElementById('problema_tipo_faca');
+    const selectLaminas = document.getElementById('problema_id_lamina'); 
 
-    // --- 2. Validação (Repetição)
-    if (!dados.numPedido || !dados.ferramenta || (isClichêBlocoVisivel && (dados.tipoCliche === "" || dados.descCliche.length < 5)) || (isFacaBlocoVisivel && (dados.tipoFaca === "" || dados.descFaca.length < 5))) {
-        showErrorToast("Preencha todos os campos obrigatórios (Pedido, Insumo e Descrições com no mínimo 5 caracteres).");
-        problemaBtnConfirm.disabled = false;
-        _showLoadingReporte(false);
-        return;
-    }
+    problemaBtnConfirm.disabled = true;
+    _showLoadingReporte(true);
 
-    showSuccessToast("Registrando problema, aguarde...");
+    const ferramenta = problemaFerramentaSelect.value;
+    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
+    const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
+    
+    // ✅ REMOVEMOS A LINHA 'M.updateTextFields();'
+    // pois agora os campos são HTML simples.
 
-    // --- 3. Chamada ao Backend
-    google.script.run
-        .withSuccessHandler(onSucessoReporte)
-        .withFailureHandler(onFalhaReporte)
-        .registrarProblemaProducaoIntegrado(dados);
+    // --- 2. LER OS VALORES ---
+    // Leitura dos textareas (agora vai funcionar 100%)
+    const descCliche = textareaCliche ? (textareaCliche.value || "").trim() : "";
+    const descFaca = textareaFaca ? (textareaFaca.value || "").trim() : "";
+    
+    // Leitura dos selects de Tipo (já estava funcionando)
+    const valTipoCliche = selectTipoCliche ? (selectTipoCliche.value || "") : "";
+    const valTipoFaca = selectTipoFaca ? (selectTipoFaca.value || "") : "";
+
+    // Leitura do select multiple das lâminas (único que usa JS do Materialize)
+    let valLaminas = [];
+    if (isClichêBlocoVisivel) {
+        const selectLaminasInstance = M.FormSelect.getInstance(selectLaminas);
+        if (selectLaminasInstance) valLaminas = selectLaminasInstance.getSelectedValues();
+    }
+    
+    // --- 3. MONTAR O OBJETO DE DADOS ---
+    const dados = {
+        numPedido: problemaNumPedidoInput.value.trim(),
+        ferramenta: ferramenta,
+        
+        idCliche: dadosInsumosReporte ? dadosInsumosReporte.idCliche : "",
+        idUnicoFaca: dadosInsumosReporte ? dadosInsumosReporte.idUnicoFaca : "",
+        codFacaModelo: dadosInsumosReporte ? dadosInsumosReporte.codFacaModelo : "",
+        
+        tipoCliche: valTipoCliche,
+        descCliche: isClichêBlocoVisivel ? descCliche : "",
+        idsLaminas: valLaminas, 
+        
+        tipoFaca: valTipoFaca,
+        descFaca: isFacaBlocoVisivel ? descFaca : ""
+    };
+
+    // --- 4. VALIDAÇÃO ---
+    if (!dados.numPedido || !dados.ferramenta) {
+        showErrorToast("Erro: Número do pedido e ferramenta são obrigatórios.");
+        problemaBtnConfirm.disabled = false;
+        _showLoadingReporte(false);
+        return;
+    }
+    
+    if (isClichêBlocoVisivel) {
+        if (!dados.tipoCliche) { 
+            showErrorToast("Erro: Selecione o TIPO do problema do Clichê.");
+            problemaBtnConfirm.disabled = false;
+            _showLoadingReporte(false);
+            return;
+        }
+        if (descCliche.length < 5) {
+            showErrorToast(`Erro: A descrição do problema do Clichê deve ter pelo menos 5 caracteres. (Você digitou: ${descCliche.length})`);
+            problemaBtnConfirm.disabled = false;
+            _showLoadingReporte(false);
+            return;
+        }
+    }
+    
+    if (isFacaBlocoVisivel) {
+        if (!dados.tipoFaca) {
+            showErrorToast("Erro: Selecione o TIPO do problema da Faca.");
+            problemaBtnConfirm.disabled = false;
+            _showLoadingReporte(false);
+            return;
+        }
+        if (descFaca.length < 5) {
+            showErrorToast(`Erro: A descrição do problema da Faca deve ter pelo menos 5 caracteres. (Você digitou: ${descFaca.length})`);
+            problemaBtnConfirm.disabled = false;
+            _showLoadingReporte(false);
+            return;
+        }
+    }
+
+    // --- 5. ENVIO ---
+    console.log("📤 Enviando para o backend:", JSON.stringify(dados, null, 2));
+
+    showSuccessToast("Registrando problema, aguarde...");
+
+    google.script.run
+        .withSuccessHandler(onSucessoReporte)
+        .withFailureHandler(onFalhaReporte)
+        .registrarProblemaProducaoIntegrado(dados);
 }
+
 
 function onSucessoReporte(msg) {
     showSuccessToast(msg);
