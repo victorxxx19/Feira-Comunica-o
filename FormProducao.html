@@ -240,8 +240,7 @@
         .modal .modal-footer .btn.green { background-color: #4CAF50 !important; }
 
         /* Estilo Título do Modal (com linha gradiente) */
-        #detalhes-pedido-modal h4, #modalConsumo h4, #modalMotivoConsumo h4,
-        #modalReportarProblema h4, #modalAnilox h4 {
+        #detalhes-pedido-modal h4, #modalConsumo h4, #modalMotivoConsumo h4,#modalAnilox h4 {
             border-bottom: 2px solid;
             border-image: linear-gradient(to right, #37417c, #C8E154) 1;
             padding-bottom: 15px; margin-bottom: 20px !important;
@@ -320,59 +319,88 @@
         }
         .link-pedido:hover { color: #1565c0; }
 
-        /* --- Modal Reportar Problema --- */
-        #modalReportarProblema { max-width: 600px; border-radius: 8px; }
-        #modalReportarProblema .modal-content { padding-bottom: 0; }
-        #problema-titulo {
-            font-size: 1.8rem; font-weight: 500; color: #D32F2F;
-            display: flex; align-items: center; margin-bottom: 10px;
-        }
-        #problema-titulo .material-icons { font-size: 2.2rem; margin-right: 12px; }
-        .gradient-line {
-            height: 3px; width: 100%;
-            background: linear-gradient(to right, #D32F2F, #FFC107, #8BC34A); 
-            margin-bottom: 30px; 
-        }
-        #modalReportarProblema .input-field {
-            border: 1px solid #9e9e9e; border-radius: 4px;
-            padding: 0 10px; margin-bottom: 25px; 
-            position: relative; background-color: #fff; 
-        }
-        #modalReportarProblema .input-field input[type=text].validate,
-        #modalReportarProblema .input-field textarea.materialize-textarea,
-        #modalReportarProblema .input-field .select-wrapper input.select-dropdown {
-            border: none !important; box-shadow: none !important;
-        }
-        #modalReportarProblema .input-field label {
-            left: 10px; top: 3px; color: #757575;
-            transition: all 0.2s ease-out;
-        }
-        #modalReportarProblema .input-field label.active {
-            transform: translateY(-35px) scale(0.8);
-            transform-origin: 0 0; color: #012FA7; 
-            padding: 0 5px; left: 5px; top: 10px; 
-        }
-        #modalReportarProblema .input-field label[for="problema_tipo"] {
-            position: absolute; top: -10px !important; left: 5px !important;
-            transform: scale(0.8); transform-origin: 0 0;
-            background-color: #fff; padding: 0 5px; color: #012FA7;
-        }
-        #modalReportarProblema .input-field label[for="problema_tipo"].active {
-            transform: scale(0.8) !important; color: #012FA7 !important;
-            top: -10px !important; left: 5px !important;
-            background-color: #fff !important; padding: 0 5px !important;
-        }
-        #modalReportarProblema .input-field:focus-within {
-            border-color: #012FA7; box-shadow: 0 0 0 1px #012FA7; 
-        }
-        #modalReportarProblema .input-field .select-wrapper { padding-left: 0; }
-        #modalReportarProblema .input-field .select-wrapper .caret { right: 5px; }
-        #modalReportarProblema .input-field textarea.materialize-textarea { padding-top: 15px; min-height: 80px; }
-        #modalReportarProblema .input-field .select-wrapper input.select-dropdown { padding-top: 10px !important; }
-        #modalReportarProblema .modal-footer {
-            background-color: #f9f9f9; border-radius: 0 0 8px 8px;
-            padding: 10px 24px; border-top: 1px solid #eee;
-        }
+        /* --- Modal Reportar Problema (NOVO - Baseado em ModalAnilox) --- */
+#modalReportarProblema { 
+    max-width: 800px !important; 
+    border-radius: 12px !important; 
+}
+
+#modalReportarProblema h4 {
+    border-bottom: 2px solid;
+    border-image: linear-gradient(to right, #37417c, #C8E154) 1;
+    padding-bottom: 15px; margin-bottom: 20px !important;
+    font-size: 1.5rem !important; display: flex;
+    align-items: center;
+}
+
+#modalReportarProblema .modal-content {
+    padding-bottom: 30px !important;
+}
+
+/* 1. Estilo base para os inputs do MODAL - CRÍTICO: Borda azul no CONTAINER! */
+#modalReportarProblema .input-field {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #f5f7fa !important;
+    border-radius: 6px !important;
+    border: 2px solid #37417c !important; /* A borda azul está aqui no container */
+    border-bottom: 2px solid #37417c !important;
+    min-height: 44px !important; /* AUMENTADO PARA EVITAR CORTE */
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+#modalReportarProblema .input-field:focus-within {
+    box-shadow: 0 0 0 1px #37417c;
+}
+
+/* 2. Ajusta o select-wrapper interno (sem bordas internas) */
+#modalReportarProblema .input-field .select-wrapper {
+    padding: 0 0 0 12px !important;
+    margin: 0 !important;
+    width: 100%;
+    min-height: 40px; 
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* 3. Remove BORDAS do input.select-dropdown e input[type=text]*/
+#modalReportarProblema .input-field input.select-dropdown,
+#modalReportarProblema .input-field input[type=text],
+#modalReportarProblema .input-field textarea.materialize-textarea {
+    border-bottom: none !important; 
+    box-shadow: none !important;    
+    margin: 0 !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    color: #000 !important;
+    background-color: transparent !important; 
+    padding: 0 10px !important; 
+    width: 100% !important; 
+}
+#modalReportarProblema .input-field textarea.materialize-textarea {
+    height: auto !important;
+    min-height: 100px !important;
+    line-height: 1.5 !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+/* 4. Posiciona a seta e remove caret do texto */
+#modalReportarProblema .input-field .caret {
+    display: block !important;
+    fill: #37417c !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+}
+#modalReportarProblema .input-field .select-wrapper input.select-dropdown {
+    padding-right: 25px !important; /* Mais espaço para a seta */
+}
 
     #modalAnilox .modal-footer {
     position: sticky !important;
@@ -737,39 +765,82 @@
         </div>
     </div>
 
-    <div id="modalReportarProblema" class="modal">
-      <div class="modal-content">
-        <h4 id="problema-titulo"><i class="material-icons">report_problem</i> Reportar Problema de Produção</h4>
-        <div class="gradient-line"></div>
-        <div class="row" style="margin-top: 20px;">
-          <div class="input-field col s12">
+    <div id="modalReportarProblema" class="modal" style="max-width: 800px !important;"> <div class="modal-content"> <h4 id="problema-titulo"><i class="material-icons">report_problem</i> Reportar Problema de Produção</h4> <div class="gradient-line"></div>
+
+    <div class="row" style="margin-top: 20px;">
+        <div class="input-field col s6">
             <input id="problema_numPedido" type="text" class="validate">
             <label for="problema_numPedido">1. Informe o Nº do Pedido</label>
-          </div>
-          <div class="input-field col s12">
-            <label for="problema_tipo">2. Selecione o Tipo de Problema</label>
-            <select id="problema_tipo">
-              <option value="" disabled selected>Escolha uma opção</option>
-              <option value="Clichê - Problema de Gravação">Clichê - Problema de Gravação</option>
-              <option value="Clichê - Diferença de Cor/Tonalidade">Clichê - Diferença de Cor/Tonalidade</option>
-              <option value="Faca - Problema de degolamento">Faca - Problema de degolamento</option>
-              <option value="Faca - Corte insuficiente/Faca Cega">Faca - Corte insuficiente/Faca Cega</option>
+        </div>
+        <div class="input-field col s6">
+            <select id="problema_ferramenta">
+                <option value="" disabled selected>Selecione o Insumo</option>
+                <option value="Clichê">Clichê</option>
+                <option value="Faca">Faca</option>
+                <option value="Ambos">Ambos</option>
             </select>
-          </div>
-          <div class="input-field col s12">
-            <textarea id="problema_descricao" class="materialize-textarea" data-length="200"></textarea>
-            <label for="problema_descricao">3. Descreva o problema em detalhes (Obrigatório)</label>
+            <label for="problema_ferramenta">2. Insumo com Problema</label>
+        </div>
+    </div>
+    
+    <div id="bloco_cliche" style="display: none; border-top: 1px solid #eee; padding-top: 15px;">
+        <h5 style="color: #37417c; font-weight: 600; font-size: 1.2rem; margin-bottom: 20px; margin-top: 10px;">Problema no Clichê</h5>
+        <div class="input-field col s12">
+            <select multiple id="problema_id_lamina">
+                <option value="" disabled>Buscando lâminas...</option>
+            </select>
+            <label>3a. Selecione as Lâminas Afetadas (ou deixe em branco para Jogo Inteiro)</label>
+        </div>
+        <div class="input-field col s12">
+            <select id="problema_tipo_cliche">
+                <option value="" disabled selected>Escolha o Tipo de Problema</option>
+            </select>
+            <label for="problema_tipo_cliche">3b. Tipo de Problema no Clichê</label>
+        </div>
+        <div class="input-field col s12">
+            <textarea id="problema_descricao_cliche" class="materialize-textarea" data-length="200"></textarea>
+            <label for="problema_descricao_cliche">3c. Descreva o Problema (Obrigatório)</label>
+        </div>
+    </div>
+
+    <div id="bloco_faca" style="display: none; border-top: 1px solid #eee; padding-top: 15px;">
+         <h5 style="color: #37417c; font-weight: 600; font-size: 1.2rem; margin-bottom: 20px; margin-top: 10px;">Problema na Faca</h5>
+        <div id="faca_info_display" style="margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 0.9rem;">
+            <strong>Modelo Faca:</strong> <span id="faca_modelo_display">---</span> | 
+            <strong>Item:</strong> <span id="faca_id_unico_display">---</span>
+        </div>
+        <div class="input-field col s12">
+            <select id="problema_tipo_faca">
+                <option value="" disabled selected>Escolha o Tipo de Problema</option>
+            </select>
+            <label for="problema_tipo_faca">4a. Tipo de Problema na Faca</label>
+        </div>
+        <div class="input-field col s12">
+            <textarea id="problema_descricao_faca" class="materialize-textarea" data-length="200"></textarea>
+            <label for="problema_descricao_faca">4b. Descreva o Problema (Obrigatório)</label>
+        </div>
+    </div>
+
+    <div id="problema_loading" style="text-align: center; padding: 20px; display: none;">
+        <div class="preloader-wrapper active">
+          <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left"><div class="circle"></div></div>
+            <div class="gap-patch"><div class="circle"></div></div>
+            <div class="circle-clipper right"><div class="circle"></div></div>
           </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-close waves-effect waves-red red-text btn-flat">Cancelar</button>
-        <button class="btn waves-effect blue darken-2" id="btnConfirmarReporteProblema" onclick="confirmarReporteProblema()">
-          Confirmar Problema
-          <i class="material-icons right">check</i>
-        </button>
-      </div>
+        <p>Buscando dados do pedido...</p>
     </div>
+    
+</div>
+<div class="modal-footer">
+    <button class="modal-close waves-effect waves-red red-text btn-flat" id="btnCancelarReporte">Cancelar</button>
+    <button class="btn waves-effect red darken-2" id="btnConfirmarReporteProblema" onclick="confirmarReporteProblema()" disabled>
+        Confirmar Problema
+        <i class="material-icons right">check</i>
+    </button>
+</div>
+</div>
 
     <div id="detalhes-pedido-modal" class="modal">
         <div class="modal-content">
@@ -874,7 +945,10 @@
     let listaAnilox = []; 
     let mudancas = {}; 
     let modalDetalhesInstance, consumoModalInstance, modalMotivoConsumoInstance, 
-    modalAtrasoInstance, modalReporteProblemaInstance, modalAniloxInstance;
+    modalAtrasoInstance, modalAniloxInstance; // <<<< REMOVIDO: modalReporteProblemaInstance da linha original
+    let problemaModalInstance; // <<<< NOVO: Instância do modal de problema
+    let dadosInsumosReporte = null; // <<<< NOVO: Variável para dados do reporte
+    let problemaNumPedidoInput, problemaFerramentaSelect, problemaBtnConfirm;
     let quadrosContainer = null; // <-- ADICIONE ESTA LINHA OU VERIFIQUE SUA EXISTÊNCIA
     let batidaContainer = null; // <-- ADICIONE ESTA LINHA OU VERIFIQUE SUA EXISTÊNCIA
     let tabelaCorpo = null;
@@ -908,18 +982,28 @@
         consumoModalInstance = M.Modal.init(document.getElementById('modalConsumo'), { dismissible: true });
         modalDetalhesInstance = M.Modal.init(document.getElementById('detalhes-pedido-modal'), { dismissible: true });
         modalMotivoConsumoInstance = M.Modal.init(document.getElementById('modalMotivoConsumo'), { dismissible: false });
-        modalReporteProblemaInstance = M.Modal.init(document.getElementById('modalReportarProblema'), { dismissible: true });
         modalAniloxInstance = M.Modal.init(document.getElementById('modalAnilox'), { dismissible: false }); 
-
-        // <<< CORREÇÃO V4.6 >>>
-        M.FormSelect.init(document.getElementById('problema_tipo'), materializeSelectOptions);
-        M.CharacterCounter.init(document.getElementById('problema_descricao'));
+        
+        // <<< NOVO: Inicialização do modal de problema integrado >>>
+        problemaModalInstance = M.Modal.init(document.getElementById('modalReportarProblema'), { dismissible: false });
+        problemaNumPedidoInput = document.getElementById('problema_numPedido');
+        problemaFerramentaSelect = document.getElementById('problema_ferramenta');
+        problemaBtnConfirm = document.getElementById('btnConfirmarReporteProblema');
 
         // Listeners dos Modais
         document.getElementById('motivoAtrasoConfirmar').addEventListener('click', onConfirmarAtrasoClick);
         document.getElementById('motivoAtrasoInput').addEventListener('input', checkMotivoAtrasoInput);
         document.getElementById('motivoConsumoConfirmar').addEventListener('click', onConfirmarMetragemExcessiva);
         document.getElementById('motivoConsumoInput').addEventListener('input', checkMotivoConsumoInput);
+
+        // <<< NOVOS LISTENERS PARA O MODAL DE PROBLEMA INTEGRADO >>>
+        problemaNumPedidoInput.addEventListener('change', handlePedidoReporteChange);
+        problemaFerramentaSelect.addEventListener('change', handleFerramentaReporteChange);
+        document.getElementById('problema_descricao_cliche').addEventListener('input', checkReporteInputs);
+        document.getElementById('problema_descricao_faca').addEventListener('input', checkReporteInputs);
+        document.getElementById('problema_tipo_cliche').addEventListener('change', checkReporteInputs);
+        document.getElementById('problema_tipo_faca').addEventListener('change', checkReporteInputs);
+        // <<< FIM DOS NOVOS LISTENERS >>>
         
         // Carrega dados do servidor
         todosPedidos = dadosServidor.pedidos || [];
@@ -2270,73 +2354,6 @@ function onPreencherAniloxErro(err) {
         document.getElementById('btnConfirmarConsumo').disabled = false;
     }
     
-    // ===============================================
-    // MODAIS DE DETALHES, PROBLEMA E ATRASO
-    // ===============================================
-    
-    function abrirModalReportarProblema() {
-      document.getElementById('problema_numPedido').value = '';
-      document.getElementById('problema_tipo').value = '';
-      document.getElementById('problema_descricao').value = '';
-      M.FormSelect.init(document.getElementById('problema_tipo'), materializeSelectOptions);
-      M.updateTextFields();
-      if (modalReporteProblemaInstance) {
-        modalReporteProblemaInstance.open();
-      }
-    }
-    
-    function confirmarReporteProblema() {
-      const btn = document.getElementById('btnConfirmarReporteProblema');
-      btn.disabled = true;
-      showSuccessToast("Registrando problema, aguarde...");
-
-      const dadosDoProblema = {
-        numPedido: document.getElementById('problema_numPedido').value.trim(),
-        tipo: document.getElementById('problema_tipo').value,
-        descricao: document.getElementById('problema_descricao').value.trim()
-      };
-      
-      if (!dadosDoProblema.numPedido) {
-         showErrorToast("O Nº do Pedido é obrigatório.");
-         restaurarBotaoReporte(); return;
-      }
-      if (!dadosDoProblema.tipo) {
-         showErrorToast("O Tipo de Problema é obrigatório.");
-         restaurarBotaoReporte(); return;
-      }
-       if (dadosDoProblema.descricao.length < 10) {
-         showErrorToast("A descrição precisa ser mais detalhada (mín 10 caracteres).");
-         restaurarBotaoReporte(); return;
-      }
-
-      google.script.run
-        .withSuccessHandler(onSucessoReporte)
-        .withFailureHandler(onFalhaReporte)
-        .registrarProblemaProducao(dadosDoProblema);
-    }
-
-    function onSucessoReporte(mensagem) {
-      showSuccessToast(mensagem);
-      modalReporteProblemaInstance.close();
-      restaurarBotaoReporte();
-      refreshPedidos(); // ATUALIZA A TELA
-    }
-
-    function onFalhaReporte(erro) {
-      showErrorToast(`Falha: ${erro.message}`);
-      restaurarBotaoReporte();
-    }
-
-    function restaurarBotaoReporte() {
-      const btn = document.getElementById('btnConfirmarReporteProblema');
-      btn.disabled = false;
-      btn.innerHTML = 'Confirmar Problema <i class="material-icons right">check</i>';
-    }
-    
-    /**
-     * <<< MUDANÇA (V4.5) >>>
-     * Abre o modal de atraso e armazena qual fluxo o chamou (Flexo ou Digital)
-     */
     function abrirModalAtraso(linhaPlanilha, tipoFluxo) {
         document.getElementById('motivoAtrasoInput').value = '';
         document.getElementById('motivoAtrasoConfirmar').disabled = true;
@@ -2535,6 +2552,264 @@ function onPreencherAniloxErro(err) {
           default: return "";
       }
     }
+
+
+// ... (código existente) ...
+
+function _showLoadingReporte(show) {
+    const loading = document.getElementById('problema_loading');
+    // A primeira DIV.row é a do N° Pedido e Seleção de Insumo
+    const content = document.querySelector('#modalReportarProblema .row:first-of-type'); 
+    
+    // Blocos condicionais
+    const blocoCliche = document.getElementById('bloco_cliche');
+    const blocoFaca = document.getElementById('bloco_faca');
+
+    if (show) {
+        loading.style.display = 'block';
+        content.style.display = 'none';
+        blocoCliche.style.display = 'none';
+        blocoFaca.style.display = 'none';
+        document.getElementById('btnCancelarReporte').disabled = true;
+        problemaBtnConfirm.disabled = true;
+    } else {
+        loading.style.display = 'none';
+        content.style.display = 'flex'; // Exibir a linha de Pedido/Ferramenta
+        document.getElementById('btnCancelarReporte').disabled = false;
+    }
+}
+
+function _resetReporteModal() {
+    dadosInsumosReporte = null;
+    problemaNumPedidoInput.value = '';
+    
+    // Limpa os selects
+    problemaFerramentaSelect.value = '';
+    // Corrigido: Inicializa o select de ferramenta sem "Aguardando..." para que a busca o preencha
+    problemaFerramentaSelect.disabled = true; 
+    problemaFerramentaSelect.innerHTML = '<option value="" disabled selected>Aguardando Nº Pedido...</option><option value="Clichê">Clichê</option><option value="Faca">Faca</option><option value="Ambos">Ambos</option>';
+    
+    document.getElementById('problema_id_lamina').innerHTML = '<option value="" disabled>Selecione (Jogo Inteiro)</option>';
+    document.getElementById('problema_tipo_cliche').innerHTML = '<option value="" disabled selected>Escolha o Tipo de Problema</option>';
+    document.getElementById('problema_tipo_faca').innerHTML = '<option value="" disabled selected>Escolha o Tipo de Problema</option>';
+    
+    // Limpa textareas
+    document.getElementById('problema_descricao_cliche').value = '';
+    document.getElementById('problema_descricao_faca').value = '';
+
+    // Limpa Display da Faca
+    document.getElementById('faca_modelo_display').textContent = '---';
+    document.getElementById('faca_id_unico_display').textContent = '---';
+    document.getElementById('faca_info_display').style.backgroundColor = '#f9f9f9';
+
+    // Esconde blocos
+    document.getElementById('bloco_cliche').style.display = 'none';
+    document.getElementById('bloco_faca').style.display = 'none';
+    
+    problemaBtnConfirm.disabled = true;
+    M.FormSelect.init(document.querySelectorAll('#modalReportarProblema select'), materializeSelectOptions);
+    M.updateTextFields();
+}
+
+function abrirModalReportarProblema() {
+    _resetReporteModal();
+    problemaModalInstance.open();
+    M.updateTextFields();
+}
+
+function handlePedidoReporteChange() {
+    const numPedido = problemaNumPedidoInput.value.trim();
+    if (numPedido.length < 5 || isNaN(parseInt(numPedido))) {
+        _resetReporteModal();
+        return;
+    }
+
+    // 1. Reset e Mostra Loading
+    _resetReporteModal();
+    _showLoadingReporte(true);
+
+    // 2. Busca Dados
+    executarComRetry(
+        'getDadosInsumosParaReporte',
+        [numPedido],
+        (data) => {
+            _showLoadingReporte(false);
+            if (!data || data.erro || !data.numPedido) {
+                showErrorToast(data.erro || `Pedido ${numPedido} não encontrado, já cancelado/concluído ou erro de servidor.`);
+                return;
+            }
+            
+            dadosInsumosReporte = data;
+            _preencherDadosReporte(data);
+        },
+        (erro) => {
+            _showLoadingReporte(false);
+            showErrorToast(`Erro ao buscar dados: ${erro.message}`);
+            dadosInsumosReporte = null;
+        }
+    );
+}
+
+function _preencherDadosReporte(data) {
+    const isClichêNulo = !data.idCliche || data.idCliche === 'N/A';
+    const isFacaNulo = !data.codFacaModelo || data.codFacaModelo === 'N/A';
+    
+    // Status atual do pedido (para verificar bloqueio de Aguardando Insumos)
+    const statusAtual = todosPedidos.find(p => p.numPedido == data.numPedido)?.status || "";
+    if (statusAtual.includes("Aguardando")) {
+        showErrorToast("Este pedido já está em status de espera. Cancele e recrie a solicitação se necessário.");
+        return;
+    }
+
+    // --- 1. Preencher Selects de Tipo de Problema (Clichê e Faca) ---
+    const selectTipoCliche = document.getElementById('problema_tipo_cliche');
+    const selectTipoFaca = document.getElementById('problema_tipo_faca');
+    selectTipoCliche.innerHTML = gerarOptions(data.tiposProblemaCliche, null, "Escolha o Tipo de Problema");
+    selectTipoFaca.innerHTML = gerarOptions(data.tiposProblemaFaca, null, "Escolha o Tipo de Problema");
+    
+    // --- 2. Preencher Select de Lâminas (Clichê) ---
+    const selectLamina = document.getElementById('problema_id_lamina');
+    selectLamina.innerHTML = '<option value="" disabled>Selecione (Jogo Inteiro)</option>';
+    if (!isClichêNulo && data.laminasDoCliche && data.laminasDoCliche.length > 0) {
+        data.laminasDoCliche.forEach(lamina => {
+            selectLamina.innerHTML += `<option value="${lamina.idLamina}">Estação ${lamina.estacao}: ${lamina.tipoLamina} (${lamina.statusLamina})</option>`;
+        });
+    } else if (!isClichêNulo) {
+        selectLamina.innerHTML += '<option value="" disabled selected>Clichê sem lâminas contáveis cadastradas!</option>';
+    }
+
+    // --- 3. Preencher Display da Faca ---
+    const facaDisplay = document.getElementById('faca_info_display');
+    if (!isFacaNulo) {
+        document.getElementById('faca_modelo_display').textContent = data.codFacaModelo;
+        document.getElementById('faca_id_unico_display').textContent = data.idUnicoFaca;
+        facaDisplay.style.backgroundColor = '#E8F5E9'; // Light Green background
+        if (data.codFacaModelo.toUpperCase().includes('DIGITAL')) {
+            facaDisplay.style.backgroundColor = '#E1F5FE'; // Light Blue for Digital
+        }
+    }
+    
+    // --- 4. Habilitar a seleção de Ferramenta ---
+    problemaFerramentaSelect.value = ''; // Reset selection
+    problemaFerramentaSelect.disabled = false;
+    
+    // Exibe mensagem se ambos insumos estiverem nulos
+    if (isClichêNulo && isFacaNulo) {
+        showErrorToast("Erro: O pedido não tem Clichê ou Faca vinculados para reporte.");
+        problemaFerramentaSelect.disabled = true;
+    }
+
+    M.FormSelect.init(document.querySelectorAll('#modalReportarProblema select'), materializeSelectOptions);
+    M.updateTextFields();
+}
+
+function handleFerramentaReporteChange() {
+    const ferramenta = problemaFerramentaSelect.value;
+    const blocoCliche = document.getElementById('bloco_cliche');
+    const blocoFaca = document.getElementById('bloco_faca');
+    const isClichêNulo = dadosInsumosReporte && (!dadosInsumosReporte.idCliche || dadosInsumosReporte.idCliche === 'N/A');
+    const isFacaNulo = dadosInsumosReporte && (!dadosInsumosReporte.codFacaModelo || dadosInsumosReporte.codFacaModelo === 'N/A');
+
+    blocoCliche.style.display = 'none';
+    blocoFaca.style.display = 'none';
+    problemaBtnConfirm.disabled = true;
+
+    if (ferramenta === 'Clichê' || ferramenta === 'Ambos') {
+        if (isClichêNulo) {
+            showErrorToast("Este pedido não tem um ID de Clichê vinculado ao produto!");
+        } else {
+            blocoCliche.style.display = 'block';
+        }
+    }
+    if (ferramenta === 'Faca' || ferramenta === 'Ambos') {
+        if (isFacaNulo) {
+             showErrorToast("Este pedido não tem um MODELO de Faca vinculado ao produto!");
+        } else {
+            blocoFaca.style.display = 'block';
+        }
+    }
+    
+    checkReporteInputs();
+}
+
+function checkReporteInputs() {
+    const ferramenta = problemaFerramentaSelect.value;
+    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
+    const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
+
+    let validCliche = true;
+    let validFaca = true;
+
+    if (isClichêBlocoVisivel) {
+        const tipoCliche = document.getElementById('problema_tipo_cliche').value;
+        const descCliche = document.getElementById('problema_descricao_cliche').value.trim();
+        validCliche = !!tipoCliche && descCliche.length >= 5;
+    }
+
+    if (isFacaBlocoVisivel) {
+        const tipoFaca = document.getElementById('problema_tipo_faca').value;
+        const descFaca = document.getElementById('problema_descricao_faca').value.trim();
+        validFaca = !!tipoFaca && descFaca.length >= 5;
+    }
+
+    const isDataFetched = !!dadosInsumosReporte;
+    
+    problemaBtnConfirm.disabled = !(isDataFetched && validCliche && validFaca && (isClichêBlocoVisivel || isFacaBlocoVisivel));
+}
+
+function confirmarReporteProblema() {
+    problemaBtnConfirm.disabled = true;
+    _showLoadingReporte(true);
+
+    const ferramenta = problemaFerramentaSelect.value;
+    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
+    const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
+    
+    // --- 1. Montar o Objeto de Dados
+    const dados = {
+        numPedido: problemaNumPedidoInput.value.trim(),
+        ferramenta: ferramenta, // "Clichê", "Faca" ou "Ambos"
+        
+        // Dados Clichê (Só preenche se for visível)
+        tipoCliche: isClichêBlocoVisivel ? document.getElementById('problema_tipo_cliche').value : "",
+        descCliche: isClichêBlocoVisivel ? document.getElementById('problema_descricao_cliche').value.trim() : "",
+        idsLaminas: isClichêBlocoVisivel ? M.FormSelect.getInstance(document.getElementById('problema_id_lamina')).getSelectedValues() : [],
+        
+        // Dados Faca (Só preenche se for visível)
+        tipoFaca: isFacaBlocoVisivel ? document.getElementById('problema_tipo_faca').value : "",
+        descFaca: isFacaBlocoVisivel ? document.getElementById('problema_descricao_faca').value.trim() : ""
+    };
+
+    // --- 2. Validação (Repetição)
+    if (!dados.numPedido || !dados.ferramenta || (isClichêBlocoVisivel && (dados.tipoCliche === "" || dados.descCliche.length < 5)) || (isFacaBlocoVisivel && (dados.tipoFaca === "" || dados.descFaca.length < 5))) {
+        showErrorToast("Preencha todos os campos obrigatórios (Pedido, Insumo e Descrições com no mínimo 5 caracteres).");
+        problemaBtnConfirm.disabled = false;
+        _showLoadingReporte(false);
+        return;
+    }
+
+    showSuccessToast("Registrando problema, aguarde...");
+
+    // --- 3. Chamada ao Backend
+    google.script.run
+        .withSuccessHandler(onSucessoReporte)
+        .withFailureHandler(onFalhaReporte)
+        .registrarProblemaProducaoIntegrado(dados);
+}
+
+function onSucessoReporte(msg) {
+    showSuccessToast(msg);
+    problemaModalInstance.close();
+    _showLoadingReporte(false);
+    problemaBtnConfirm.disabled = false;
+    refreshPedidos(); // Atualiza a fila de produção
+}
+
+function onFalhaReporte(erro) {
+    showErrorToast(`Falha: ${erro.message}`);
+    _showLoadingReporte(false);
+    problemaBtnConfirm.disabled = false;
+}
     
     </script>
 </body>
