@@ -3091,12 +3091,12 @@ function confirmarReporteProblema() {
         
         // Dados Clichê (Só preenche se for visível)
         tipoCliche: isClichêBlocoVisivel ? document.getElementById('problema_tipo_cliche').value : "",
-        descCliche: isClichêBlocoVisivel ? document.getElementById('problema_descricao_cliche').value.trim() : "",
+        descCliche: isClichêBlocoVisivel ? String(document.getElementById('problema_descricao_cliche').value).trim() : "",
         idsLaminas: isClichêBlocoVisivel ? M.FormSelect.getInstance(document.getElementById('problema_id_lamina')).getSelectedValues() : [],
         
         // Dados Faca (Só preenche se for visível)
         tipoFaca: isFacaBlocoVisivel ? document.getElementById('problema_tipo_faca').value : "",
-        descFaca: isFacaBlocoVisivel ? document.getElementById('problema_descricao_faca').value.trim() : ""
+        descFaca: isFacaBlocoVisivel ? String(document.getElementById('problema_descricao_faca').value).trim() : ""
     };
 
     // --- 2. Validação (Repetição)
