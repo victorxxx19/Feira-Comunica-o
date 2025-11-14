@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    
+    <style>
+        body { background-color: #f9faff; display: flex; flex-direction: column; min-height: 100vh; }
+        main { flex: 1 0 auto; padding: 20px 30px; }
+        
+        .header-container {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 30px; background-color: #ffffff;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #0047BB, #C8E154) 1;
+        }
+        .header-container h4 {
+            font-size: 1.8rem; font-weight: 600; color: #0047BB;
+            display: flex; align-items: center; margin: 0;
+        }
+        .header-container h4 > i { font-size: 2.2rem; margin-right: 10px; }
+
+        .input-field input:focus + label { color: #0047BB !important; }
+        .input-field input:focus {
+            border-bottom: 1px solid #0047BB !important;
+            box-shadow: 0 1px 0 0 #0047BB !important;
+        }
+        .btn { background-color: #0047BB !important; }
+        .btn:hover { background-color: #003a9a !important; }
+        .btn-secundario { background-color: #C8E154 !important; color: #333 !important; }
+        .btn-secundario:hover { background-color: #afc741 !important; }
+        .select-wrapper input.select-dropdown:focus { border-bottom: 1px solid #0047BB !important; }
+        .dropdown-content li > span { color: #0047BB !important; }
+        
+        .section-card {
+            background: #ffffff; border-radius: 8px; padding: 25px;
+            margin-top: 25px; border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .section-title {
+            font-size: 1.3rem; font-weight: 600; color: #0047BB;
+            display: flex; align-items: center; margin: -5px 0 25px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .section-title i { margin-right: 10px; }
+
+        .info-box {
+            background-color: #f5f7fa; border: 1px dashed #ccc;
+            border-radius: 6px; padding: 15px; margin-top: 10px;
+            display: none; /* Começa escondido */
+        }
+        .info-box .value {
+            font-size: 1.2rem; color: #000; font-weight: 500;
+        }
+        
+        #loader-container, #loader-pedido { display: none; }
+        
+        /* Tabela de Seleção */
+        #tabela-selecao-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #tabela-selecao th {
+           padding: 10px 8px; position: sticky; top: 0; background: #f1f1f1;
+        }
+        #tabela-selecao td {
+            padding: 6px 8px;
+        }
+        #tabela-selecao tr:hover {
+            background-color: #f5f7fa;
+        }
+        
+        #carrinho-total {
+            font-size: 1.2rem; font-weight: 500; color: #0047BB;
+            text-align: right; margin-top: 15px;
+        }
+        [type="checkbox"]:checked+span:not(.lever):before {
+            border-right-color: #0047BB !important;
+            border-bottom-color: #0047BB !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-container">
+        <h4>
+            <i class="material-icons">link</i>
+            Alocação em Lote
+        </h4>
+    </div>
+
+    <main>
+        <div class="section-card">
+            <h5 class="section-title"><i class="material-icons">assignment</i>Passo 1: Selecionar Pedido e Fornecedor</h5>
+            <div class="row">
+                <div class="input-field col s12 m6">
+                    <input id="num_pedido_buscar" type="text" placeholder="Digite o Nº do Pedido (Ex: 60123)">
+                    <label for="num_pedido_buscar">Nº do Pedido</label>
+                </div>
+                <div class="input-field col s12 m6">
+                    <select id="filtro_fornecedor">
+                        <option value="" selected>Todos os Fornecedores</option>
+                        </select>
+                    <label>Fornecedor (Opcional)</label>
+                </div>
+            </div>
+            
+            <div class="row" style="margin-bottom: 0; text-align: center;">
+                 <div class="col s12">
+                    <button id="btnBuscarPedido" class="btn waves-effect waves-light">
+                        <i class="material-icons left">check_circle</i>Buscar Pedido e Estoque
+                    </button>
+                 </div>
+            </div>
+            
+            <div id="loader-pedido" class="center-align" style="padding: 10px;">
+                <div class="preloader-wrapper small active">
+                    <div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div>
+                </div>
+            </div>
+            <div id="info-pedido" class="info-box">
+                </div>
+        </div>
+
+        <div id="dados-selecao" class="section-card" style="display: none;">
+            <h5 class="section-title"><i class="material-icons">checklist</i>Passo 2: Selecionar Bobinas Disponíveis</h5>
+            
+            <p id="msg-estoque-disponivel">Carregando...</p>
+            
+            <div id="tabela-selecao-container">
+                <table id="tabela-selecao" class="highlight">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">
+                                <label>
+                                    <input type="checkbox" id="check-all" onchange="toggleAll(this.checked)" />
+                                    <span></span>
+                                </label>
+                            </th>
+                            <th>ID Bobina-Filha</th>
+                            <th>Largura (m)</th>
+                            <th class="right-align">Metragem Disp. (m)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo">
+                        </tbody>
+                </table>
+            </div>
+            
+            <h6 id="carrinho-total">Total Selecionado: 0 bobinas (0 m)</h6>
+
+            <div class="row" style="text-align: center; margin-top: 30px;">
+                <div class="col s12">
+                    <button id="btnAlocarLote" class="btn-large waves-effect waves-light btn-secundario">
+                        <i class="material-icons left">link</i>
+                        Alocar Bobinas Selecionadas
+                    </button>
+                    <div id="loader-container">
+                        <div class="preloader-wrapper big active">
+                            <div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+    // --- VARIÁVEIS GLOBAIS ---
+    let pedidoInfo = null; // Armazena os dados do pedido
+
+    document.addEventListener("DOMContentLoaded", function() {
+        M.updateTextFields();
+        M.FormSelect.init(document.querySelectorAll('select')); // Inicializa o select
+        
+        // --- NOVO: Carrega o dropdown de fornecedores no início ---
+        google.script.run
+            .withSuccessHandler(onDadosIniciaisSuccess)
+            .withFailureHandler(onFailure)
+            .getDadosIniciaisBobina(); // Reutiliza a função
+        
+        // Listeners dos botões
+        document.getElementById('btnBuscarPedido').addEventListener('click', buscarPedidoEEstoque);
+        document.getElementById('btnAlocarLote').addEventListener('click', alocarLote);
+    });
+    
+    // --- NOVO: Popula o dropdown de fornecedores ---
+    function onDadosIniciaisSuccess(dados) {
+        if (dados && dados.fornecedores) {
+            const selFornecedor = document.getElementById('filtro_fornecedor');
+            // A opção "Todos" já está no HTML
+            dados.fornecedores.forEach(f => {
+                selFornecedor.innerHTML += `<option value="${f}">${f}</option>`;
+            });
+            M.FormSelect.init(selFornecedor); // Re-inicializa o select
+        } else {
+            onFailure({ message: "Falha ao carregar dados iniciais (fornecedores)." });
+        }
+    }
+
+    // --- PASSO 1: BUSCAR PEDIDO E ESTOQUE ---
+    function buscarPedidoEEstoque() {
+        const numPedido = document.getElementById('num_pedido_buscar').value;
+        if (!numPedido) {
+            M.toast({html: 'Digite o número do Pedido para verificar.', classes: 'red darken-2'});
+            return;
+        }
+        
+        const infoBox = document.getElementById('info-pedido');
+        const loader = document.getElementById('loader-pedido');
+        const passo2 = document.getElementById('dados-selecao');
+        
+        loader.style.display = 'block';
+        infoBox.style.display = 'none';
+        passo2.style.display = 'none';
+        pedidoInfo = null;
+
+        // 1. Chama a busca do pedido
+        google.script.run
+            .withSuccessHandler(onBuscarPedidoSuccess) // <-- Esta função estava faltando
+            .withFailureHandler(onFailure)
+            .buscarMetragemPedido(numPedido); 
+    }
+
+    // ===================================================================
+    // --- FUNÇÃO CORRIGIDA (ESTAVA FALTANDO NO SEU HTML) ---
+    // ===================================================================
+    function onBuscarPedidoSuccess(dados) {
+        const infoBox = document.getElementById('info-pedido');
+        const loader = document.getElementById('loader-pedido');
+        loader.style.display = 'none';
+
+        if (dados.sucesso) {
+            // Salva os dados globalmente
+            pedidoInfo = {
+                numPedido: dados.numPedido,
+                metragem: dados.metragem,
+                substrato: dados.substrato,
+                tipoDeCola: dados.colas // O backend retorna 'colas'
+            }; 
+            
+            // Exibe os dados do pedido
+            infoBox.innerHTML = `
+                <p class="value" style="margin: 0;">
+                    <i class="material-icons tiny">info_outline</i>
+                    Pedido ${dados.numPedido}: <b>${dados.metragem}m</b> de <b>${dados.substrato} + ${dados.colas}</b>
+                </p>
+            `;
+            infoBox.style.display = 'block';
+
+            // 2. Agora que temos o substrato, busca o estoque
+            const fornecedor = document.getElementById('filtro_fornecedor').value;
+
+            document.getElementById('dados-selecao').style.display = 'block';
+            document.getElementById('msg-estoque-disponivel').innerText = `Buscando estoque de "${dados.substrato}"...`;
+            document.getElementById('tabela-corpo').innerHTML = "";
+            document.getElementById('check-all').checked = false;
+            atualizarTotal();
+
+            // 3. Chama a busca de bobinas no backend
+            google.script.run
+                .withSuccessHandler(onBuscarEstoqueSuccess) // Esta função já existe no seu código
+                .withFailureHandler(onFailure)
+                .buscarBobinasDisponiveis(dados.substrato, fornecedor, dados.colas); // Envia os 3 filtros
+
+        } else {
+            onFailure({ message: dados.mensagem });
+            infoBox.innerHTML = "";
+            infoBox.style.display = 'none';
+            pedidoInfo = null;
+        }
+    }
+    // ===================================================================
+    // --- FIM DA CORREÇÃO ---
+    // ===================================================================
+
+    // --- PASSO 2: RENDERIZAR ESTOQUE ---
+    function onBuscarEstoqueSuccess(dados) {
+        if (!dados.sucesso) {
+            onFailure({ message: dados.mensagem });
+            return;
+        }
+        
+        const corpoTabela = document.getElementById('tabela-corpo');
+        const msgEstoque = document.getElementById('msg-estoque-disponivel');
+        corpoTabela.innerHTML = "";
+        
+        if (dados.bobinas.length === 0) {
+            msgEstoque.innerText = `Nenhuma bobina de "${pedidoInfo.substrato} + ${pedidoInfo.tipoDeCola}" está disponível no estoque para o fornecedor selecionado.`;
+            return;
+        }
+        
+        msgEstoque.innerText = `Mostrando ${dados.bobinas.length} bobinas de "${pedidoInfo.substrato} + ${pedidoInfo.tipoDeCola}" disponíveis:`;
+        
+        dados.bobinas.forEach(b => {
+            corpoTabela.innerHTML += `
+                <tr>
+                    <td>
+                        <label>
+                            <input type="checkbox" class="bobina-check" 
+                                   data-id="${b.idBobinaFilha}" 
+                                   data-metragem="${b.saldoReal}" 
+                                   onchange="atualizarTotal()" />
+                            <span></span>
+                        </label>
+                    </td>
+                    <td>${b.idBobinaFilha}</td>
+                    <td>${b.largura} m</td>
+                    <td class="right-align">${b.saldoReal.toLocaleString('pt-BR', {maximumFractionDigits: 0})} m</td>
+                </tr>
+            `;
+        });
+    }
+    
+    // --- FUNÇÕES DO CARRINHO (CHECKBOX) ---
+    
+    function toggleAll(checked) {
+        document.querySelectorAll('.bobina-check').forEach(chk => {
+            chk.checked = checked;
+        });
+        atualizarTotal();
+    }
+    
+    function atualizarTotal() {
+        let totalMetragem = 0;
+        let totalBobinas = 0;
+        
+        document.querySelectorAll('.bobina-check:checked').forEach(chk => {
+            totalBobinas++;
+            totalMetragem += parseFloat(chk.dataset.metragem);
+        });
+        
+        document.getElementById('carrinho-total').innerHTML = 
+            `Total Selecionado: ${totalBobinas} bobina(s) (${totalMetragem.toLocaleString('pt-BR', {maximumFractionDigits: 0})} m)`;
+    }
+    
+    // --- PASSO 3: ALOCAR O LOTE ---
+    function alocarLote() {
+        const listaIds = [];
+        document.querySelectorAll('.bobina-check:checked').forEach(chk => {
+            listaIds.push(chk.dataset.id);
+        });
+
+        if (listaIds.length === 0) {
+            M.toast({html: 'Erro: Nenhuma bobina foi selecionada.', classes: 'red darken-2'});
+            return;
+        }
+        
+        showLoader(true, 'btnAlocarLote');
+        
+        google.script.run
+            .withSuccessHandler(onAlocarSuccess)
+            .withFailureHandler(onFailure)
+            .alocarMultiplasBobinas(listaIds, pedidoInfo.numPedido);
+    }
+    
+    function onAlocarSuccess(resposta) {
+        showLoader(false, 'btnAlocarLote');
+        if (resposta.sucesso) {
+            M.toast({html: resposta.mensagem, classes: 'green', displayLength: 4000});
+            resetarFormularioCompleto();
+        } else {
+            onFailure({ message: resposta.mensagem });
+        }
+    }
+    
+    function resetarFormularioCompleto() {
+        pedidoInfo = null;
+        
+        document.getElementById('dados-selecao').style.display = 'none';
+        document.getElementById('info-pedido').style.display = 'none';
+        document.getElementById('num_pedido_buscar').value = "";
+        document.getElementById('tabela-corpo').innerHTML = "";
+        document.getElementById('check-all').checked = false;
+        document.getElementById('filtro_fornecedor').value = ""; // Reseta o filtro
+        M.FormSelect.init(document.getElementById('filtro_fornecedor'));
+        
+        atualizarTotal();
+        
+        M.updateTextFields();
+        document.getElementById('num_pedido_buscar').focus(); 
+    }
+
+    // --- FUNÇÕES HELPER GERAIS ---
+    function onFailure(erro) {
+        showLoader(false, 'btnBuscarPedido');
+        showLoader(false, 'btnAlocarLote');
+        document.getElementById('loader-pedido').style.display = 'none';
+        M.toast({html: 'Erro: ' + erro.message, classes: 'red darken-2', displayLength: 5000});
+    }
+
+    function showLoader(isLoading, buttonId) {
+        if (buttonId === 'btnAlocarLote') {
+            document.getElementById('loader-container').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('btnAlocarLote').disabled = isLoading;
+        } else if (buttonId === 'btnBuscarPedido') {
+            document.getElementById('btnBuscarPedido').disabled = isLoading;
+            document.getElementById('loader-pedido').style.display = isLoading ? 'block' : 'none';
+        }
+    }
+</script>
+</body>
+</html>
