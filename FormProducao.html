@@ -1702,7 +1702,6 @@ function preencherModalAnilox(data) {
     const wrapper = document.getElementById('anilox-estacoes-wrapper');
     const btnConfirm = document.getElementById('btnConfirmarSetup');
     const btnUnlock = document.getElementById('anilox-unlock-btn');
-    const reasonWrapper = document.getElementById('anilox-reason-wrapper');
 
     // Pré-requisito: Verifica se a mudança no Código.gs foi feita
     if (data.tipoPedido === undefined) {
@@ -1731,8 +1730,11 @@ function preencherModalAnilox(data) {
         btnConfirm.disabled = false;
     }
     
-    const quantidade = setupQtdCores - 1; // N-1
-    if (isNaN(quantidade) || quantidade <= 0) {
+    // <<< MODIFICAÇÃO 1: Limite de estações (8) e Lógica de Mensagem >>>
+    const MAX_ESTACOES_A_MOSTRAR = 8;
+    const numEstacoesComDados = setupQtdCores - 1; 
+
+    if (isNaN(setupQtdCores) || setupQtdCores <= 1) {
         wrapper.innerHTML = `<p class="mensagem-vazia">Este produto tem ${setupQtdCores} cor(es). Nenhum Anilox/Lâmina é necessário.</p>`;
         return;
     }
@@ -1741,26 +1743,28 @@ function preencherModalAnilox(data) {
     const optionsAnilox = gerarOptions(listaAnilox, null, "Selecione (Opcional)");
     let html = '';
 
-    for (let i = 0; i < quantidade; i++) {
+    for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // Loop fixo até 8
         const estacaoNum = i + 1;
-        const dados = dadosSalvos[i] || {};
+        
+        // Pega dados existentes se a estação for uma das que tem cor definida no produto
+        const dados = (estacaoNum <= numEstacoesComDados) ? (dadosSalvos[i] || {}) : {};
         
         const corSalva = dados.cor || "";
         const pantoneSalvo = dados.pantone || "";
         const aniloxSalvo = dados.anilox || "";
         const isPantone = (corSalva.toLowerCase() === 'pantone');
         
-        // Certifique-se de que a função gerarOptionsCores está definida globalmente
+        // Desabilita se for Repetição E for uma estação que já tem dados salvos
+        const disabledState = (isRepeticao && estacaoNum <= numEstacoesComDados) ? 'disabled' : '';
+        
+        // Gera opções de Cor/Lâmina
         const optionsCores = gerarOptionsCores(corSalva);
         
-        // Define o estado 'disabled'
-        const disabledState = isRepeticao ? 'disabled' : '';
-
-        // *** ESTRUTURA CORRIGIDA ***
+        // *** MODIFICAÇÃO 2: Rótulo "Estação X" ***
         html += `
-          <div class="row anilox-cor-row data-estacao="${estacaoNum}">
+          <div class="row anilox-cor-row" data-estacao="${estacaoNum}">
             
-            <div class="col s2"> <span class="anilox-label">Cor ${estacaoNum}:</span>
+            <div class="col s2"> <span class="anilox-label">Estação ${estacaoNum}:</span>
             </div>
             
             <div class="col s3"> <div class="input-field"> 
@@ -1794,13 +1798,15 @@ function preencherModalAnilox(data) {
     wrapper.innerHTML = html;
 
     // Preenche os valores dos Anilox (Selects)
-    for (let i = 0; i < quantidade; i++) {
+    for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // Loop fixo até 8
         const estacaoNum = i + 1;
-        const dados = dadosSalvos[i] || {};
+        // Usa a mesma lógica para ler o valor de anilox (se existir)
+        const dados = (estacaoNum <= numEstacoesComDados) ? (dadosSalvos[i] || {}) : {}; 
         if (dados.anilox) {
             document.getElementById(`anilox_setup_${estacaoNum}`).value = dados.anilox;
         }
     }
+    // <<< FIM DAS MODIFICAÇÕES 1 e 2 >>>
     
     // Inicializa todos os selects
     // Note que 'materializeSelectOptions' deve ser definida globalmente no seu script.
@@ -1809,9 +1815,10 @@ function preencherModalAnilox(data) {
     // --- Adiciona Listeners ---
 
     // 1. Listener para mostrar/esconder Pantone
-    wrapper.querySelectorAll('.anilox-cor-select').forEach(select => {
+    wrapper.querySelectorAll('.anilox-cor-row').forEach(row => {
+        const select = row.querySelector('.anilox-cor-select');
         select.addEventListener('change', function(e) {
-            const estacao = e.target.closest('.anilox-cor-row').dataset.estacao;
+            const estacao = row.dataset.estacao;
             const pantoneInput = document.getElementById(`anilox_pantone_${estacao}`);
             if (e.target.value.toLowerCase() === 'pantone') {
                 pantoneInput.style.display = 'block';
@@ -1820,6 +1827,15 @@ function preencherModalAnilox(data) {
                 pantoneInput.value = ''; // Limpa se não for pantone
             }
         });
+        
+        // Inicializa estado do pantone para itens pré-preenchidos
+        const estacao = row.dataset.estacao;
+        const pantoneInput = document.getElementById(`anilox_pantone_${estacao}`);
+        if (select.value.toLowerCase() === 'pantone') {
+            pantoneInput.style.display = 'block';
+        } else {
+            pantoneInput.style.display = 'none';
+        }
     });
 
     // 2. Listener para o botão de destravar
@@ -1844,7 +1860,7 @@ function onSalvarAnilox() {
   showSuccessToast("Salvando Anilox e iniciando setup...");
 
   const impressor = document.getElementById('anilox_impressor').textContent;
-  const quantidade = setupQtdCores - 1;
+  // const quantidade = setupQtdCores - 1; // LINHA REMOVIDA
 
   // 1. Pega o ID da Faca (Validação obrigatória)
   const idUnicoFaca = document.getElementById('anilox_faca_item').value;
@@ -1856,9 +1872,12 @@ function onSalvarAnilox() {
 
   // 3. Monta o JSON da Ficha Técnica
   let fichaTecnicaAtualizada = [];
-  const wrapper = document.getElementById('anilox-estacoes-wrapper');
+  // const wrapper = document.getElementById('anilox-estacoes-wrapper'); // LINHA REMOVIDA
 
-  for (let i = 0; i < quantidade; i++) {
+  // <<< MODIFICAÇÃO 3: Loop fixo até 8 e limpeza de dados vazios >>>
+  const MAX_ESTACOES_A_SALVAR = 8; 
+
+  for (let i = 0; i < MAX_ESTACOES_A_SALVAR; i++) { // Loop fixo até 8 estações
       const estacaoNum = i + 1;
 
       const corSelect = document.getElementById(`anilox_cor_${estacaoNum}`);
@@ -1866,9 +1885,11 @@ function onSalvarAnilox() {
       const aniloxSelect = document.getElementById(`anilox_setup_${estacaoNum}`);
 
       const cor = corSelect ? corSelect.value : "";
+      // Salva Pantone somente se a cor for "Pantone"
       const pantone = (pantoneInput && cor.toLowerCase() === 'pantone') ? pantoneInput.value : "";
       const anilox = aniloxSelect ? aniloxSelect.value : "";
 
+      // Adiciona a estação (preenchida ou vazia)
       fichaTecnicaAtualizada.push({
           estacao: estacaoNum,
           cor: cor || "",
@@ -1876,6 +1897,17 @@ function onSalvarAnilox() {
           anilox: anilox || ""
       });
   }
+
+  // Limpa: remove estações vazias (cor, pantone e anilox vazios) do final do array
+  while (fichaTecnicaAtualizada.length > 0) {
+      const last = fichaTecnicaAtualizada[fichaTecnicaAtualizada.length - 1];
+      if (!last.cor && !last.pantone && !last.anilox) {
+          fichaTecnicaAtualizada.pop();
+      } else {
+          break; // Para no primeiro item preenchido
+      }
+  }
+  // <<< FIM DA MODIFICAÇÃO 3 >>>
 
   const jsonParaSalvar = JSON.stringify(fichaTecnicaAtualizada);
 
