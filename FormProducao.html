@@ -1029,7 +1029,7 @@
             <div class="row">
                 <div class="input-field col s12">                    
                     <textarea id="problema_descricao_cliche" class="materialize-textarea""></textarea>
-                    <label for="problema_descricao_clichee">3c. Descreva o Problema (Obrigatório)</label>
+                    <label for="problema_descricao_cliche">3c. Descreva o Problema (Obrigatório)</label>
                 </div>
             </div>
         </div>
@@ -3053,13 +3053,13 @@ function handleFerramentaReporteChange() {
 
 function checkReporteInputs() {
     const ferramenta = problemaFerramentaSelect.value;
-    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
+    const isClicheBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
     const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
 
     let validCliche = true;
     let validFaca = true;
 
-    if (isClichêBlocoVisivel) {
+    if (isClicheBlocoVisivel) {
         const tipoCliche = document.getElementById('problema_tipo_cliche').value;
         const descCliche = document.getElementById('problema_descricao_cliche').value.trim();
         validCliche = !!tipoCliche && descCliche.length >= 5;
@@ -3073,66 +3073,61 @@ function checkReporteInputs() {
 
     const isDataFetched = !!dadosInsumosReporte;
     
-    problemaBtnConfirm.disabled = !(isDataFetched && validCliche && validFaca && (isClichêBlocoVisivel || isFacaBlocoVisivel));
+    problemaBtnConfirm.disabled = !(isDataFetched && validCliche && validFaca && (isClicheBlocoVisivel || isFacaBlocoVisivel));
 }
 
 function confirmarReporteProblema() {
-    // --- 1. BUSCAR ELEMENTOS (COM OS NOVOS IDs) ---
-    const problemaBtnConfirm = document.getElementById('btnConfirmarReporteProblema');
-    const problemaNumPedidoInput = document.getElementById('problema_numPedido');
-    const problemaFerramentaSelect = document.getElementById('problema_ferramenta');
-    
-    // ✅✅✅ MUDANÇA DE ID ✅✅✅
-    const textareaCliche = document.getElementById('problema_motivo_descricao_cliche'); 
-    const textareaFaca = document.getElementById('problema_motivo_descricao_faca');
-    // ✅✅✅ FIM DA MUDANÇA ✅✅✅
+    const problemaBtnConfirm = document.getElementById('btnConfirmarReporteProblema');
+    const problemaNumPedidoInput = document.getElementById('problema_numPedido');
+    const problemaFerramentaSelect = document.getElementById('problema_ferramenta');
 
-    const selectTipoCliche = document.getElementById('problema_tipo_cliche');
-    const selectTipoFaca = document.getElementById('problema_tipo_faca');
-    const selectLaminas = document.getElementById('problema_id_lamina'); 
+    const textareaCliche = document.getElementById('problema_descricao_cliche'); 
+    const textareaFaca = document.getElementById('problema_descricao_faca');
 
-    problemaBtnConfirm.disabled = true;
-    _showLoadingReporte(true);
+    const selectTipoCliche = document.getElementById('problema_tipo_cliche');
+    const selectTipoFaca = document.getElementById('problema_tipo_faca');
+    const selectLaminas = document.getElementById('problema_id_lamina');
 
-    const ferramenta = problemaFerramentaSelect.value;
-    const isClichêBlocoVisivel = document.getElementById('bloco_cliche').style.display === 'block';
-    const isFacaBlocoVisivel = document.getElementById('bloco_faca').style.display === 'block';
-    
-    // ✅ REMOVEMOS A LINHA 'M.updateTextFields();'
-    // pois agora os campos são HTML simples.
+    // --- FUNÇÃO NOVA ---
+    function estaVisivel(el) {
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    }
 
-    // --- 2. LER OS VALORES ---
-    // Leitura dos textareas (agora vai funcionar 100%)
-    const descCliche = textareaCliche ? (textareaCliche.value || "").trim() : "";
-    const descFaca = textareaFaca ? (textareaFaca.value || "").trim() : "";
-    
-    // Leitura dos selects de Tipo (já estava funcionando)
-    const valTipoCliche = selectTipoCliche ? (selectTipoCliche.value || "") : "";
-    const valTipoFaca = selectTipoFaca ? (selectTipoFaca.value || "") : "";
+    const isClicheBlocoVisivel = estaVisivel(document.getElementById('bloco_cliche'));
+    const isFacaBlocoVisivel = estaVisivel(document.getElementById('bloco_faca'));
 
-    // Leitura do select multiple das lâminas (único que usa JS do Materialize)
-    let valLaminas = [];
-    if (isClichêBlocoVisivel) {
-        const selectLaminasInstance = M.FormSelect.getInstance(selectLaminas);
-        if (selectLaminasInstance) valLaminas = selectLaminasInstance.getSelectedValues();
-    }
-    
-    // --- 3. MONTAR O OBJETO DE DADOS ---
-    const dados = {
-        numPedido: problemaNumPedidoInput.value.trim(),
-        ferramenta: ferramenta,
-        
-        idCliche: dadosInsumosReporte ? dadosInsumosReporte.idCliche : "",
-        idUnicoFaca: dadosInsumosReporte ? dadosInsumosReporte.idUnicoFaca : "",
-        codFacaModelo: dadosInsumosReporte ? dadosInsumosReporte.codFacaModelo : "",
-        
-        tipoCliche: valTipoCliche,
-        descCliche: isClichêBlocoVisivel ? descCliche : "",
-        idsLaminas: valLaminas, 
-        
-        tipoFaca: valTipoFaca,
-        descFaca: isFacaBlocoVisivel ? descFaca : ""
-    };
+    problemaBtnConfirm.disabled = true;
+    _showLoadingReporte(true);
+
+    const ferramenta = problemaFerramentaSelect.value;
+
+    const descCliche = (textareaCliche.value || "").trim();
+    const descFaca = (textareaFaca.value || "").trim();
+
+    const valTipoCliche = selectTipoCliche.value || "";
+    const valTipoFaca = selectTipoFaca.value || "";
+
+    let valLaminas = [];
+    if (isClicheBlocoVisivel) {
+        const instance = M.FormSelect.getInstance(selectLaminas);
+        if (instance) valLaminas = instance.getSelectedValues();
+    }
+
+    const dados = {
+        numPedido: problemaNumPedidoInput.value.trim(),
+        ferramenta: ferramenta,
+
+        idCliche: dadosInsumosReporte?.idCliche || "",
+        idUnicoFaca: dadosInsumosReporte?.idUnicoFaca || "",
+        codFacaModelo: dadosInsumosReporte?.codFacaModelo || "",
+
+        tipoCliche: valTipoCliche,
+        descCliche: descCliche,   // <---- ALTERADO
+        idsLaminas: valLaminas,
+
+        tipoFaca: valTipoFaca,
+        descFaca: descFaca        // <---- ALTERADO
+    };
 
     // --- 4. VALIDAÇÃO ---
     if (!dados.numPedido || !dados.ferramenta) {
@@ -3142,7 +3137,7 @@ function confirmarReporteProblema() {
         return;
     }
     
-    if (isClichêBlocoVisivel) {
+    if (isClicheBlocoVisivel) {
         if (!dados.tipoCliche) { 
             showErrorToast("Erro: Selecione o TIPO do problema do Clichê.");
             problemaBtnConfirm.disabled = false;
