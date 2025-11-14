@@ -3486,21 +3486,31 @@ function getDetalhesCompletosDoPedido(linhaPlanilha) {
   }
 }
 
-/**
- * 2. Busca o Cliente e Data Atual de um Pedido
- */
 function buscarDadosPedido(numPedido) {
   const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-  const dados = abaPedidos.getDataRange().getDisplayValues(); // Lê todos os dados
+  
+  // Lê os dados brutos (getValues) e os dados formatados (getDisplayValues) de uma vez.
+  const dados = abaPedidos.getDataRange().getValues(); 
+  const dadosDisplay = abaPedidos.getDataRange().getDisplayValues();
+  
+  // O valor digitado (String)
+  const numBusca = String(numPedido).trim();
 
   // Procura o pedido pelo número na Coluna A (COL_PEDIDO_NUMERO)
   for (let i = 1; i < dados.length; i++) {
-    if (String(dados[i][COL_PEDIDO_NUMERO - 1]).trim() === String(numPedido).trim()) {
+    // Converte o valor BRUTO da célula para String antes de comparar
+    const numPlanilha = String(dados[i][COL_PEDIDO_NUMERO - 1]).trim(); 
+
+    if (numPlanilha === numBusca) {
+      
+      // Se for encontrado, usa os valores de exibição (formatados) para o retorno
+      const linhaDisplay = dadosDisplay[i];
+      
       return {
-        linhaPlanilha: i + 1, // Linha real da planilha (começa em 1 + 1 por causa do cabeçalho)
-        cliente: dados[i][COL_PEDIDO_CLIENTE - 1],
-        descricao: dados[i][COL_PEDIDO_DESCRICAO - 1],
-        dataEntregaAtual: dados[i][COL_PEDIDO_DATA_ENTREGA - 1],
+        linhaPlanilha: i + 1, // Linha real da planilha
+        cliente: linhaDisplay[COL_PEDIDO_CLIENTE - 1],
+        descricao: linhaDisplay[COL_PEDIDO_DESCRICAO - 1],
+        dataEntregaAtual: linhaDisplay[COL_PEDIDO_DATA_ENTREGA - 1],
         sucesso: true
       };
     }
@@ -5940,21 +5950,32 @@ function registrarProblemaProducaoIntegrado(dadosIntegrados) {
 
 function getLinhaPedidoPeloNumero(numPedido) {
   const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-  // Lê da Col A (Nº Pedido) até a Col I (Status)
+  
+  // Lê APENAS a coluna do Número do Pedido (COL A) e o Status (COL I)
   const dados = abaPedidos.getRange(2, COL_PEDIDO_NUMERO, abaPedidos.getLastRow() - 1, COL_PEDIDO_STATUS).getValues(); 
   const numBusca = String(numPedido).trim();
 
   for (let i = 0; i < dados.length; i++) {
-    const numPlanilha = String(dados[i][COL_PEDIDO_NUMERO - 1]).trim(); // Col A (índice 0)
+    // Col A (índice 0)
+    const numPlanilha = String(dados[i][COL_PEDIDO_NUMERO - 1]).trim(); 
 
     if (numPlanilha === numBusca) {
-      const status = dados[i][COL_PEDIDO_STATUS - 1]; // Col I (índice 8)
+      // Col I (índice 8)
+      const status = String(dados[i][COL_PEDIDO_STATUS - 1]).trim(); 
       
-      if (status === "Concluído" || status === "Cancelado") {
+      // Validações de Bloqueio (Normalização de Status)
+      const statusNorm = status.toLowerCase();
+
+      if (statusNorm === "concluído" || statusNorm === "cancelado") {
         throw new Error(`O Pedido ${numPedido} já está ${status} e não pode ter problemas reportados.`);
       }
       
-      return i + 2; // Retorna a linha real da planilha (base 1)
+      if (statusNorm.includes("aguardando faca") || statusNorm.includes("aguardando clichê") || statusNorm.includes("aguardando insumos")) {
+         throw new Error(`O Pedido ${numPedido} já está em status de espera (${status}). Resolva o problema de insumos ou crie uma nova solicitação se necessário.`);
+      }
+      
+      // Retorna a linha real da planilha (base 1)
+      return i + 2; 
     }
   }
   
@@ -5962,10 +5983,7 @@ function getLinhaPedidoPeloNumero(numPedido) {
   throw new Error(`Pedido ${numPedido} não encontrado na planilha.`);
 }
 
- /**
- * NOVO: Retorna a lista de meses para popular o <select> no frontend.
- * (O frontend chama esta função em document.addEventListener('DOMContentLoaded', ...))
- */
+
 function getMesesDisponiveis() {
   try {
     const anoAtual = new Date().getFullYear();
@@ -7718,11 +7736,7 @@ function reportarProblemaCliche(idCliche, idsLaminas, motivoProblema) {
   }
 }
 
-/**
- * NOVO: Busca IDs e listas necessárias para o modal de Reporte Integrado.
- * @param {string} numPedido - Número do Pedido.
- * @returns {object} Dados do Clichê/Faca vinculados ao pedido.
- */
+
 function getDadosInsumosParaReporte(numPedido) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
@@ -7741,25 +7755,30 @@ function getDadosInsumosParaReporte(numPedido) {
     // 3. Buscar Lâminas do Clichê (se houver ID)
     let laminasDoCliche = [];
     if (insumos.idCliche && insumos.idCliche !== "N/A" && abaLaminas.getLastRow() > 1) {
-        // Lendo todas as lâminas e filtrando no JS para performance
+        
+        // CORREÇÃO DE LEITURA: Leitura direta do ID Clichê (Col B) e Status Lamina (Col F)
+        // Lemos apenas as colunas relevantes
         const dadosLaminas = abaLaminas.getRange(2, 1, abaLaminas.getLastRow() - 1, 6).getValues(); 
+        const ID_CLICHE_COL = 1; // Coluna B (índice 1)
+        
         for (const lamina of dadosLaminas) {
             // Se a lâmina pertence ao clichê E NÃO é de acabamento (Verniz, Laminação, Neutra)
-            const tipoLamina = lamina[3].toString().trim().toUpperCase();
+            const tipoLamina = lamina[3].toString().trim().toUpperCase(); // Coluna D (índice 3)
             const tiposExcluidos = ["VERNIZ BRILHO", "VERNIZ FOSCO", "LAMINAÇÃO BRILHO", "LAMINAÇÃO FOSCA", "NEUTRA"];
             
-            if (lamina[1] === insumos.idCliche && !tiposExcluidos.includes(tipoLamina)) { 
+            if (lamina[ID_CLICHE_COL] === insumos.idCliche && !tiposExcluidos.includes(tipoLamina)) { 
                 laminasDoCliche.push({
-                    idLamina: lamina[0],
-                    estacao: lamina[2],
+                    idLamina: lamina[0], // Coluna A (índice 0)
+                    estacao: lamina[2], // Coluna C (índice 2)
                     tipoLamina: lamina[3],
-                    statusLamina: lamina[5]
+                    statusLamina: lamina[5] // Coluna F (índice 5)
                 });
             }
         }
     }
     
     // 4. Buscar listas de motivos (reutilizando listas do Gestão Facas)
+    // Usamos as listas mais completas aqui:
     const tiposProblemaFaca = [
         "Desgaste por Uso", "Faca Cega/Corte insuficiente", 
         "Degolando Liner", "Faca com Dente", "Outro (descrever)"
@@ -7779,7 +7798,6 @@ function getDadosInsumosParaReporte(numPedido) {
         numPedido: dadosPedido.numPedido // Retorna o número limpo para o front
     };
 }
-
 
 function abrirFormGestaoFacas() {
   const html = HtmlService.createTemplateFromFile("FormGestaoFacas");
