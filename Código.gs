@@ -599,16 +599,16 @@ const COL_PEDIDO_DATA_INICIO_PROD = 38;       // AL - Data Início Produção
 const COL_PEDIDO_DATA_FIM_PROD = 39;         // AM - Data Fim Produção
 const COL_PEDIDO_METRAGEM_REAL = 40;       // AN - Metragem Consumida Real (soma do log)
 const COL_PEDIDO_QTD_APROVADA_CQ = 41;
-const COL_PEDIDO_MOTIVO_MAIS_METRAGEM = 42;    // AP - Motivo de Metragem a Mais
+const COL_PEDIDO_MOTIVO_MAIS_METRAGEM = 42;
+const COL_PEDIDO_REFUGO_METRAGEM = 43;    // AP - Motivo de Metragem a Mais
 const COL_PEDIDO_TEMPO_SETUP_MIN = 44;    // AR - Tempo de Setup (min)
 const COL_PEDIDO_DATA_INICIO_SETUP = 45;  // AS - Data Início Setup
 const COL_PEDIDO_DATA_FIM_SETUP = 46;     // AT - Data Fim Setup
 const COL_PEDIDO_ID_CLICHE = 47;          // AU - ID_Cliche
-const COL_PEDIDO_ID_UNICO_FACA = 48;
-const COL_PEDIDO_MOTIVO_ALTERACAO_SETUP = 49;         
+const COL_PEDIDO_ID_UNICO_FACA = 48;      
 
 // Total de colunas da aba Pedidos
-const TOTAL_COLUNAS_PEDIDOS = 49;
+const TOTAL_COLUNAS_PEDIDOS = 48;
 
 const STATUS_ALERTA = ["Em produção", "Liberado para produção", "Programado"];
 
@@ -2215,45 +2215,40 @@ function finalizarProducaoDigital(linhaPlanilha, motivoAtraso = "") {
   }
 }
 
-// [CÓDIGO.GS]
-function iniciarSetupFlexo(linhaPlanilha, dadosAniloxJSON, codigoProduto, impressor, idUnicoFaca, motivoAlteracao) {
-  try {
-    // 1. Validação do novo campo obrigatório
-    if (!idUnicoFaca || idUnicoFaca.trim() === "") {
-      throw new Error("Erro Crítico: O ID Único da Faca não foi enviado. Selecione o item de faca usado.");
-    }
+function iniciarSetupFlexo(linhaPlanilha, dadosAniloxJSON, codigoProduto, impressor, idUnicoFaca) { // 1. REMOVIDO: motivoAlteracao
+  try {
+    // 1. Validação dos campos obrigatórios
+    if (!idUnicoFaca || idUnicoFaca.trim() === "") {
+        throw new Error("Erro Crítico: O ID Único da Faca não foi enviado. Selecione o item de faca usado.");
+    }
+    
+    // CORREÇÃO: Validação do código do produto para evitar falha no salvarAnilox
+    if (!codigoProduto || codigoProduto.trim() === "") {
+        throw new Error("Erro Crítico: Código do Produto não foi fornecido para o Setup.");
+    }
+    
+    if (!dadosAniloxJSON.includes("tipoPedido\":\"Repetição")) { 
+        if (dadosAniloxJSON && dadosAniloxJSON !== "[]") {
+            salvarAniloxDaProducao(codigoProduto, dadosAniloxJSON); // Usa o parâmetro codigoProduto local
+        }
+    }
 
-    // 2. Salva os Anilox de volta na Aba "Produtos" (se houver dados)
-    // (SÓ SALVA SE O MOTIVO FOI PREENCHIDO ou se for "Primeira Fabricação")
-    if ((motivoAlteracao && motivoAlteracao.trim() !== "") || !dadosAniloxJSON.includes("tipoPedido\":\"Repetição")) {
-       if (dadosAniloxJSON && dadosAniloxJSON !== "[]") {
-          // (NOTA: A função salvarAniloxDaProducao não salva "tipoPedido", apenas o JSON das cores)
-          salvarAniloxDaProducao(codigoProduto, dadosAniloxJSON);
-       }
-    }
+    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    const linha = parseInt(linhaPlanilha);
 
-    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-    const linha = parseInt(linhaPlanilha);
+    // 3. Salva os dados na Aba "Pedidos"
+    // COL_PEDIDO_IMPRESSOR = 30 (AD), COL_PEDIDO_DATA_INICIO_SETUP = 45 (AS), COL_PEDIDO_STATUS = 9 (I), COL_PEDIDO_ID_UNICO_FACA = 48 (AV)
+    abaPedidos.getRange(linha, COL_PEDIDO_IMPRESSOR).setValue(impressor);
+    abaPedidos.getRange(linha, COL_PEDIDO_DATA_INICIO_SETUP).setValue(new Date()); 
+    abaPedidos.getRange(linha, COL_PEDIDO_STATUS).setValue("Setup");
+    abaPedidos.getRange(linha, COL_PEDIDO_ID_UNICO_FACA).setValue(idUnicoFaca);
+    SpreadsheetApp.flush();
+    return "Setup iniciado, Anilox e Faca (Item) salvos!";
 
-    // 3. Salva os dados na Aba "Pedidos"
-    abaPedidos.getRange(linha, COL_PEDIDO_IMPRESSOR).setValue(impressor); // Col AD (30)
-    abaPedidos.getRange(linha, COL_PEDIDO_DATA_INICIO_SETUP).setValue(new Date()); // Col AS (45)
-    abaPedidos.getRange(linha, COL_PEDIDO_STATUS).setValue("Setup"); // Col I (9)
-    abaPedidos.getRange(linha, COL_PEDIDO_ID_UNICO_FACA).setValue(idUnicoFaca); // Col AV (48)
-
-    // <<< --- ADIÇÃO DA NOVA LÓGICA --- >>>
-    if (motivoAlteracao && motivoAlteracao.trim() !== "") {
-      abaPedidos.getRange(linha, COL_PEDIDO_MOTIVO_ALTERACAO_SETUP).setValue(motivoAlteracao); // Col AW (49)
-    }
-    // <<< --- FIM DA ADIÇÃO --- >>>
-
-    SpreadsheetApp.flush();
-    return "Setup iniciado, Anilox e Faca (Item) salvos!";
-
-  } catch (e) {
-     Logger.log(`Erro ao iniciar setup flexo: ${e}`);
-     throw new Error(`Erro no servidor: ${e.message}`);
-  }
+  } catch (e) {
+     Logger.log(`Erro ao iniciar setup flexo: ${e}`);
+     throw new Error(`Erro no servidor: ${e.message}`);
+  }
 }
 
 function finalizarCorteBatida(linhaPlanilha) {
@@ -2406,6 +2401,10 @@ function validarConsumoMetragem(dadosConsumo) {
 
 function getFichaTecnicaParaSetup(codigoProduto, tipoPedido) {
   try {
+    Logger.log("=== getFichaTecnicaParaSetup INICIADA ===");
+    Logger.log("Código Produto:", codigoProduto);
+    Logger.log("Tipo Pedido:", tipoPedido);
+    
     const abaProdutos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PRODUTOS);
     
     if (!abaProdutos) {
@@ -2418,34 +2417,53 @@ function getFichaTecnicaParaSetup(codigoProduto, tipoPedido) {
       throw new Error("Nenhum produto cadastrado.");
     }
     
-    // 1. Busca manual (mais compatível)
+    Logger.log("Última linha da aba Produtos:", ultimaLinha);
+    Logger.log("COL_PRODUTO_CODIGO:", COL_PRODUTO_CODIGO);
+    
+    // Busca manual (mais compatível e confiável)
     const codigos = abaProdutos.getRange(2, COL_PRODUTO_CODIGO, ultimaLinha - 1, 1).getValues();
     
     let linhaEncontrada = -1;
     
     for (let i = 0; i < codigos.length; i++) {
-      if (String(codigos[i][0]).trim() === String(codigoProduto).trim()) {
+      const codigoAtual = String(codigos[i][0]).trim();
+      const codigoBuscado = String(codigoProduto).trim();
+      
+      Logger.log(`Comparando linha ${i + 2}: "${codigoAtual}" === "${codigoBuscado}"`);
+      
+      if (codigoAtual === codigoBuscado) {
         linhaEncontrada = i + 2; // +2 porque: índice 0 + header na linha 1
+        Logger.log("✓ PRODUTO ENCONTRADO na linha:", linhaEncontrada);
         break;
       }
     }
 
     if (linhaEncontrada === -1) {
-      throw new Error(`Produto "${codigoProduto}" não encontrado.`);
+      throw new Error(`Produto "${codigoProduto}" não encontrado na aba "${NOME_ABA_PRODUTOS}".`);
     }
 
-    // 2. Pega o mapa de colunas
-    const mapa = _criarMapaDeColunas(abaProdutos);
+    // Pega o mapa de colunas
+    const headers = abaProdutos.getRange(1, 1, 1, abaProdutos.getLastColumn()).getValues()[0];
+    const mapa = {};
+    headers.forEach((header, index) => {
+      mapa[header] = index;
+    });
+    
+    Logger.log("Mapa de colunas:", JSON.stringify(mapa));
+    
     const idxFicha = mapa["FichaTecnicaCores"];
 
     if (idxFicha === undefined) {
-      throw new Error('Coluna "FichaTecnicaCores" não encontrada.');
+      throw new Error('Coluna "FichaTecnicaCores" não encontrada. Colunas disponíveis: ' + Object.keys(mapa).join(", "));
     }
     
-    // 3. Lê a ficha técnica
+    Logger.log("Índice da coluna FichaTecnicaCores:", idxFicha);
+    
+    // Lê a ficha técnica (idxFicha é base 0, getRange é base 1)
     const ficha = abaProdutos.getRange(linhaEncontrada, idxFicha + 1).getValue();
 
-    Logger.log(`✓ Ficha técnica encontrada para ${codigoProduto}`);
+    Logger.log("Ficha técnica lida:", ficha);
+    Logger.log("=== getFichaTecnicaParaSetup CONCLUÍDA ===");
 
     return { 
         fichaTecnicaCores: ficha || "[]",
@@ -2453,7 +2471,9 @@ function getFichaTecnicaParaSetup(codigoProduto, tipoPedido) {
     };
 
   } catch (e) {
-     Logger.log("✗ Erro em getFichaTecnicaParaSetup: " + e.message);
+     Logger.log("✗✗✗ ERRO em getFichaTecnicaParaSetup ✗✗✗");
+     Logger.log("Mensagem:", e.message);
+     Logger.log("Stack:", e.stack);
      throw new Error(e.message);
   }
 }
