@@ -184,7 +184,7 @@ input:disabled {
 /* --- 8. ÍCONES DE STATUS (Faca/Clichê) --- */
 .input-field-content .status-icon {
   position: absolute;
-  right: 8px;
+  right: 55px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.2rem;
@@ -308,11 +308,6 @@ select:disabled + input.select-dropdown {
 .destaque-data {
   color: #D32F2F !important;
   font-weight: 700 !important;
-}
-
-/* Aumentar largura do campo Data de Entrega */
-#coluna-produto-info .row .input-field.data-entrega-field {
-  flex: 0 0 24% !important;
 }
 
 /* --- 14. CAMPO DE OBSERVAÇÕES --- */
@@ -457,19 +452,20 @@ select:disabled + input.select-dropdown {
 #coluna-produto-info .row .input-field {
   padding-left: 0 !important;
   padding-right: 0 !important;
+  margin-right: -40px !important;
 }
 
 /* Ajuste de tamanhos específicos para não cortar textos */
 #coluna-produto-info .row .input-field.col.s3 {
-  flex: 0 0 24%;
+  flex: 0 0 28.3%;
 }
 
 #coluna-produto-info .row .input-field.col.s4 {
-  flex: 0 0 33%;
+  flex: 0 0 36.9%;
 }
 
 #coluna-produto-info .row .input-field.col.s6 {
-  flex: 0 0 50%;
+  flex: 0 0 54%;
 }
 </style>
 
@@ -595,6 +591,15 @@ select:disabled + input.select-dropdown {
           <span id="avisoStatusProdutoTexto"></span>
         </div>
       </div>
+      <div id="alertaArteAlteradaContainer" class="card-panel yellow lighten-5" style="border-left: 5px solid #FF9800; display: none; padding: 10px 15px;">
+    <p style="color: #FF9800; font-weight: 700; margin: 0; font-size: 0.9rem;">
+        <i class="material-icons left" style="font-size: 1.1rem; margin-right: 5px;">warning</i> 
+        <span id="alertaArteAlteradaTexto">⚠️ PRODUTO ALTERADO RECENTEMENTE!</span>
+    </p>
+    <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: #666;">
+        Última alteração registrada em: <strong id="dataAlteracaoArteDisplay">---</strong>. Verifique o produto antes de cadastrar o pedido.
+    </p>
+</div>
       
       <div class="row" style="margin-bottom: 0;">
         <div class="input-field col s6">
@@ -749,7 +754,17 @@ select:disabled + input.select-dropdown {
           </div>
         </div>
       </div>
-
+<div id="aviso-sobra-estoque-pedido" class="row" style="display: none; margin-top: 5px;">
+  <div class="col s12">
+    <div style="padding: 10px; background-color: #FFF3E0; border: 1px solid #FFC107; border-radius: 5px; color: #E65100; font-size: 0.9rem; display: flex; align-items: center;">
+      <i class="material-icons left" style="margin-right: 10px;">warning</i>
+      <div>
+        <strong>ATENÇÃO (ESTOQUE DE SOBRA):</strong> Existe um saldo de <strong id="qtd-sobra-estoque-pedido">0</strong> rótulos deste produto.
+        <br>A observação para usar este estoque já foi adicionada à Obs. PCP.
+      </div>
+    </div>
+  </div>
+</div>
     </div>
   </div>
 
@@ -797,6 +812,141 @@ select:disabled + input.select-dropdown {
         constrainWidth: false // Permite o dropdown ser mais largo que o input
       }
     };
+
+// FormPedido.html (Dentro da tag <script>, substitua onProdutoSelecionado)
+
+// *** 1. ADICIONE ESTA FUNÇÃO AUXILIAR ***
+function formatarNumero(valor) { 
+  if (valor === null || valor === undefined || valor === "") return '0';
+  let numeroLimpo = String(valor).replace(/\./g, "").replace(',', '.'); 
+  let num = parseFloat(numeroLimpo); 
+  if (isNaN(num)) return valor;
+  return num.toLocaleString('pt-BR', { 
+    maximumFractionDigits: 0, 
+    minimumFractionDigits: 0 
+  });
+}
+
+/**
+ * Função de callback para quando a busca do produto retorna com sucesso.
+ */
+function onProdutoSelecionado(data) {
+    // Função utilitária para preencher com segurança
+    const preencherCampo = (id, valor) => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.value = valor;
+        } else {
+            console.warn(`Elemento com ID '${id}' não encontrado no formulário.`);
+        }
+    };
+
+    // Esconde a área de insumos por padrão
+    const insumosArea = document.getElementById('insumosArea');
+    if (insumosArea) insumosArea.style.display = 'none';
+
+    // Desativa a validação do formulário temporariamente
+    document.getElementById('formPedido').novalidate = true; 
+    
+    // Elemento de alerta de arte alterada
+    const alertaArteAlterada = document.getElementById('alertaArteAlterada');
+
+    if (data.sucesso) {
+        
+        if (insumosArea) insumosArea.style.display = 'block';
+
+        // === DADOS DO PRODUTO (Preenchimento seguro) ===
+        preencherCampo('codigoProduto', data.dadosDoProduto.codigo);
+        preencherCampo('descricaoProduto', data.dadosDoProduto.descricao);
+        preencherCampo('cliente', data.dadosDoProduto.cliente);
+        preencherCampo('faca', data.dadosDoProduto.faca);
+        preencherCampo('substrato', data.dadosDoProduto.substrato);
+        preencherCampo('tipoCola', data.dadosDoProduto.tipoCola);
+        preencherCampo('largura', data.dadosDoProduto.largura);
+        preencherCampo('altura', data.dadosDoProduto.altura);
+        preencherCampo('puxada', data.dadosDoProduto.puxada);
+        preencherCampo('qtdCores', data.dadosDoProduto.qtdCores);
+        preencherCampo('carreiras', data.dadosDoProduto.carreiras);
+        preencherCampo('dataAlteracaoArte', data.dadosDoProduto.dataAlteracaoArte);
+        preencherCampo('acabamento', data.dadosDoProduto.acabamento);
+        preencherCampo('cold', data.dadosDoProduto.cold);
+        preencherCampo('tipoRotulo', data.dadosDoProduto.tipoRotulo);
+        preencherCampo('diametroTubete', data.dadosDoProduto.diametroTubete);
+        preencherCampo('qtdPorRolo', data.dadosDoProduto.qtdPorRolo);
+        preencherCampo('sentidoImpressao', data.dadosDoProduto.sentidoImpressao);
+        preencherCampo('layoutArte', data.dadosDoProduto.layoutArte);
+        
+        preencherCampo('tipoPedido', data.tipoPedido);
+
+        // === DADOS DO CLICHÊ E FACA ===
+        preencherCampo('idCliche', data.idCliche);
+        preencherCampo('statusCliche', data.statusCliche);
+        preencherCampo('statusFaca', data.statusFaca);
+        
+        // === LÓGICA DE ALERTA DE ARTE ALTERADA (NOVO) ===
+        if (alertaArteAlterada) {
+            if (data.arteAlteradaRecentemente) {
+                alertaArteAlterada.style.display = 'block';
+                alertaArteAlterada.textContent = `⚠️ ARTE ALTERADA EM ${data.dadosDoProduto.dataAlteracaoArte}!`;
+            } else {
+                alertaArteAlterada.style.display = 'none';
+            }
+        }
+        
+        // === LÓGICA DE STATUS E MENSAGENS ===
+        document.getElementById('alertaCliche').textContent = '';
+        document.getElementById('alertaFaca').textContent = '';
+        document.getElementById('alertaGlobal').style.display = 'none';
+
+        if (data.statusCliche !== 'Existente' || data.statusFaca !== 'Existente') {
+            document.getElementById('alertaGlobal').style.display = 'block';
+            
+            if (data.statusCliche !== 'Existente') {
+                document.getElementById('alertaCliche').innerHTML = `<strong>ALERTA CLICHÊ:</strong> O clichê ${data.idCliche} está com status **${data.statusCliche.toUpperCase()}**. Será necessário solicitar um novo clichê.`;
+            }
+            if (data.statusFaca !== 'Existente') {
+                document.getElementById('alertaFaca').innerHTML = `<strong>ALERTA FACA:</strong> A faca ${data.dadosDoProduto.faca} está com status **${data.statusFaca.toUpperCase()}**. Será necessário solicitar uma nova faca.`;
+            }
+        }
+        
+        // Lógica para definir a "Necessidade"
+        let necessidadeCliche = "Repetição";
+        let necessidadeFaca = "Repetição";
+
+        if (data.tipoPedido === "Primeira Fabricação") {
+            necessidadeCliche = (data.statusCliche === "Existente") ? "Alteração" : "Criação";
+            necessidadeFaca = (data.statusFaca === "Existente") ? "Alteração" : "Criação";
+        } else {
+            necessidadeCliche = (data.statusCliche === "Existente") ? "Repetição" : "Criação";
+            necessidadeFaca = (data.statusFaca === "Existente") ? "Repetição" : "Criação";
+        }
+
+        // Aplica o valor da Necessidade com a função segura
+        preencherCampo('necessidadeCliche', necessidadeCliche);
+        preencherCampo('necessidadeFaca', necessidadeFaca);
+
+        // Atualiza os selects e campos de texto
+        M.FormSelect.init(document.querySelectorAll('select'), materializeSelectOptions);
+        M.updateTextFields();
+        
+        document.getElementById('dataEntrega').focus();
+
+        showSuccessToast(`Produto ${data.dadosDoProduto.codigo} carregado. Tipo de Pedido: ${data.tipoPedido}.`); 
+
+    } else if (data.bloqueado) {
+        showErrorToast(`O produto está ${data.status.toUpperCase()}. Motivo: ${data.motivo}`);
+        preencherCampo('codigoProduto', '');
+        M.updateTextFields();
+    } else {
+        showErrorToast(`Produto não encontrado!`);
+        preencherCampo('codigoProduto', '');
+        preencherCampo('descricaoProduto', '');
+        M.updateTextFields();
+    }
+    
+    document.getElementById('formPedido').novalidate = false; 
+    restaurarBotoes('btnBuscarProduto');
+}
 
     function preencherCampoNumerico(id, valor) {
       const el = document.getElementById(id);
@@ -889,6 +1039,7 @@ select:disabled + input.select-dropdown {
         document.getElementById('avisoStatusProduto').style.display = 'none';
         document.getElementById('faca_status_icon').style.display = 'none';
         document.getElementById('cliche_status_icon').style.display = 'none';
+        document.getElementById('aviso-sobra-estoque-pedido').style.display = 'none';
         
         document.getElementById('listaCodigoProduto').disabled = true;
         document.getElementById('listaDescricaoProduto').disabled = true;
@@ -1013,6 +1164,14 @@ select:disabled + input.select-dropdown {
         document.getElementById('avisoStatusPendente').style.display = 'block';
       }
 
+      const avisoContainer = document.getElementById('aviso-sobra-estoque-pedido');
+    if (response.infoSobra && response.infoSobra.qtd > 0) {
+        document.getElementById('qtd-sobra-estoque-pedido').textContent = formatarNumero(response.infoSobra.qtd);
+        avisoContainer.style.display = 'block';
+    } else {
+        avisoContainer.style.display = 'none';
+    }
+
       // 5. FINALIZAR PREENCHIMENTO E HABILITAR CAMPOS
       google.script.run
         .withSuccessHandler(preencherDataEntrega)
@@ -1057,6 +1216,7 @@ select:disabled + input.select-dropdown {
       document.getElementById('avisoStatusPendente').style.display = 'none';
       document.getElementById('avisoStatusLiberado').style.display = 'none';
       document.getElementById('avisoStatusProduto').style.display = 'none';
+      document.getElementById('aviso-sobra-estoque-pedido').style.display = 'none';
       document.getElementById('faca_status_icon').style.display = 'none';
       document.getElementById('cliche_status_icon').style.display = 'none';
 
@@ -1233,6 +1393,8 @@ select:disabled + input.select-dropdown {
       }
       return false;
     }
+
+
   </script>
 </body>
 </html>
