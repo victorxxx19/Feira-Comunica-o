@@ -1159,6 +1159,27 @@
             <i class="material-icons right">check</i>
         </button>
     </div>
+    <div id="modalConsumirSobra" class="modal" style="max-width: 500px;"> 
+    <div class="modal-content">
+        <h4><i class="material-icons left">inventory_2</i>Consumir Estoque de Sobra</h4>
+        <p>Registrar o consumo de sobras para o Produto: <strong id="sobra-cod-produto">---</strong></p>
+        <div class="detalhes-pedido-item" style="margin-top: 15px;">
+            <span class="detalhes-pedido-label">Saldo Atual em Estoque</span>
+            <span id="sobra-saldo-atual" class="detalhes-pedido-valor" style="font-size: 1.2rem; font-weight: bold;">---</span>
+        </div>
+        <div class="input-field" style="margin-top: 20px;">
+            <input id="sobra-qtd-consumir" type="number" step="1">
+            <label for="sobra-qtd-consumir">Qtd. a Consumir (Baixar do Estoque)</label>
+        </div>
+        <input type="hidden" id="sobra-num-pedido">
+    </div>
+    <div class="modal-footer">
+        <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
+        <button class="btn waves-effect green" id="btn-confirmar-consumo-sobra">
+           Confirmar Consumo
+        </button>
+    </div>
+</div>
 </div>
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -1182,7 +1203,7 @@
     let listaAnilox = []; 
     let mudancas = {}; 
     let modalDetalhesInstance, consumoModalInstance, modalMotivoConsumoInstance, 
-    modalAtrasoInstance, modalAniloxInstance; // <<<< REMOVIDO: modalReporteProblemaInstance da linha original
+    modalAtrasoInstance, modalAniloxInstance, modalConsumirSobraInstance;
     let problemaModalInstance; // <<<< NOVO: Instância do modal de problema
     let dadosInsumosReporte = null; // <<<< NOVO: Variável para dados do reporte
     let problemaNumPedidoInput, problemaFerramentaSelect, problemaBtnConfirm;
@@ -1210,6 +1231,218 @@
         dropdownOptions: { container: document.body }
     };
 
+
+function abrirModalConsumirSobra(numPedido, codProduto, obsPCP) {
+  console.log("🔧 Abrindo modal Sobra:", {numPedido, codProduto, obsPCP}); // Debug
+  
+  const match = obsPCP.match(/Usar (\d+)/i);
+  const qtdSugerida = match ? match[1] : 0;
+
+  if (modalAniloxInstance && modalAniloxInstance.isOpen) modalAniloxInstance.close();
+  if (consumoModalInstance && consumoModalInstance.isOpen) consumoModalInstance.close();
+
+  // 1. Preenche os dados no modal (enquanto ele está invisível)
+  document.getElementById('sobra-num-pedido').value = numPedido;
+  document.getElementById('sobra-cod-produto').textContent = codProduto;
+  document.getElementById('sobra-qtd-consumir').value = qtdSugerida;
+  document.getElementById('sobra-saldo-atual').textContent = "Buscando...";
+
+  M.updateTextFields();
+
+  // 2. Apenas abre o modal. A busca de dados foi movida.
+  modalConsumirSobraInstance.open();
+}
+
+// <<< NOVA FUNÇÃO >>>
+// Esta função é chamada automaticamente QUANDO o modal termina de abrir
+function buscarSaldoDeSobra() {
+    const codProduto = document.getElementById('sobra-cod-produto').textContent;
+
+    if (!codProduto || codProduto === '---') {
+        document.getElementById('sobra-saldo-atual').textContent = 'Erro: Cód. Produto não encontrado.';
+        return;
+    }
+
+    // 3. AGORA SIM, com o modal aberto, buscamos o saldo
+    google.script.run
+        .withSuccessHandler(infoSobra => {
+            document.getElementById('sobra-saldo-atual').textContent =
+                `${formatarNumero(infoSobra.qtd)} (Cliente: ${infoSobra.cliente})`;
+        })
+        .withFailureHandler(err => {
+            document.getElementById('sobra-saldo-atual').textContent = `Erro: ${err.message}`;
+        })
+        ._buscarSobraEstoque(codProduto);
+}
+
+window.abrirModalConsumirSobra = abrirModalConsumirSobra;
+
+function gerarBotoesAcao(pedido) {
+    //debugPedido(pedido); // Descomente se precisar depurar
+    const linha = pedido.linhaPlanilha;
+    const codProd = pedido.codProduto;
+    const qtdCores = pedido.qtdCores || 0;
+    const status = pedido.status;
+    const maquina = pedido.maquina;
+    const facaModelo = pedido.faca || "";
+    let htmlBotoes = '';
+
+    const obsPCP = pedido.obsPCP || "";
+    
+    // <<< INÍCIO DA CORREÇÃO >>>
+    // 1. Variável segura para o JAVASCRIPT (escapa barras \ e aspas simples ')
+    const obsPCP_safe_js = obsPCP
+        .replace(/\\/g, '\\\\') // Escapa barras (ex: C:\)
+        .replace(/'/g, "\\'");  // Escapa aspas simples (ex: O'Brian)
+
+    // 2. Variável segura para o HTML (escapa aspas duplas " e outros)
+    const obsPCP_safe_tooltip = obsPCP
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    // <<< FIM DA CORREÇÃO >>>
+
+
+    // =================================================================
+    // *** CORREÇÃO LÓGICA PRINCIPAL (MUDANDO PARA ONCLICK) ***
+    // =================================================================
+    if (obsPCP.toUpperCase().includes("ESTOQUE DE SOBRA")) {
+
+        // ATENÇÃO: Trocamos 'data-action' por 'onclick'
+        // <<< CORREÇÃO APLICADA AQUI >>>
+        htmlBotoes = `
+        <button class="btn-floating waves-effect waves-light orange tooltipped" 
+                data-tooltip="Consumir Sobra de Estoque (${obsPCP_safe_tooltip})" 
+                onclick="abrirModalConsumirSobra('${pedido.numPedido}', '${codProd}', '${obsPCP_safe_js}')">
+            <i class="material-icons">inventory_2</i>
+        </button>`;
+
+        return htmlBotoes; // O 'return' continua crucial
+    }
+    // *** FIM DA CORREÇÃO ***
+
+    // Se a função chegou até aqui, NÃO é um pedido de sobra.
+    // Continua a lógica normal de status.
+
+    // ===================================
+    // ROTEIRO C: FLEXO DIGITAL
+    // ===================================
+    if (maquina === "Flexo Digital") {
+        switch (status) {
+            case "Programado":
+                htmlBotoes += `
+                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                            data-tooltip="Iniciar Setup (Digital)" 
+                            data-action="INICIAR_SETUP_DIGITAL" data-linha="${linha}">
+                        <i class="material-icons">settings</i>
+                    </button>`;
+                break;
+            case "Setup (Digital)":
+                htmlBotoes += `
+                    <button class="btn-floating waves-effect waves-light green tooltipped" 
+                            data-tooltip="Iniciar Impressão" 
+                            data-action="INICIAR_IMPRESSAO_DIGITAL" data-linha="${linha}">
+                   	 <i class="material-icons">print</i>
+               	</button>`;
+                break;
+            case "Imprimindo (Digital)":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light cyan tooltipped" 
+                       	 	 data-tooltip="Iniciar Corte" 
+                       	 	 data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
+                       	 	 <i class="material-icons">content_cut</i>
+                   	 </button>`;
+                break;
+            case "Cortando (Digital)":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                       	 	 data-tooltip="Registrar Consumo" 
+                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
+                       	 	 <i class="material-icons">straighten</i>
+                   	 	 </button>`;
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                       	 	 data-tooltip="Finalizar Produção (Enviar p/ CQ)" 
+                       	 	 data-action="FINALIZAR_PRODUCAO_DIGITAL" data-linha="${linha}">
+                       	 	 <i class="material-icons">check</i>
+                   	 	 </button>`;
+                break;
+            case "Aguardando Corte (Digital)":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light cyan tooltipped" 
+                       	 	 data-tooltip="Iniciar Corte" 
+                       	 	 data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
+                       	 	 <i class="material-icons">content_cut</i>
+                   	 </button>`;
+                break;
+        }
+    }
+    // ===================================
+    // ROTEIRO A/B: FLEXO CONVENCIONAL
+    // ===================================
+    else {
+        switch (status) {
+            case "Programado":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                       	 	 data-tooltip="Iniciar Setup e Definir Anilox/Faca" 
+                       	 	 data-action="INICIAR_SETUP_FLEXO" 
+                       	 	 data-linha="${linha}" 
+                       	 	 data-cod-produto="${codProd}" 
+                       	 	 data-qtd-cores="${qtdCores}"
+                       	 	 data-faca-modelo="${facaModelo}"> <i class="material-icons">settings</i>
+                   	 </button>
+                   	 `;
+                break;
+            case "Setup":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light green tooltipped" 
+                       	 	 data-tooltip="Iniciar Produção" 
+                       	 	 data-action="INICIAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                   	 	 <i class="material-icons">play_arrow</i>
+                   	 </button>
+                   	 `;
+                break;
+            case "Em produção":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                       	 	 data-tooltip="Registrar Consumo/Refugo" 
+                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
+                   	 	 <i class="material-icons">straighten</i>
+                   	 </button>
+                   	 `;
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                       	 	 data-tooltip="Finalizar Impressão (Enviar p/ CQ ou Batida)" 
+                       	 	 data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                   	 	 <i class="material-icons">check</i>
+                   	 </button>
+                   	 `;
+                break;
+            case "Controlando":
+                htmlBotoes += `
+                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                       	 	 data-tooltip="Registrar Consumo Adicional" 
+                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
+                   	 	 <i class="material-icons">straighten</i>
+                   	 </button>
+                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                       	 	 data-tooltip="Finalizar Produção" 
+                       	 	 data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                       	 	 <i class="material-icons">check</i>
+                   	 	 </button>
+                   	 `;
+                break;
+            case "Produção Finalizada":
+            case "Aguardando Batida":
+                htmlBotoes += `<span class="grey-text tooltipped" data-tooltip="Aguardando Próximo Setor"><i class="material-icons">hourglass_bottom</i></span>`;
+                break;
+        }
+    }
+
+    return htmlBotoes;
+}
+
     // ===============================================
     // INICIALIZAÇÃO
     // ===============================================
@@ -1219,7 +1452,17 @@
         consumoModalInstance = M.Modal.init(document.getElementById('modalConsumo'), { dismissible: true });
         modalDetalhesInstance = M.Modal.init(document.getElementById('detalhes-pedido-modal'), { dismissible: true });
         modalMotivoConsumoInstance = M.Modal.init(document.getElementById('modalMotivoConsumo'), { dismissible: false });
-        modalAniloxInstance = M.Modal.init(document.getElementById('modalAnilox'), { dismissible: false }); 
+        modalAniloxInstance = M.Modal.init(document.getElementById('modalAnilox'), { dismissible: false });
+        modalConsumirSobraInstance = M.Modal.init(
+    document.getElementById('modalConsumirSobra'),
+    {
+        dismissible: true,
+        onOpenEnd: function() {
+            // Esta função será chamada QUANDO o modal terminar de abrir
+            buscarSaldoDeSobra();
+        }
+    }
+);
         
         // <<< NOVO: Inicialização do modal de problema integrado >>>
         problemaModalInstance = M.Modal.init(document.getElementById('modalReportarProblema'), { dismissible: false });
@@ -1232,6 +1475,7 @@
         document.getElementById('motivoAtrasoInput').addEventListener('input', checkMotivoAtrasoInput);
         document.getElementById('motivoConsumoConfirmar').addEventListener('click', onConfirmarMetragemExcessiva);
         document.getElementById('motivoConsumoInput').addEventListener('input', checkMotivoConsumoInput);
+        document.getElementById('btn-confirmar-consumo-sobra').addEventListener('click', handleConfirmarConsumoSobra);
 
         // <<< NOVOS LISTENERS PARA O MODAL DE PROBLEMA INTEGRADO >>>
         problemaNumPedidoInput.addEventListener('change', handlePedidoReporteChange);
@@ -1276,90 +1520,107 @@ function executarComRetry(funcaoBackend, parametros, onSuccess, onError, tentati
     executar(tentativas);
 }
     
-    function setupListeners() {
-        const tabelaCorpo = document.getElementById('tabela-programar-corpo');
-        const quadrosContainer = document.getElementById('quadros-maquinas-container');
-        const batidaContainer = document.getElementById('quadro-batida-container'); 
-        
-        tabelaCorpo.addEventListener('change', handleEvento);
-        quadrosContainer.addEventListener('change', handleEvento);
-        tabelaCorpo.addEventListener('input', handleEvento); 
-        quadrosContainer.addEventListener('input', handleEvento);
+// (SUBSTITUA a função 'setupListeners' na linha 580)
 
-        // Listener para botões de AÇÃO (Flexo e Digital)
-        quadrosContainer.addEventListener('click', function(event) {
-            const btn = event.target.closest('button');
-            if (!btn) return;
-            
-            const acao = btn.dataset.action;
-            const linha = btn.dataset.linha;
-            const codProduto = btn.dataset.codProduto;
-            const qtdCores = btn.dataset.qtdCores;
-            const facaModelo = btn.dataset.facaModelo;
+function setupListeners() {
+    const tabelaCorpo = document.getElementById('tabela-programar-corpo');
+    const quadrosContainer = document.getElementById('quadros-maquinas-container');
+    const batidaContainer = document.getElementById('quadro-batida-container'); 
+    
+    // Listeners de MUDANÇA (Input/Change) - Seus listeners originais
+    // (Estes estão corretos e agora funcionarão por causa da Correção 1 da msg anterior)
+    tabelaCorpo.addEventListener('change', handleEvento);
+    quadrosContainer.addEventListener('change', handleEvento);
+    tabelaCorpo.addEventListener('input', handleEvento); 
+    quadrosContainer.addEventListener('input', handleEvento);
 
-            if (acao === 'UP' || acao === 'DOWN') {
-                reordenarPedidos(linha, acao);
-            }
-            // Roteiro Flexo
-            else if (acao === 'INICIAR_SETUP_FLEXO') {
-                abrirModalAnilox(linha, codProduto, qtdCores, facaModelo);
-            }
-            else if (acao === 'INICIAR_PRODUCAO_FLEXO') {
-                iniciarProducao(btn, linha);
-            }
-            else if (acao === 'FINALIZAR_PRODUCAO_FLEXO') {
-                finalizarProducao(btn, linha);
-            }
-            // Roteiro Digital
-            else if (acao === 'INICIAR_SETUP_DIGITAL') {
-                iniciarSetupDigital(btn, linha);
-            }
-            else if (acao === 'INICIAR_IMPRESSAO_DIGITAL') {
-                iniciarImpressaoDigital(btn, linha);
-            }
-            else if (acao === 'INICIAR_CORTE_DIGITAL') {
-                iniciarCorteDigital(btn, linha);
-            }
-            else if (acao === 'FINALIZAR_PRODUCAO_DIGITAL') {
-                finalizarProducaoDigital(btn, linha);
-            }
-        });
-        
-        // Listener para botões de AÇÃO (Batida)
-        batidaContainer.addEventListener('click', function(event) {
-            const btn = event.target.closest('button');
-            if (!btn) return;
-            const acao = btn.dataset.action;
-            const linha = btn.dataset.linha;
-            if (acao === 'FINALIZAR_BATIDA') {
-                finalizarBatida(btn, linha);
-            }
-        });
-        
-        document.getElementById('btnSalvar').addEventListener('click', onSalvarClick);
-    }
-    
-    // ===============================================
-    // FUNÇÕES DE TOAST (ADICIONADAS V4.4)
-    // ===============================================
-    function showSuccessToast(message) {
-      M.toast({
-        html: `<i class="material-icons left">check_circle</i> ${message}`,
-        classes: 'green darken-1',
-        displayLength: 3000,
-        container: '#toast-custom-container'
-      });
-    }
+    // =============================================================
+    // *** LISTENER DE CLIQUE CORRIGIDO (Event Delegation) ***
+    // =============================================================
+    quadrosContainer.addEventListener('click', function(event) {
+        // Previne propagação para múltiplos botões
+        event.stopPropagation();
+        
+        const btn = event.target.closest('button');
+        if (!btn) return;
+        
+        const acao = btn.dataset.action;
+        const linha = btn.dataset.linha;
+        
+        // Se a ação for de fila, executa e para
+        if (acao === 'UP' || acao === 'DOWN') {
+        	 reordenarPedidos(linha, acao);
+        	 return;
+    	 }
+
+  	 // Tenta encontrar o pedido no cache 'todosPedidos'
+  	 const pedido = todosPedidos.find(p => p.linhaPlanilha == linha);
+  	 
+  	 // Pega dados do botão (para os casos de fallback)
+  	 const codProduto = btn.dataset.codProduto;
+  	 const qtdCores = btn.dataset.qtdCores;
+  	 const facaModelo = btn.dataset.facaModelo;
+  	 
+  	 // *** LÓGICA CORRIGIDA (REMOVEMOS O CASE 'CONSUMIR_SOBRA') ***
+  	 switch(acao) {
+  	 	 // O case 'CONSUMIR_SOBRA' foi removido daqui
+  	 	 // porque agora ele usa 'onclick' direto.
+  	 	 	
+  	 	 case 'INICIAR_SETUP_FLEXO':
+  	 	 	 const p_codProd = pedido ? pedido.codProduto : codProduto;
+  	 	 	 const p_qtdCores = pedido ? pedido.qtdCores : qtdCores;
+  	 	 	 const p_facaModelo = pedido ? pedido.faca : facaModelo;
+  	 	 	 abrirModalAnilox(linha, p_codProd, p_qtdCores, p_facaModelo);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'INICIAR_PRODUCAO_FLEXO':
+  	 	 	 iniciarProducao(btn, linha);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'FINALIZAR_PRODUCAO_FLEXO':
+  	 	 	 finalizarProducao(btn, linha);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'INICIAR_SETUP_DIGITAL':
+  	 	 	 iniciarSetupDigital(btn, linha);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'INICIAR_IMPRESSAO_DIGITAL':
+  	 	 	 iniciarImpressaoDigital(btn, linha);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'INICIAR_CORTE_DIGITAL':
+  	 	 	 iniciarCorteDigital(btn, linha);
+  	 	 	 break;
+  	 	 	
+  	 	 case 'FINALIZAR_PRODUCAO_DIGITAL':
+  	 	 	 finalizarProducaoDigital(btn, linha);
+  	 	 	 break;
+  	 }
+  	});
+  	// =============================================================
+  	// *** FIM DO LISTENER ***
+  	// =============================================================
+  	
+  	// Listener para botões de AÇÃO (Batida)
+  	batidaContainer.addEventListener('click', function(event) {
+  	 	 const btn = event.target.closest('button');
+  	 	 if (!btn) return;
+  	 	 const acao = btn.dataset.action;
+  	 	 const linha = btn.dataset.linha;
+  	 	 if (acao === 'FINALIZAR_BATIDA') {
+  	 	 	 finalizarBatida(btn, linha);
+  	 	 }
+  	});
+  	
+  	document.getElementById('btnSalvar').addEventListener('click', onSalvarClick);
+}
 
     function showErrorToast(error) {
-      const msg = (typeof error === 'object' && error.message) ? error.message : error;
-      M.toast({
-        html: `<i class="material-icons left">error</i> ${msg}`,
-        classes: 'red darken-2',
-        displayLength: 5000,
-        container: '#toast-custom-container'
-      });
-    }
+  // Esta linha extrai a 'mensagem' se for um objeto, ou usa o próprio 'error' se for texto
+  const msg = (typeof error === 'object' && error.message) ? error.message : error;
+  M.toast({ html: '<i class="material-icons left">error</i> ' + msg, classes: 'red darken-2', displayLength: 5000 });
+}
 
     
     // ===============================================
@@ -1617,210 +1878,9 @@ function executarComRetry(funcaoBackend, parametros, onSuccess, onError, tentati
     console.log("Pedido completo:", pedido);
     console.log("===========================");
 }
-    
-// (SUBSTITUIR no FormProducao.html)
-function gerarBotoesAcao(pedido) {
-    debugPedido(pedido);
-    const linha = pedido.linhaPlanilha;
-    const codProd = pedido.codProduto;
-    const qtdCores = pedido.qtdCores || 0; 
-    const status = pedido.status;
-    const maquina = pedido.maquina;
-    const facaModelo = pedido.faca || ""; // <-- MUDANÇA: LÊ O NOME DA FACA (ex: "FX 278")
-    let htmlBotoes = '';
 
-    // ===================================
-    // ROTEIRO C: FLEXO DIGITAL
-    // ===================================
-    if (maquina === "Flexo Digital") {
-        // ... (O código do Roteiro Digital permanece o mesmo) ...
-        
-        switch (status) {
-            case "Programado":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                            data-tooltip="Iniciar Setup (Digital)" 
-                            data-action="INICIAR_SETUP_DIGITAL" data-linha="${linha}">
-                        <i class="material-icons">settings</i>
-                    </button>`;
-                break;
-            case "Setup (Digital)":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light green tooltipped" 
-                            data-tooltip="Iniciar Impressão" 
-                            data-action="INICIAR_IMPRESSAO_DIGITAL" data-linha="${linha}">
-                        <i class="material-icons">print</i>
-                    </button>`;
-                break;
-            case "Imprimindo (Digital)":
-                 htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light cyan tooltipped" 
-                            data-tooltip="Iniciar Corte" 
-                            data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
-                        <i class="material-icons">content_cut</i>
-                    </button>`;
-                break;
-            case "Cortando (Digital)":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                            data-tooltip="Registrar Consumo" 
-                            onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                        <i class="material-icons">straighten</i>
-                    </button>`;
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                            data-tooltip="Finalizar Produção (Enviar p/ CQ)" 
-                            data-action="FINALIZAR_PRODUCAO_DIGITAL" data-linha="${linha}">
-                        <i class="material-icons">check</i>
-                    </button>`;
-                break;
-            case "Aguardando Corte (Digital)":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light cyan tooltipped" 
-                            data-tooltip="Iniciar Corte" 
-                            data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
-                        <i class="material-icons">content_cut</i>
-                    </button>`;
-                break;
-        }
-    } 
-    // ===================================
-    // ROTEIRO A/B: FLEXO CONVENCIONAL
-    // ===================================
-    else {
-        switch (status) {
-            case "Programado":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                            data-tooltip="Iniciar Setup e Definir Anilox/Faca" 
-                            data-action="INICIAR_SETUP_FLEXO" 
-                            data-linha="${linha}" 
-                            data-cod-produto="${codProd}" 
-                            data-qtd-cores="${qtdCores}"
-                            data-faca-modelo="${facaModelo}"> <i class="material-icons">settings</i>
-                    </button>
-                `;
-                break;
-            case "Setup":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light green tooltipped" 
-                            data-tooltip="Iniciar Produção" 
-                            data-action="INICIAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                        <i class="material-icons">play_arrow</i>
-                    </button>
-                `;
-                break;
-            case "Em produção":
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                            data-tooltip="Registrar Consumo/Refugo" 
-                            onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                        <i class="material-icons">straighten</i>
-                    </button>
-                `;
-                htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                            data-tooltip="Finalizar Impressão (Enviar p/ CQ ou Batida)" 
-                            data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                        <i class="material-icons">check</i>
-                    </button>
-                `;
-                break;
-            case "Controlando":
-                 htmlBotoes += `
-                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                            data-tooltip="Registrar Consumo Adicional" 
-                            onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                        <i class="material-icons">straighten</i>
-                    </button>
-                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                            data-tooltip="Finalizar Produção" 
-                            data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                        <i class="material-icons">check</i>
-                    </button>
-                `;
-                break;
-            case "Produção Finalizada":
-            case "Aguardando Batida":
-                htmlBotoes += `<span class="grey-text tooltipped" data-tooltip="Aguardando Próximo Setor"><i class="material-icons">hourglass_bottom</i></span>`;
-                break;
-        }
-    }
-    
-    return htmlBotoes;
-}
 
-// Listener para botões de AÇÃO (Flexo e Digital)
-quadrosContainer.addEventListener('click', function(event) {
-    const btn = event.target.closest('button');
-    if (!btn) return;
-    
-    const acao = btn.dataset.action;
-    const linha = btn.dataset.linha;
-    
-    // ===== DEBUG COMPLETO =====
-    console.log("🔵 =========================");
-    console.log("🔵 CLICK DETECTADO");
-    console.log("🔵 Ação:", acao);
-    console.log("🔵 Linha do botão:", linha);
-    console.log("🔵 Total de pedidos no array:", todosPedidos.length);
-    console.log("🔵 Primeiro pedido do array:", todosPedidos[0]);
-    console.log("🔵 =========================");
-    
-    // Busca o pedido
-    const pedido = todosPedidos.find(p => {
-        console.log(`    Comparando: ${p.linhaPlanilha} == ${linha} ?`, p.linhaPlanilha == linha);
-        return p.linhaPlanilha == linha;
-    });
-    
-    if (!pedido) {
-        console.error("❌ PEDIDO NÃO ENCONTRADO!");
-        console.error("❌ Linha procurada:", linha);
-        console.error("❌ Linhas disponíveis:", todosPedidos.map(p => p.linhaPlanilha));
-        showErrorToast("Erro: Pedido não encontrado no cache!");
-        return;
-    }
-    
-    console.log("✅ PEDIDO ENCONTRADO:", pedido);
-    console.log("✅ codProduto:", pedido.codProduto);
-    console.log("✅ tipoPedido:", pedido.tipoPedido);
-    console.log("✅ qtdCores:", pedido.qtdCores);
-    console.log("✅ faca:", pedido.faca);
-    
-    const codProduto = pedido.codProduto;
-    const qtdCores = pedido.qtdCores;
-    const facaModelo = pedido.faca;
 
-    if (acao === 'UP' || acao === 'DOWN') {
-        reordenarPedidos(linha, acao);
-    }
-    else if (acao === 'INICIAR_SETUP_FLEXO') {
-        console.log("🚀 Chamando abrirModalAnilox com:");
-        console.log("    linha:", linha);
-        console.log("    codProduto:", codProduto);
-        console.log("    qtdCores:", qtdCores);
-        console.log("    facaModelo:", facaModelo);
-        abrirModalAnilox(linha, codProduto, qtdCores, facaModelo);
-    }
-    else if (acao === 'INICIAR_PRODUCAO_FLEXO') {
-        iniciarProducao(btn, linha);
-    }
-    else if (acao === 'FINALIZAR_PRODUCAO_FLEXO') {
-        finalizarProducao(btn, linha);
-    }
-    else if (acao === 'INICIAR_SETUP_DIGITAL') {
-        iniciarSetupDigital(btn, linha);
-    }
-    else if (acao === 'INICIAR_IMPRESSAO_DIGITAL') {
-        iniciarImpressaoDigital(btn, linha);
-    }
-    else if (acao === 'INICIAR_CORTE_DIGITAL') {
-        iniciarCorteDigital(btn, linha);
-    }
-    else if (acao === 'FINALIZAR_PRODUCAO_DIGITAL') {
-        finalizarProducaoDigital(btn, linha);
-    }
-});
 
 function preencherDropdownFacas(itens) {
     const select = document.getElementById('anilox_faca_item');
@@ -2419,6 +2479,14 @@ function onSalvarAnilox() {
         document.getElementById('btnSalvar').disabled = true;
         refreshPedidos();
     }
+
+    function showSuccessToast(msg) {
+    M.toast({
+        html: '<i class="material-icons left">check_circle</i> ' + msg,
+        classes: 'green darken-1',
+        displayLength: 3000
+    });
+}
 
 
 function onSalvarErro(err) {
@@ -3191,6 +3259,47 @@ function onFalhaReporte(erro) {
     showErrorToast(`Falha: ${erro.message}`);
     _showLoadingReporte(false);
     problemaBtnConfirm.disabled = false;
+}
+
+
+function handleConfirmarConsumoSobra() {
+  const numPedido = document.getElementById('sobra-num-pedido').value;
+  const codProduto = document.getElementById('sobra-cod-produto').textContent;
+  const qtdConsumir = document.getElementById('sobra-qtd-consumir').value;
+  
+  const qtdNum = parseFloat(qtdConsumir) || 0;
+  if (qtdNum <= 0) {
+    showErrorToast("A quantidade a consumir deve ser maior que zero.");
+    return;
+  }
+  
+  const btnConfirm = document.getElementById('btn-confirmar-consumo-sobra');
+  btnConfirm.disabled = true;
+  showSuccessToast("Processando consumo de sobra...");
+  
+  modalConsumirSobraInstance.close();
+  
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      btnConfirm.disabled = false;
+      if (resposta.sucesso) {
+        showSuccessToast(resposta.mensagem);
+        refreshPedidos(); 
+      } else {
+        showErrorToast(resposta.mensagem);
+      }
+    })
+    .withFailureHandler(function(error) {
+      btnConfirm.disabled = false;
+      showErrorToast(error.message || error);
+    })
+    .consumirSobraEstoque(codProduto, qtdNum, numPedido);
+}
+
+function onConsumirSobraErro(error) {
+  const btnConfirm = document.getElementById('btn-confirmar-consumo-sobra');
+  btnConfirm.disabled = false;
+  showErrorToast(error.message || error);
 }
     
     </script>
