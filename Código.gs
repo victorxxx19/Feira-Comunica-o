@@ -510,6 +510,8 @@ const NOME_ABA_VENDEDORAS = "Vendedoras";
 const NOME_ABA_MAQUINAS = "Máquinas";
 const NOME_ABA_FORNECEDORES_SUBSTRATO = "FornecedoresSubstrato";
 const NOME_ABA_IMPRESSORAS = "Impressoras";
+const NOME_ABA_LOG_INSPECAOCQ = "Log_InspecaoCQ";
+const NOME_ABA_CQ_PROBLEMAS = "CQ_Problemas";
 const NOME_ABA_INSPETORES = "Inspetores";
 const NOME_ABA_CLICHE_MESTRE = "Cliche_Mestre";
 const NOME_ABA_CLICHE_LAMINAS = "Cliche_Laminas";
@@ -522,6 +524,7 @@ const NOME_ABA_FACAS_PEDIDOS = "Facas_Pedidos";
 const NOME_ABA_FACAS_PROBLEMAS = "Facas_Problemas";
 const NOME_ABA_LOG_USO_FACAS = "Log_Uso_Facas";
 const NOME_ABA_FORNECEDORES_FACAS = "FornecedoresFacas";
+const NOME_ABA_ESTOQUE_ACABADO = "Estoque_Acabado";
 
 const COL_CLIENTE_NOME = 2;
 // Colunas Facas
@@ -605,10 +608,12 @@ const COL_PEDIDO_TEMPO_SETUP_MIN = 44;    // AR - Tempo de Setup (min)
 const COL_PEDIDO_DATA_INICIO_SETUP = 45;  // AS - Data Início Setup
 const COL_PEDIDO_DATA_FIM_SETUP = 46;     // AT - Data Fim Setup
 const COL_PEDIDO_ID_CLICHE = 47;          // AU - ID_Cliche
-const COL_PEDIDO_ID_UNICO_FACA = 48;      
+const COL_PEDIDO_ID_UNICO_FACA = 48;
+const COL_PEDIDO_QTD_REPROVADA_CQ = 49; // AW
+const COL_PEDIDO_DATA_CONCLUSAO_CQ = 50; // AX      
 
 // Total de colunas da aba Pedidos
-const TOTAL_COLUNAS_PEDIDOS = 48;
+const TOTAL_COLUNAS_PEDIDOS = 50;
 
 const STATUS_ALERTA = ["Em produção", "Liberado para produção", "Programado"];
 
@@ -1355,15 +1360,7 @@ function buscarSugestoesProduto(termo, tipoBusca) {
   }
 }
 
-// CÓDIGO.gs (Substitua a sua função getDadosCompletosProduto completamente)
-
-/**
- * Busca todos os dados de um produto (código ou descrição) e verifica o status
- * da faca e clichê relacionados, além de determinar o Tipo de Pedido.
- * @param {string} identificador - Código ou Descrição do Produto.
- * @param {string} tipoBusca - 'codigo' ou 'descricao'.
- * @returns {object|null} - Dados completos do produto, status dos insumos e tipoPedido.
- */
+// (SUBSTITUA A FUNÇÃO EM Código.gs)
 function getDadosCompletosProduto(identificador, tipoBusca) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1372,7 +1369,6 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
     const abaClicheMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE); 
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS); 
     
-    // --- Mapas de busca (Desempenho) ---
     const facasDisponiveis = new Set();
     if (abaFacasInventario.getLastRow() > 1) {
       const dadosFacasInv = abaFacasInventario.getRange(2, 2, abaFacasInventario.getLastRow() - 1, 2).getValues(); 
@@ -1392,37 +1388,28 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
         }
       }
     }
-    // --- Fim dos Mapas ---
 
     const mapa = _criarMapaDeColunas(abaProdutos);
     const dadosProdutos = abaProdutos.getRange(2, 1, abaProdutos.getLastRow() - 1, abaProdutos.getLastColumn()).getValues();
     const termoBusca = identificador.trim().toLowerCase();
 
-    // =========================================================
-    // ✅ FIX: Usar índice numérico para COLUNAS PRINCIPAIS
-    // =========================================================
     const idxCodigo = COL_PRODUTO_CODIGO - 1; 
     const idxDescricao = COL_PRODUTO_DESCRICAO - 1;
-    
     const colunaBuscaIndex = (tipoBusca === 'codigo') ? idxCodigo : idxDescricao;
-
-    // Colunas que dependem do nome do cabeçalho
     const idxClicheVinculado = mapa["ID_Cliche_Vinculado"];
     const idxDataAlteracaoArte = mapa["Data - Alteração de Arte"]; 
 
-    // Mensagem de erro robusta
     if (colunaBuscaIndex === undefined || dadosProdutos.length === 0) {
-      throw new Error(`A coluna de busca (${tipoBusca}) não foi encontrada. Verifique os nomes do cabeçalho.`);
+      throw new Error(`A coluna de busca (${tipoBusca}) não foi encontrada.`);
     }
-    // =========================================================
 
     let produtoEncontrado = null;
     let codigoProdutoFinal = "";
     let produtoDataAlteracaoArte = null; 
-
     let statusFaca = "Inexistente";
     let statusCliche = "Inexistente";
     let idCliche = "N/A";
+    let infoSobra = { qtd: 0, cliente: "" }; // <-- INÍCIO DA ADIÇÃO (REQ 5)
 
     for (const linha of dadosProdutos) {
       const valorPlanilha = linha[colunaBuscaIndex].toString().trim().toLowerCase();
@@ -1431,24 +1418,17 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
         codigoProdutoFinal = linha[idxCodigo];
         const statusProduto = linha[mapa["Status"]] || "Ativo";
         
-        // Extrai a Data de Alteração de Arte
         if(idxDataAlteracaoArte !== undefined && linha[idxDataAlteracaoArte]) {
             produtoDataAlteracaoArte = parseDate(linha[idxDataAlteracaoArte]);
         }
         
         if (statusProduto.toLowerCase() === "bloqueado" || statusProduto.toLowerCase() === "cancelado") {
-           return {
-             sucesso: false, 
-             bloqueado: true,
-             motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]] || "Motivo não especificado.",
-             status: statusProduto
-           };
+           return { sucesso: false, bloqueado: true, motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]] || "Motivo não especificado.", status: statusProduto };
         }
 
-        // --- LÓGICA DE VERIFICAÇÃO (FACA E CLICHÊ) ---
         const facaDoProduto = linha[mapa["Faca"]].toString().trim().toLowerCase();
         if (facaDoProduto && facasDisponiveis.has(facaDoProduto)) {
-           statusFaca = "Existente";
+          statusFaca = "Existente";
         }
 
         const clicheVinculado = (idxClicheVinculado !== undefined) ? linha[idxClicheVinculado] : "";
@@ -1458,37 +1438,40 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
             statusCliche = "Existente";
           }
         }
-        // --- FIM DA LÓGICA ---
 
-        // Formata a data de alteração para exibição no frontend
+        // --- INÍCIO DA ADIÇÃO (REQ 5) ---
+        // Busca o estoque de sobra para este produto
+        infoSobra = _buscarSobraEstoque(codigoProdutoFinal);
+        // --- FIM DA ADIÇÃO ---
+
         const dataAlteracaoArteObj = linha[mapa["Data - Alteração de Arte"]];
         const dataFormatada = dataAlteracaoArteObj ? Utilities.formatDate(new Date(dataAlteracaoArteObj), Session.getScriptTimeZone(), "dd/MM/yyyy") : "";
 
         produtoEncontrado = {
-          codigo: codigoProdutoFinal,
-          cliente: linha[mapa["Cliente"]],
-          descricao: linha[idxDescricao],
-          faca: linha[mapa["Faca"]],
-          substrato: linha[mapa["Substrato"]],
-          tipoCola: linha[mapa["Tipo de Cola"]],
-          largura: linha[mapa["Largura (mm)"]],
-          altura: linha[mapa["Altura (mm)"]],
-          puxada: linha[mapa["Puxada (mm)"]],
-          qtdCores: linha[mapa["Quantidade de Cores"]], 
-          carreiras: linha[mapa["Carreiras"]],
-          dataAlteracaoArte: dataFormatada,
-          status: statusProduto,
-          acabamento: linha[mapa["Tipo de Acabamento"]],
-          cold: linha[mapa["Cold"]],
-          motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]],
-          tipoRotulo: linha[mapa["Tipo do Rótulo"]] || "Único",
-          fichaTecnicaCores: linha[mapa["FichaTecnicaCores"]] || "[]",
-          diametroTubete: linha[mapa["Diametro Tubete"]],
-          qtdPorRolo: linha[mapa["Qtd por Rolo"]],
-          sentidoImpressao: linha[mapa["Sentido Impressao"]],
-          layoutArte: linha[mapa["Layout Arte"]]
+           codigo: codigoProdutoFinal,
+           cliente: linha[mapa["Cliente"]],
+           descricao: linha[idxDescricao],
+           faca: linha[mapa["Faca"]],
+           substrato: linha[mapa["Substrato"]],
+           tipoCola: linha[mapa["Tipo de Cola"]],
+           largura: linha[mapa["Largura (mm)"]],
+           altura: linha[mapa["Altura (mm)"]],
+           puxada: linha[mapa["Puxada (mm)"]],
+           qtdLaminas: linha[mapa["Quantidade de Cores"]], 
+           carreiras: linha[mapa["Carreiras"]],
+           dataAlteracaoArte: dataFormatada,
+           status: statusProduto,
+           acabamento: linha[mapa["Tipo de Acabamento"]],
+           cold: linha[mapa["Cold"]],
+           motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]],
+           tipoRotulo: linha[mapa["Tipo do Rótulo"]] || "Único",
+           fichaTecnicaCores: linha[mapa["FichaTecnicaCores"]] || "[]",
+           diametroTubete: linha[mapa["Diametro Tubete"]],
+           qtdPorRolo: linha[mapa["Qtd por Rolo"]],
+           sentidoImpressao: linha[mapa["Sentido Impressao"]],
+           layoutArte: linha[mapa["Layout Arte"]]
         };
-        break;
+        break; 
       }
     }
 
@@ -1496,83 +1479,63 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
       return null;
     }
 
-    // ==========================================================
-    // CÁLCULO DE TIPO DE PEDIDO (Nova Lógica)
-    // ==========================================================
+    // Cálculo de Tipo de Pedido (Lógica mantida)
     let tipoPedido = "Primeira Fabricação";
-    const codigoBuscaPedidos = produtoEncontrado.codigo.trim().toUpperCase();
-
     if (abaPedidos.getLastRow() > 1) {
-        const colunaFinalLeitura = Math.max(COL_PEDIDO_PRODUTO_CODIGO, COL_PEDIDO_DATA_PEDIDO);
         const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, 10).getValues(); 
-        
         let encontrouPedido = false;
-        
         for (const linhaPedido of dadosPedidos) {
             const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
-            
-            if (codProdPedido === codigoBuscaPedidos) {
+            if (codProdPedido === codigoProdutoFinal) {
                 encontrouPedido = true;
                 tipoPedido = "Repetição";
-                
                 if (produtoDataAlteracaoArte) {
-                    const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
-                    
+                     const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
                     if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
-                        tipoPedido = "Repetição"; 
+                         tipoPedido = "Repetição"; 
                         break; 
                     }
                 }
             }
         }
-        
         if (!encontrouPedido) {
             tipoPedido = "Primeira Fabricação";
         } else if (tipoPedido === "Repetição" && produtoDataAlteracaoArte) {
              let ultimoPedidoAnterior = false;
              for (const linhaPedido of dadosPedidos) {
                 const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
-                if (codProdPedido === codigoBuscaPedidos) {
+                if (codProdPedido === codigoProdutoFinal) {
                     const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
                     if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
-                        ultimoPedidoAnterior = true;
+                         ultimoPedidoAnterior = true;
                     }
                 }
              }
-
              if (!ultimoPedidoAnterior) {
                  tipoPedido = "Primeira Fabricação";
              }
         }
     }
-    // ==========================================================
-    // FIM CÁLCULO DE TIPO DE PEDIDO
-    // ==========================================================
     
-
-    // === NOVO: FLAG DE ARTE ALTERADA RECENTEMENTE ===
     let arteAlteradaRecentemente = false;
     if (produtoDataAlteracaoArte && produtoDataAlteracaoArte.getFullYear() > 1970) {
-        // Se há uma data válida, a arte foi alterada.
         arteAlteradaRecentemente = true;
     }
-    // ==========================================================
 
-
-    // Retorna os dados do produto + o status dos insumos
     return {
       sucesso: true,
       dadosDoProduto: produtoEncontrado,
       tipoPedido: tipoPedido,
-      arteAlteradaRecentemente: arteAlteradaRecentemente, // <-- NOVA FLAG
+      arteAlteradaRecentemente: arteAlteradaRecentemente,
       statusFaca: statusFaca,
       statusCliche: statusCliche,
-      idCliche: idCliche
+      idCliche: idCliche,
+      infoSobra: infoSobra // <-- RETORNO ADICIONADO (REQ 5)
     };
 
   } catch (e) {
-    Logger.log(`Erro ao buscar dados completos do produto: ${e}`);
-    throw new Error(`Erro ao buscar dados completos do produto: Erro ao buscar produto: A coluna "Código do Produto" não foi encontrada. Por favor, verifique se o nome do cabeçalho na linha 1 da aba "Produtos" corresponde a "Código do Produto" ou altere a constante no Código.gs.`);
+     Logger.log(`Erro ao buscar dados completos do produto: ${e}`);
+     throw new Error(`Erro ao buscar dados completos do produto: ${e.message}`);
   }
 }
 
@@ -1727,27 +1690,17 @@ function calcularMetragem(puxada_mm, qtdCores, quantidadePedido, semExcedente, t
   }
 }
 
-//
-// SUBSTITUA A FUNÇÃO 'salvarPedido' PELA VERSÃO ABAIXO
-//
+// (SUBSTITUA A FUNÇÃO EM Código.gs)
 function salvarPedido(pedido) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) { 
-    throw new Error("O sistema está ocupado. Outra vendedora está salvando um pedido. Tente novamente em 5 segundos.");
+    throw new Error("O sistema está ocupado. Tente novamente em 5 segundos.");
   }
   
   try {
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
     const numPedido = getProximoNumeroPedido();
     const dataPedido = new Date();
-    
-    // --- LÓGICA DE STATUS ANTIGA (REMOVIDA) ---
-    // let status = "Disponível"; 
-    // if (pedido.tipoPedido === 'Primeira Fabricação') {
-    //   status = "Aguardando Insumos"; 
-    // }
-    // --- FIM DA LÓGICA ANTIGA ---
-    
     const dataEntrega = calcularDataEntrega(pedido.tipoPedido);
 
     const metragemCalculada = calcularMetragem(
@@ -1759,10 +1712,27 @@ function salvarPedido(pedido) {
       pedido.dadosDoProduto.carreiras   
     );
 
-    // 1. Cria um array vazio com o tamanho exato de colunas (AGORA 44)
+    // --- INÍCIO DA ADIÇÃO (REQ 4) ---
+    // Busca o estoque de sobra ANTES de salvar
+    const infoSobra = _buscarSobraEstoque(pedido.dadosDoProduto.codigo);
+    let obsPCP = ""; // Coluna Y (25)
+    
+    if (infoSobra.qtd > 0) {
+      // Formata a observação
+      obsPCP = `ATENÇÃO: Usar ${infoSobra.qtd} rótulos do ESTOQUE DE SOBRA.`;
+      
+      // Se houver observações de CQ, concatena
+      if (pedido.observacoesCQ && pedido.observacoesCQ.trim() !== "") {
+        obsPCP += ` | Obs CQ: ${pedido.observacoesCQ.trim()}`;
+      }
+    } else {
+      // Se não há sobra, apenas salva as observações de CQ
+      obsPCP = pedido.observacoesCQ || "";
+    }
+    // --- FIM DA ADIÇÃO ---
+
     const novaLinha = new Array(TOTAL_COLUNAS_PEDIDOS).fill("");
 
-    // 2. Preenche o array usando suas constantes
     novaLinha[COL_PEDIDO_NUMERO - 1] = numPedido;
     novaLinha[COL_PEDIDO_DATA_PEDIDO - 1] = dataPedido;
     novaLinha[COL_PEDIDO_TIPO - 1] = pedido.tipoPedido;
@@ -1770,10 +1740,7 @@ function salvarPedido(pedido) {
     novaLinha[COL_PEDIDO_VENDEDORA - 1] = pedido.vendedora;
     novaLinha[COL_PEDIDO_TIPO_EXPEDICAO - 1] = pedido.tipoExpedicao;
     novaLinha[COL_PEDIDO_DATA_ENTREGA - 1] = dataEntrega;
-    
-    // <<< MUDANÇA (USA O STATUS VINDO DO FORMULÁRIO) >>>
     novaLinha[COL_PEDIDO_STATUS - 1] = pedido.statusPedido; 
-    
     novaLinha[COL_PEDIDO_PRODUTO_CODIGO - 1] = pedido.dadosDoProduto.codigo;
     novaLinha[COL_PEDIDO_CLIENTE - 1] = pedido.dadosDoProduto.cliente;
     novaLinha[COL_PEDIDO_DESCRICAO - 1] = pedido.dadosDoProduto.descricao;
@@ -1787,44 +1754,39 @@ function salvarPedido(pedido) {
     novaLinha[COL_PEDIDO_CARREIRAS - 1] = formatarNumeroParaPlanilha(pedido.dadosDoProduto.carreiras);
     novaLinha[COL_PEDIDO_TIPO_ACABAMENTO - 1] = pedido.dadosDoProduto.acabamento;
     novaLinha[COL_PEDIDO_COLD - 1] = pedido.dadosDoProduto.cold;
+    
+    novaLinha[COL_PEDIDO_OBS_PCP - 1] = obsPCP; // <-- MODIFICADO (REQ 4)
+    
     novaLinha[COL_PEDIDO_METRAGEM - 1] = metragemCalculada;
     novaLinha[COL_PEDIDO_IMPRESSOR - 1] = "";
     novaLinha[COL_PEDIDO_SEM_EXCEDENTE - 1] = pedido.semExcedente;
-    novaLinha[COL_PEDIDO_OBS_ESPECIAIS - 1] = pedido.observacoesCQ || "";
     
-    // <<< MUDANÇA (SALVA O ID DO CLICHÊ NA NOVA COLUNA) >>>
+    // ATENÇÃO: A Obs CQ (AH) não é mais salva aqui, foi movida para a Obs PCP (Y)
+    // novaLinha[COL_PEDIDO_OBS_ESPECIAIS - 1] = pedido.observacoesCQ || "";
+    
     novaLinha[COL_PEDIDO_ID_CLICHE - 1] = pedido.idCliche || "N/A";
 
-    // Salva a linha inteira de uma vez
     abaPedidos.appendRow(novaLinha);
     SpreadsheetApp.flush();
     
-    // --- LÓGICA DE E-MAIL (Mantida) ---
+    // Lógica de E-mail (mantida, mas atualizada para incluir a obsPCP)
     try {
       const assunto = `Pedido ${numPedido} - Cadastrado`;
       const titulo = "Novo Pedido Cadastrado";
       const corpoInternoHtml = `
-        <p>Um novo pedido foi cadastrado no sistema:</p>
-        <p><strong>Nº Pedido:</strong> ${numPedido}</p>
-        <p><strong>Cliente:</strong> ${pedido.dadosDoProduto.cliente}</p>
-        <p><strong>Descrição:</strong> ${pedido.dadosDoProduto.descricao}</p>
-        <p><strong>Cód. Produto:</strong> ${pedido.dadosDoProduto.codigo}</p>
-        <p><strong>Quantidade:</strong> ${formatarNumeroParaPlanilha(pedido.quantidade)}</p>
-        <p><strong>Data de Entrega:</strong> ${dataEntrega}</p>
-        <p><strong>Tipo de Pedido:</strong> ${pedido.tipoPedido}</p>
-        <p><strong>Vendedora:</strong> ${pedido.vendedora}</p>
-        <p><strong>Faca:</strong> ${pedido.dadosDoProduto.faca}</p>
-        <p><strong>Clichê:</strong> ${pedido.idCliche}</p> 
-        <p><strong>Status Inicial:</strong> ${pedido.statusPedido}</p>
-        <p><strong>Metragem Calc.:</strong> ${metragemCalculada} m</p>
-      `;
-
+         <p>Um novo pedido foi cadastrado no sistema:</p>
+         <p><strong>Nº Pedido:</strong> ${numPedido}</p>
+         <p><strong>Cliente:</strong> ${pedido.dadosDoProduto.cliente}</p>
+         <p><strong>Descrição:</strong> ${pedido.dadosDoProduto.descricao}</p>
+         <p><strong>Quantidade:</strong> ${formatarNumeroParaPlanilha(pedido.quantidade)}</p>
+         <p><strong>Data de Entrega:</strong> ${dataEntrega}</p>
+         <p><strong>Tipo de Pedido:</strong> ${pedido.tipoPedido}</p>
+         <p><strong>Status Inicial:</strong> ${pedido.statusPedido}</p>
+         <p><strong>Observação PCP:</strong> ${obsPCP}</p> `;
       enviarEmailSistema(assunto, titulo, corpoInternoHtml);
-      
     } catch (e) {
       Logger.log("ERRO AO TENTAR ENVIAR E-MAIL (Novo Pedido): " + e.message);
     }
-    // --- FIM DA LÓGICA DE E-MAIL ---
     
     return "Pedido Nº " + numPedido + " salvo com sucesso!";
 
@@ -2878,7 +2840,7 @@ function salvarProgramacaoMaquina(linhaPlanilha, nomeMaquina) {
 
 function abrirFormQualidade() {
   // REMOVIDO: Busca de dados. O frontend fará isso agora.
-  const dados = buscarPedidosParaQualidade(); 
+  const dados = buscarPedidosParaQualidade_v2(); 
   
   const html = HtmlService.createTemplateFromFile("FormQualidade");
   html.dados = dados;
@@ -2887,36 +2849,50 @@ function abrirFormQualidade() {
   ui.showModalDialog(html.evaluate().setWidth(1600).setHeight(900), " ");
 }
 
-
-// CÓDIGO.gs (SUBSTITUA SUA FUNÇÃO INTEIRA POR ESTA)
-
-function buscarPedidosParaQualidade() {
+function buscarPedidosParaQualidade_v2() {
   try {
     const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-    if (abaPedidos.getLastRow() < 2) {
-      Logger.log("Aba Pedidos está vazia.");
-      return { pedidos: [], inspetores: getListaDeAba(NOME_ABA_INSPETORES, 1) }; 
+    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    
+    // 1. Buscar Lotes de Inspeção e Agrupar
+    const lotesInspecao = {}; 
+    
+    if (abaLogCQ.getLastRow() > 1) {
+      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 6).getValues();
+      for (const linhaLog of dadosLog) {
+        const numPedido = linhaLog[0]; 
+        if (!numPedido) continue;
+        const qtdAprovada = parseFloat(String(linhaLog[4]).replace(",", ".")) || 0; 
+        const qtdReprovada = parseFloat(String(linhaLog[5]).replace(",", ".")) || 0; 
+
+        if (!lotesInspecao[numPedido]) {
+          lotesInspecao[numPedido] = { totalAprovado: 0, totalReprovado: 0, count: 0 };
+        }
+        lotesInspecao[numPedido].totalAprovado += qtdAprovada;
+        lotesInspecao[numPedido].totalReprovado += qtdReprovada;
+        lotesInspecao[numPedido].count++;
+      }
     }
 
-    const dadosCompletos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, TOTAL_COLUNAS_PEDIDOS).getDisplayValues(); 
+    // 2. Buscar Pedidos
     const pedidosParaCQ = [];
+    if (abaPedidos.getLastRow() < 2) {
+      throw new Error("Aba Pedidos está vazia.");
+    }
     
-    for (let i = 0; i < dadosCompletos.length; i++) {
-      const linha = dadosCompletos[i];
-      
+    const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, TOTAL_COLUNAS_PEDIDOS).getDisplayValues();
+    
+    for (let i = 0; i < dadosPedidos.length; i++) {
+      const linha = dadosPedidos[i];
       const statusOriginal = String(linha[COL_PEDIDO_STATUS - 1] || "").trim();
       if (statusOriginal === "") continue;
-
-      // Normaliza o status (ex: "Produção Finalizada" -> "producaofinalizada")
       const statusNormalizado = normalizarStatus(statusOriginal); 
       
-      // --- LÓGICA DE COMPARAÇÃO DIRETA (A PROVA DE FALHAS) ---
-      // Em vez de usar .includes(), checamos cada status diretamente,
-      // igual à função do FormOverview que está funcionando.
-      if (statusNormalizado === "emproducao" || 
+      // --- MODIFICAÇÃO AQUI ---
+      // Agora inclui "emproducao"
+      if (statusNormalizado === "emproducao" ||  // <--- ADICIONADO
           statusNormalizado === "producaofinalizada" || 
-          statusNormalizado === "controlando" || 
-          statusNormalizado === "naexpedicao") 
+          statusNormalizado === "controlando") 
       {
         pedidosParaCQ.push({
           linhaPlanilha: i + 2, 
@@ -2925,33 +2901,178 @@ function buscarPedidosParaQualidade() {
           cliente: linha[COL_PEDIDO_CLIENTE - 1], 
           descricao: linha[COL_PEDIDO_DESCRICAO - 1], 
           quantidade: linha[COL_PEDIDO_QUANTIDADE - 1], 
-          status: statusOriginal, // Envia o status original (ex: "Produção Finalizada")
-          maquinaProd: linha[COL_PEDIDO_MAQUINA - 1], 
-          impressor: linha[COL_PEDIDO_IMPRESSOR - 1], 
-          fila: linha[COL_PEDIDO_FILA - 1], 
-          unidadeCQ: linha[COL_PEDIDO_UNIDADE_CQ - 1], 
-          inspetor: linha[COL_PEDIDO_INSPETOR - 1], 
-          obsCQ: linha[COL_PEDIDO_OBS_ESPECIAIS - 1], // AH (Observações CQ/Especiais)
-          qtdAprovada: linha[COL_PEDIDO_QTD_APROVADA_CQ - 1], // AO
-          
-          // *** CORREÇÃO: ADICIONA O CAMPO FALTANTE ***
-          semExcedente: linha[COL_PEDIDO_SEM_EXCEDENTE - 1] // AE (Col 31)
-          // *** FIM DA CORREÇÃO ***
+          status: statusOriginal,
+          semExcedente: linha[COL_PEDIDO_SEM_EXCEDENTE - 1]
         });
       }
-      // --- FIM DA LÓGICA DE COMPARAÇÃO ---
     }
 
     return {
+      sucesso: true,
       pedidos: pedidosParaCQ,
+      lotesInspecao: lotesInspecao,
       inspetores: getListaDeAba(NOME_ABA_INSPETORES, 1)
     };
+
   } catch (e) {
-    Logger.log(`Erro ao buscar pedidos para Qualidade: ${e}`);
-    return { pedidos: [], inspetores: [], erro: e.message }; 
+    Logger.log(`Erro ao buscar pedidos para Qualidade (v2.1): ${e.message} ${e.stack}`);
+    return { sucesso: false, erro: e.message }; 
   }
 }
-// CÓDIGO.gs (Função salvarMudancasQualidade MODIFICADA)
+
+function salvarInicioCQ(linhaPlanilha) {
+  try {
+    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue("Controlando");
+    SpreadsheetApp.flush();
+    
+    // Retorna todos os dados atualizados para o frontend
+    return buscarPedidosParaQualidade_v2();
+  } catch (e) {
+    Logger.log(`Erro ao iniciar CQ (Linha ${linhaPlanilha}): ${e.message}`);
+    throw new Error(e.message);
+  }
+}
+
+function salvarNovoLoteCQ(dadosLote) {
+  try {
+    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    
+    const idLog = `CQ-${String(abaLogCQ.getLastRow() + 1).padStart(5, '0')}`;
+    const dataInspecao = new Date();
+    
+    // [ID_Log, Num_Pedido, Data, Unidade_CQ, Inspetor, Qtd_Aprovada, Qtd_Reprovada, Motivo_Reprova]
+    const novaLinha = [
+      idLog,
+      dadosLote.numPedido,
+      dataInspecao,
+      dadosLote.unidadeCQ,
+      dadosLote.inspetor,
+      parseFloat(String(dadosLote.qtdAprovada).replace(",", ".")) || 0,
+      parseFloat(String(dadosLote.qtdReprovada).replace(",", ".")) || 0,
+      dadosLote.motivoReprova || ""
+    ];
+    
+    abaLogCQ.appendRow(novaLinha);
+    SpreadsheetApp.flush();
+    
+    // Retorna todos os dados atualizados para o frontend
+    return buscarPedidosParaQualidade_v2();
+  } catch (e) {
+    Logger.log(`Erro ao salvar novo lote de CQ: ${e.message}`);
+    throw new Error(e.message);
+  }
+}
+
+function getDetalhesInspecaoCQ(numPedido) {
+  try {
+    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    const lotes = [];
+    
+    if (abaLogCQ.getLastRow() > 1) {
+      // Col B: Num_Pedido, C: Data, D: Unidade, E: Inspetor, F: Aprov, G: Reprov, H: Motivo
+      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 7).getDisplayValues();
+      
+      for (const linha of dadosLog) {
+        if (linha[0] == numPedido) { // Col B (índice 0)
+          lotes.push({
+            data: linha[1], // Col C
+            unidadeCQ: linha[2], // Col D
+            inspetor: linha[3], // Col E
+            qtdAprovada: linha[4], // Col F
+            qtdReprovada: linha[5], // Col G
+            motivoReprova: linha[6] // Col H
+          });
+        }
+      }
+    }
+    return lotes;
+  } catch (e) {
+    Logger.log(`Erro ao buscar detalhes de lotes CQ: ${e.message}`);
+    throw new Error(e.message);
+  }
+}
+
+// (ADICIONE ESTA FUNÇÃO ao Código.gs)
+
+/**
+ * (NOVO HELPER v2)
+ * Adiciona uma entrada POSITIVA no Estoque_Acabado.
+ * @param {Array} dadosLinhaPedido - O array da linha da aba "Pedidos".
+ * @param {number} qtdSobra - A quantidade (positiva) a ser adicionada.
+ */
+function _adicionarSobraEstoque(dadosLinhaPedido, qtdSobra) {
+  try {
+    if (qtdSobra <= 0) return; // Não faz nada se a sobra for zero ou negativa
+    
+    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    
+    // Pega os dados do pedido (base 0)
+    const codProduto = dadosLinhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1];
+    const descricao = dadosLinhaPedido[COL_PEDIDO_DESCRICAO - 1];
+    const cliente = dadosLinhaPedido[COL_PEDIDO_CLIENTE - 1];
+    const numPedido = dadosLinhaPedido[COL_PEDIDO_NUMERO - 1];
+    
+    const novaLinha = [
+      codProduto,
+      descricao,
+      cliente,
+      qtdSobra, // Quantidade POSITIVA
+      new Date(),
+      `Sobra CQ Pedido ${numPedido}`
+    ];
+    
+    abaEstoque.appendRow(novaLinha);
+    Logger.log(`Estoque de Sobra: +${qtdSobra} de ${codProduto} (Pedido ${numPedido}) adicionado.`);
+    
+  } catch (e) {
+    Logger.log(`ERRO ao adicionar sobra ao estoque: ${e.message}`);
+    // Não lança erro para não parar a finalização do CQ
+  }
+}
+
+function reportarProblemaCQ_v2(dadosProblema) {
+  try {
+    const abaProblemas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_CQ_PROBLEMAS);
+    
+    const idProblema = `CQ-PR-${String(abaProblemas.getLastRow() + 1).padStart(4, '0')}`;
+    const dataReporte = new Date();
+    
+    // [ID, Data, Num_Pedido, Inspetor, Tipo, Descricao]
+    const novaLinha = [
+      idProblema,
+      dataReporte,
+      dadosProblema.numPedido,
+      dadosProblema.inspetor,
+      dadosProblema.tipoProblema,
+      dadosProblema.descricao
+    ];
+    
+    abaProblemas.appendRow(novaLinha);
+    SpreadsheetApp.flush();
+    
+    // Envia e-mail de notificação (Opcional, mas recomendado)
+    try {
+      const assunto = `Problema de Qualidade Reportado: Pedido ${dadosProblema.numPedido}`;
+      const titulo = "Problema Reportado - Controle de Qualidade";
+      const corpoHtml = `
+        <p>Um problema foi reportado pela equipe de Qualidade:</p>
+        <p><strong>Nº Pedido:</strong> ${dadosProblema.numPedido}</p>
+        <p><strong>Inspetor:</strong> ${dadosProblema.inspetor}</p>
+        <p><strong>Tipo de Problema:</strong> ${dadosProblema.tipoProblema}</p>
+        <p><strong>Descrição:</strong></p>
+        <p>${dadosProblema.descricao}</p>
+      `;
+      enviarEmailSistema(assunto, titulo, corpoHtml);
+    } catch(e) { Logger.log(`Falha ao enviar e-mail de problema de CQ: ${e.message}`); }
+
+    return "Problema reportado com sucesso!";
+    
+  } catch (e) {
+    Logger.log(`Erro ao reportar problema de CQ: ${e.message}`);
+    throw new Error(e.message);
+  }
+}
 
 function salvarMudancasQualidade(pedidosAtualizados) {
   if (!pedidosAtualizados || pedidosAtualizados.length === 0) {
@@ -3470,11 +3591,11 @@ function getDetalhesCompletosDoPedido(linhaPlanilha) {
       qtdAprovadaCQ: linha[COL_PEDIDO_QTD_APROVADA_CQ - 1],
       motivoMaisMetragem: linha[COL_PEDIDO_MOTIVO_MAIS_METRAGEM - 1],
       refugoMetragem: linha[COL_PEDIDO_REFUGO_METRAGEM - 1],
-      
-      // <<< MUDANÇA (LÊ A NOVA COLUNA) >>>
       idCliche: linha[COL_PEDIDO_ID_CLICHE - 1],
-      
-      // Campo combinado (mantido)
+      idUnicoFaca: linha[COL_PEDIDO_ID_UNICO_FACA - 1],
+      qtdReprovadaCQ: linha[COL_PEDIDO_QTD_REPROVADA_CQ - 1],
+      dataConclusaoCQ: linha[COL_PEDIDO_DATA_CONCLUSAO_CQ - 1],
+
       obsCQ: (linha[COL_PEDIDO_OBS_ESPECIAIS - 1] || "") + "\n" + (linha[COL_PEDIDO_PROBLEMAS_CQ - 1] || "")
     };
     
@@ -8717,4 +8838,247 @@ function _criarMapaDetalhesPedidos() {
         };
     }
     return mapa;
+}
+
+/**
+ * (NOVO HELPER v1)
+ * Busca o saldo total de um produto no Estoque_Acabado.
+ * @param {string} codProduto O código do produto (ex: "FC-0001").
+ * @returns {object} { qtd: 500, cliente: "Cliente Exemplo" }
+ */
+function _buscarSobraEstoque(codProduto) {
+  let saldoTotal = 0;
+  let cliente = ""; // Pega o cliente da primeira entrada encontrada
+  
+  try {
+    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    if (abaEstoque.getLastRow() > 1) {
+      // Col A (ID_Produto), C (Cliente), D (Qtd_Movimentada)
+      const dados = abaEstoque.getRange(2, 1, abaEstoque.getLastRow() - 1, 4).getValues();
+      const codBusca = codProduto.trim().toUpperCase();
+      
+      for (const linha of dados) {
+        if (linha[0].toString().trim().toUpperCase() === codBusca) {
+          saldoTotal += parseFloat(String(linha[3]).replace(",", ".")) || 0;
+          if (!cliente) {
+            cliente = linha[2].toString(); // Col C
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log(`Erro ao buscar sobra de estoque para ${codProduto}: ${e.message}`);
+  }
+  
+  return {
+    qtd: Math.max(0, saldoTotal), // Garante que o saldo nunca é negativo
+    cliente: cliente
+  };
+}
+
+// (ADICIONE ESTA FUNÇÃO ao Código.gs)
+
+/**
+ * (NOVO HELPER v2)
+ * Adiciona uma entrada POSITIVA no Estoque_Acabado.
+ * @param {Array} dadosLinhaPedido - O array da linha da aba "Pedidos".
+ * @param {number} qtdSobra - A quantidade (positiva) a ser adicionada.
+ */
+function _adicionarSobraEstoque(dadosLinhaPedido, qtdSobra) {
+  try {
+    if (qtdSobra <= 0) return; // Não faz nada se a sobra for zero ou negativa
+    
+    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    
+    // Pega os dados do pedido (base 0)
+    const codProduto = dadosLinhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1];
+    const descricao = dadosLinhaPedido[COL_PEDIDO_DESCRICAO - 1];
+    const cliente = dadosLinhaPedido[COL_PEDIDO_CLIENTE - 1];
+    const numPedido = dadosLinhaPedido[COL_PEDIDO_NUMERO - 1];
+    
+    const novaLinha = [
+      codProduto,
+      descricao,
+      cliente,
+      qtdSobra, // Quantidade POSITIVA
+      new Date(),
+      `Sobra CQ Pedido ${numPedido}`
+    ];
+    
+    abaEstoque.appendRow(novaLinha);
+    Logger.log(`Estoque de Sobra: +${qtdSobra} de ${codProduto} (Pedido ${numPedido}) adicionado.`);
+    
+  } catch (e) {
+    Logger.log(`ERRO ao adicionar sobra ao estoque: ${e.message}`);
+    // Não lança erro para não parar a finalização do CQ
+  }
+}
+
+// (ADICIONE ESTA FUNÇÃO ao Código.gs)
+
+/**
+ * (NOVO HELPER v3)
+ * Adiciona uma entrada NEGATIVA no Estoque_Acabado (consumo).
+ * @param {string} codProduto - O código do produto (ex: "FC-0001").
+ * @param {number} qtdConsumida - A quantidade (positiva) a ser debitada.
+ * @param {string} numPedidoOrigem - O pedido de produção que está consumindo a sobra.
+ */
+function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
+  try {
+    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    
+    const codBusca = codProduto.trim().toUpperCase();
+    const qtdDebitar = parseFloat(String(qtdConsumida).replace(",", ".")) || 0;
+    
+    if (qtdDebitar <= 0) {
+      throw new Error("A quantidade a consumir deve ser maior que zero.");
+    }
+
+    // Valida se há saldo suficiente
+    const infoSobra = _buscarSobraEstoque(codBusca);
+    if (infoSobra.qtd < qtdDebitar) {
+      throw new Error(`Consumo (${qtdDebitar}) maior que o saldo em estoque (${infoSobra.qtd}).`);
+    }
+
+    const novaLinha = [
+      codBusca,
+      `Consumo Pedido ${numPedidoOrigem}`, // Descrição
+      infoSobra.cliente, // Cliente
+      -Math.abs(qtdDebitar), // Quantidade NEGATIVA
+      new Date(),
+      `Consumo Produção Pedido ${numPedidoOrigem}` // Origem
+    ];
+    
+    abaEstoque.appendRow(novaLinha);
+    SpreadsheetApp.flush();
+    
+    return { sucesso: true, mensagem: `Baixa de ${qtdDebitar} rótulos (${codBusca}) registrada.` };
+    
+  } catch (e) {
+    Logger.log(`Erro ao consumir sobra de estoque: ${e.message}`);
+    return { sucesso: false, mensagem: e.message }; // Retorna o erro para o frontend
+  }
+}
+
+
+function finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    throw new Error("O sistema está ocupado. Tente novamente.");
+  }
+  
+  try {
+    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    
+    // 1. Pegar dados do Pedido
+    const rangePedido = abaPedidos.getRange(linhaPlanilha, 1, 1, TOTAL_COLUNAS_PEDIDOS);
+    const dadosPedido = rangePedido.getValues()[0]; 
+    const displayPedido = rangePedido.getDisplayValues()[0]; 
+    
+    // Validação 1: Data Fim Produção
+    const dataFimProducao = dadosPedido[COL_PEDIDO_DATA_FIM_PROD - 1]; // Col AM (39)
+    if (!dataFimProducao || String(dataFimProducao).trim() === "") {
+      throw new Error(`Pedido ${numPedido}: Não pode ser finalizado. A Produção (Data Fim Produção) ainda não foi concluída.`);
+    }
+
+    const qtdPedidoOriginal = parseFloat(String(displayPedido[COL_PEDIDO_QUANTIDADE - 1]).replace(/\./g, '').replace(',', '.')) || 0;
+    const semExcedenteFlag = String(dadosPedido[COL_PEDIDO_SEM_EXCEDENTE - 1]).trim().toUpperCase();
+    const isSemExcedente = (semExcedenteFlag === "TRUE" || semExcedenteFlag === "VERDADEIRO" || semExcedenteFlag === "SIM");
+    const dataEntregaStr = displayPedido[COL_PEDIDO_DATA_ENTREGA - 1];
+    
+    // 2. Calcular Totais e Coletar Dados do Log_InspecaoCQ
+    let totalAprovado = 0;
+    let totalReprovado = 0;
+    const inspetoresUsados = new Set();
+    const unidadesUsadas = new Set();
+    const motivosReprova = [];
+    
+    if (abaLogCQ.getLastRow() > 1) {
+      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 7).getValues();
+      for (const linhaLog of dadosLog) {
+        if (linhaLog[0] == numPedido) { 
+          totalAprovado += parseFloat(linhaLog[4]) || 0; 
+          totalReprovado += parseFloat(linhaLog[5]) || 0; 
+          if (linhaLog[2]) unidadesUsadas.add(linhaLog[2].trim());
+          if (linhaLog[3]) inspetoresUsados.add(linhaLog[3].trim());
+          if (linhaLog[6] && linhaLog[6].trim() !== "") {
+            motivosReprova.push(`(${linhaLog[3] || 'N/D'}): ${linhaLog[6].trim()}`);
+          }
+        }
+      }
+    }
+    
+    const inspetoresString = Array.from(inspetoresUsados).join(', ');
+    const unidadesString = Array.from(unidadesUsadas).join(', ');
+    const motivosString = motivosReprova.join(' | ');
+
+    // 3. Validação de Quantidade (COM A REGRA CORRIGIDA)
+    let valido = false;
+    let limiteMin = 0;
+    let limiteMaxSobra = 0; // O que passar disso, vira sobra
+
+    if (isSemExcedente) {
+      // REGRA 1: Sem Excedente
+      limiteMin = qtdPedidoOriginal; // Mínimo é 100%
+      limiteMaxSobra = qtdPedidoOriginal; // O que passar de 100% vira sobra
+      valido = (totalAprovado >= limiteMin);
+      if (!valido) {
+        throw new Error(`Falha na validação: Pedido é SEM EXCEDENTE. Qtd Aprovada (${totalAprovado}) deve ser no MÍNIMO 100% (${limiteMin}).`);
+      }
+    } else {
+      // REGRA 2: Com Excedente
+      limiteMin = Math.round(qtdPedidoOriginal * 0.90); // Mínimo é 90%
+      limiteMaxSobra = Math.round(qtdPedidoOriginal * 1.10); // O que passar de 110% vira sobra
+      valido = (totalAprovado >= limiteMin);
+      if (!valido) {
+        throw new Error(`Falha na validação: Qtd Aprovada (${totalAprovado}) está abaixo do limite mínimo de 90% (${limiteMin}).`);
+      }
+    }
+
+    // 4. Se passou, salvar na aba Pedidos
+    const dataConclusaoCQ = new Date();
+    const novoStatus = "Na Expedição";
+    
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue(novoStatus);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_QTD_APROVADA_CQ).setValue(totalAprovado);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_QTD_REPROVADA_CQ).setValue(totalReprovado);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_CONCLUSAO_CQ).setValue(dataConclusaoCQ);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_UNIDADE_CQ).setValue(unidadesString);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_INSPETOR).setValue(inspetoresString);
+    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_PROBLEMAS_CQ).setValue(motivosString);
+    
+    if (motivoAtraso && motivoAtraso.trim() !== "") {
+      abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_MOTIVO_ATRASO).setValue(motivoAtraso.trim());
+    }
+    
+    // 5. CALCULAR E SALVAR SOBRA (COM A REGRA CORRIGIDA)
+    // A sobra é o que foi APROVADO menos o limite máximo (100% ou 110%)
+    const sobra = totalAprovado - limiteMaxSobra;
+    if (sobra > 0) {
+      _adicionarSobraEstoque(dadosPedido, sobra); 
+    }
+    
+    SpreadsheetApp.flush();
+    
+    // 6. Enviar E-mail
+    try {
+      enviarNotificacaoStatus(
+        novoStatus, 
+        numPedido, 
+        dadosPedido[COL_PEDIDO_CLIENTE - 1], 
+        dadosPedido[COL_PEDIDO_DESCRICAO - 1], 
+        dataEntregaStr,
+        motivoAtraso
+      );
+    } catch(e) { Logger.log(`Falha ao enviar e-mail de finalização de CQ: ${e.message}`); }
+
+    return buscarPedidosParaQualidade_v2();
+
+  } catch (e) {
+    Logger.log(`Erro ao finalizar CQ (Pedido ${numPedido}): ${e.message} ${e.stack}`);
+    throw new Error(e.message);
+  } finally {
+    lock.releaseLock();
+  }
 }
