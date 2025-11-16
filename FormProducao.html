@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <base target="_top">
@@ -950,7 +951,7 @@
             <p><strong>Por favor, descreva o motivo do consumo excessivo:</strong></p>
             <div class="input-field">
                 <textarea id="motivoConsumoInput" class="materialize-textarea" placeholder="Ex: Problema no substrato, perda de registro..."></textarea>
-                <label for="motivoConsumoInput">Motivo do Consumo Excessivo (Obrigatório)</labe>
+                <label for="motivoConsumoInput">Motivo do Consumo Excessivo (Obrigatório)</label>
             </div>
         </div>
         <div class="modal-footer">
@@ -1028,7 +1029,7 @@
             </div>
             <div class="row">
                 <div class="input-field col s12">                    
-                    <textarea id="problema_descricao_cliche" class="materialize-textarea""></textarea>
+                    <textarea id="problema_descricao_cliche" class="materialize-textarea"></textarea>
                     <label for="problema_descricao_cliche">3c. Descreva o Problema (Obrigatório)</label>
                 </div>
             </div>
@@ -1159,7 +1160,9 @@
             <i class="material-icons right">check</i>
         </button>
     </div>
-    <div id="modalConsumirSobra" class="modal" style="max-width: 500px;"> 
+  </div>
+
+  <div id="modalConsumirSobra" class="modal" style="max-width: 500px;"> 
     <div class="modal-content">
         <h4><i class="material-icons left">inventory_2</i>Consumir Estoque de Sobra</h4>
         <p>Registrar o consumo de sobras para o Produto: <strong id="sobra-cod-produto">---</strong></p>
@@ -1179,7 +1182,6 @@
            Confirmar Consumo
         </button>
     </div>
-</div>
 </div>
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -1203,7 +1205,8 @@
     let listaAnilox = []; 
     let mudancas = {}; 
     let modalDetalhesInstance, consumoModalInstance, modalMotivoConsumoInstance, 
-    modalAtrasoInstance, modalAniloxInstance, modalConsumirSobraInstance;
+    modalAtrasoInstance, modalAniloxInstance;
+    let modalConsumirSobraInstance;
     let problemaModalInstance; // <<<< NOVO: Instância do modal de problema
     let dadosInsumosReporte = null; // <<<< NOVO: Variável para dados do reporte
     let problemaNumPedidoInput, problemaFerramentaSelect, problemaBtnConfirm;
@@ -1277,6 +1280,8 @@ function buscarSaldoDeSobra() {
 
 window.abrirModalConsumirSobra = abrirModalConsumirSobra;
 
+// [SUBSTITUA A FUNÇÃO 'gerarBotoesAcao' (L666) INTEIRA]
+
 function gerarBotoesAcao(pedido) {
     //debugPedido(pedido); // Descomente se precisar depurar
     const linha = pedido.linhaPlanilha;
@@ -1289,44 +1294,42 @@ function gerarBotoesAcao(pedido) {
 
     const obsPCP = pedido.obsPCP || "";
     
-    // <<< INÍCIO DA CORREÇÃO >>>
-    // 1. Variável segura para o JAVASCRIPT (escapa barras \ e aspas simples ')
+    // <<< INÍCIO DA CORREÇÃO (Lógica movida para cá) >>>
+    
+    // 1. Variável segura para o JAVASCRIPT
     const obsPCP_safe_js = obsPCP
-        .replace(/\\/g, '\\\\') // Escapa barras (ex: C:\)
-        .replace(/'/g, "\\'");  // Escapa aspas simples (ex: O'Brian)
+        .replace(/\\/g, '\\\\') 
+        .replace(/'/g, "\\'");  
 
-    // 2. Variável segura para o HTML (escapa aspas duplas " e outros)
+    // 2. Variável segura para o HTML
     const obsPCP_safe_tooltip = obsPCP
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-    // <<< FIM DA CORREÇÃO >>>
-
-
-    // =================================================================
-    // *** CORREÇÃO LÓGICA PRINCIPAL (MUDANDO PARA ONCLICK) ***
-    // =================================================================
+        
+    // 3. VERIFICA SE É UM PEDIDO DE SOBRA DE ESTOQUE
+    // Esta é a nova lógica: se for sobra, só mostre este botão.
     if (obsPCP.toUpperCase().includes("ESTOQUE DE SOBRA")) {
-
-        // ATENÇÃO: Trocamos 'data-action' por 'onclick'
-        // <<< CORREÇÃO APLICADA AQUI >>>
+        
         htmlBotoes = `
         <button class="btn-floating waves-effect waves-light orange tooltipped" 
                 data-tooltip="Consumir Sobra de Estoque (${obsPCP_safe_tooltip})" 
-                onclick="abrirModalConsumirSobra('${pedido.numPedido}', '${codProd}', '${obsPCP_safe_js}')">
+                data-action="CONSUMIR_SOBRA"
+                data-num-pedido="${pedido.numPedido}"
+                data-cod-produto="${codProd}"
+                data-obs-pcp="${obsPCP_safe_js}">
             <i class="material-icons">inventory_2</i>
         </button>`;
-
-        return htmlBotoes; // O 'return' continua crucial
+        
+        // Retorna imediatamente, ignorando os botões de Setup/Play
+        return htmlBotoes; 
     }
-    // *** FIM DA CORREÇÃO ***
-
-    // Se a função chegou até aqui, NÃO é um pedido de sobra.
-    // Continua a lógica normal de status.
+    // <<< FIM DA CORREÇÃO >>>
 
     // ===================================
     // ROTEIRO C: FLEXO DIGITAL
     // ===================================
+    // (Se não for pedido de sobra, a lógica normal continua)
     if (maquina === "Flexo Digital") {
         switch (status) {
             case "Programado":
@@ -1342,38 +1345,38 @@ function gerarBotoesAcao(pedido) {
                     <button class="btn-floating waves-effect waves-light green tooltipped" 
                             data-tooltip="Iniciar Impressão" 
                             data-action="INICIAR_IMPRESSAO_DIGITAL" data-linha="${linha}">
-                   	 <i class="material-icons">print</i>
-               	</button>`;
+                        <i class="material-icons">print</i>
+                    </button>`;
                 break;
             case "Imprimindo (Digital)":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light cyan tooltipped" 
-                       	 	 data-tooltip="Iniciar Corte" 
-                       	 	 data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
-                       	 	 <i class="material-icons">content_cut</i>
-                   	 </button>`;
+                    <button class="btn-floating waves-effect waves-light cyan tooltipped" 
+                            data-tooltip="Iniciar Corte" 
+                            data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
+                        <i class="material-icons">content_cut</i>
+                    </button>`;
                 break;
             case "Cortando (Digital)":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                       	 	 data-tooltip="Registrar Consumo" 
-                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                       	 	 <i class="material-icons">straighten</i>
-                   	 	 </button>`;
+                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                            data-tooltip="Registrar Consumo" 
+                            data-action="ABRIR_MODAL_CONSUMO_PADRAO">
+                        <i class="material-icons">straighten</i>
+                    </button>`;
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                       	 	 data-tooltip="Finalizar Produção (Enviar p/ CQ)" 
-                       	 	 data-action="FINALIZAR_PRODUCAO_DIGITAL" data-linha="${linha}">
-                       	 	 <i class="material-icons">check</i>
-                   	 	 </button>`;
+                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                            data-tooltip="Finalizar Produção (Enviar p/ CQ)" 
+                            data-action="FINALIZAR_PRODUCAO_DIGITAL" data-linha="${linha}">
+                        <i class="material-icons">check</i>
+                    </button>`;
                 break;
             case "Aguardando Corte (Digital)":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light cyan tooltipped" 
-                       	 	 data-tooltip="Iniciar Corte" 
-                       	 	 data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
-                       	 	 <i class="material-icons">content_cut</i>
-                   	 </button>`;
+                    <button class="btn-floating waves-effect waves-light cyan tooltipped" 
+                            data-tooltip="Iniciar Corte" 
+                            data-action="INICIAR_CORTE_DIGITAL" data-linha="${linha}">
+                        <i class="material-icons">content_cut</i>
+                    </button>`;
                 break;
         }
     }
@@ -1384,54 +1387,54 @@ function gerarBotoesAcao(pedido) {
         switch (status) {
             case "Programado":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                       	 	 data-tooltip="Iniciar Setup e Definir Anilox/Faca" 
-                       	 	 data-action="INICIAR_SETUP_FLEXO" 
-                       	 	 data-linha="${linha}" 
-                       	 	 data-cod-produto="${codProd}" 
-                       	 	 data-qtd-cores="${qtdCores}"
-                       	 	 data-faca-modelo="${facaModelo}"> <i class="material-icons">settings</i>
-                   	 </button>
-                   	 `;
+                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                            data-tooltip="Iniciar Setup e Definir Anilox/Faca" 
+                            data-action="INICIAR_SETUP_FLEXO" 
+                            data-linha="${linha}" 
+                            data-cod-produto="${codProd}" 
+                            data-qtd-cores="${qtdCores}"
+                            data-faca-modelo="${facaModelo}"> <i class="material-icons">settings</i>
+                    </button>
+                    `;
                 break;
             case "Setup":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light green tooltipped" 
-                       	 	 data-tooltip="Iniciar Produção" 
-                       	 	 data-action="INICIAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                   	 	 <i class="material-icons">play_arrow</i>
-                   	 </button>
-                   	 `;
+                    <button class="btn-floating waves-effect waves-light green tooltipped" 
+                            data-tooltip="Iniciar Produção" 
+                            data-action="INICIAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                        <i class="material-icons">play_arrow</i>
+                    </button>
+                    `;
                 break;
             case "Em produção":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                       	 	 data-tooltip="Registrar Consumo/Refugo" 
-                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                   	 	 <i class="material-icons">straighten</i>
-                   	 </button>
-                   	 `;
+                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                            data-tooltip="Registrar Consumo/Refugo" 
+                            data-action="ABRIR_MODAL_CONSUMO_PADRAO">
+                        <i class="material-icons">straighten</i>
+                    </button>
+                    `;
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                       	 	 data-tooltip="Finalizar Impressão (Enviar p/ CQ ou Batida)" 
-                       	 	 data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                   	 	 <i class="material-icons">check</i>
-                   	 </button>
-                   	 `;
+                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                            data-tooltip="Finalizar Impressão (Enviar p/ CQ ou Batida)" 
+                            data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                        <i class="material-icons">check</i>
+                    </button>
+                    `;
                 break;
             case "Controlando":
                 htmlBotoes += `
-                   	 <button class="btn-floating waves-effect waves-light blue tooltipped" 
-                       	 	 data-tooltip="Registrar Consumo Adicional" 
-                       	 	 onclick="abrirModalConsumo('${pedido.numPedido}', '${pedido.impressor || ''}')">
-                   	 	 <i class="material-icons">straighten</i>
-                   	 </button>
-                   	 <button class="btn-floating waves-effect waves-light purple tooltipped" 
-                       	 	 data-tooltip="Finalizar Produção" 
-                       	 	 data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
-                       	 	 <i class="material-icons">check</i>
-                   	 	 </button>
-                   	 `;
+                    <button class="btn-floating waves-effect waves-light blue tooltipped" 
+                            data-tooltip="Registrar Consumo Adicional" 
+                            data-action="ABRIR_MODAL_CONSUMO_PADRAO">
+                        <i class="material-icons">straighten</i>
+                    </button>
+                    <button class="btn-floating waves-effect waves-light purple tooltipped" 
+                            data-tooltip="Finalizar Produção" 
+                            data-action="FINALIZAR_PRODUCAO_FLEXO" data-linha="${linha}">
+                        <i class="material-icons">check</i>
+                    </button>
+                    `;
                 break;
             case "Produção Finalizada":
             case "Aguardando Batida":
@@ -1520,100 +1523,147 @@ function executarComRetry(funcaoBackend, parametros, onSuccess, onError, tentati
     executar(tentativas);
 }
     
-// (SUBSTITUA a função 'setupListeners' na linha 580)
+// [SUBSTITUA ESTA FUNÇÃO EM FormProducao.html]
 
 function setupListeners() {
-    const tabelaCorpo = document.getElementById('tabela-programar-corpo');
-    const quadrosContainer = document.getElementById('quadros-maquinas-container');
-    const batidaContainer = document.getElementById('quadro-batida-container'); 
-    
-    // Listeners de MUDANÇA (Input/Change) - Seus listeners originais
-    // (Estes estão corretos e agora funcionarão por causa da Correção 1 da msg anterior)
-    tabelaCorpo.addEventListener('change', handleEvento);
-    quadrosContainer.addEventListener('change', handleEvento);
-    tabelaCorpo.addEventListener('input', handleEvento); 
-    quadrosContainer.addEventListener('input', handleEvento);
+    const tabelaCorpo = document.getElementById('tabela-programar-corpo');
+    const quadrosContainer = document.getElementById('quadros-maquinas-container');
+    const batidaContainer = document.getElementById('quadro-batida-container'); 
+    
+    // Listeners de MUDANÇA (Input/Change) - Mantidos
+    tabelaCorpo.addEventListener('change', handleEvento);
+    quadrosContainer.addEventListener('change', handleEvento);
+    tabelaCorpo.addEventListener('input', handleEvento); 
+    quadrosContainer.addEventListener('input', handleEvento);
 
-    // =============================================================
-    // *** LISTENER DE CLIQUE CORRIGIDO (Event Delegation) ***
-    // =============================================================
-    quadrosContainer.addEventListener('click', function(event) {
-        // Previne propagação para múltiplos botões
-        event.stopPropagation();
-        
-        const btn = event.target.closest('button');
-        if (!btn) return;
-        
-        const acao = btn.dataset.action;
-        const linha = btn.dataset.linha;
-        
-        // Se a ação for de fila, executa e para
-        if (acao === 'UP' || acao === 'DOWN') {
-        	 reordenarPedidos(linha, acao);
-        	 return;
-    	 }
+    // =============================================================
+    // *** CORREÇÃO: ADICIONANDO LISTENER DE CLIQUE NA TABELA DE CIMA ***
+    // =============================================================
+    tabelaCorpo.addEventListener('click', function(event) {
+        event.stopPropagation();
+        
+        // Tenta encontrar um botão com 'data-action'
+        const btn = event.target.closest('button[data-action]');
+        
+        if (btn) {
+            const acao = btn.dataset.action;
 
-  	 // Tenta encontrar o pedido no cache 'todosPedidos'
-  	 const pedido = todosPedidos.find(p => p.linhaPlanilha == linha);
-  	 
-  	 // Pega dados do botão (para os casos de fallback)
-  	 const codProduto = btn.dataset.codProduto;
-  	 const qtdCores = btn.dataset.qtdCores;
-  	 const facaModelo = btn.dataset.facaModelo;
-  	 
-  	 // *** LÓGICA CORRIGIDA (REMOVEMOS O CASE 'CONSUMIR_SOBRA') ***
-  	 switch(acao) {
-  	 	 // O case 'CONSUMIR_SOBRA' foi removido daqui
-  	 	 // porque agora ele usa 'onclick' direto.
-  	 	 	
-  	 	 case 'INICIAR_SETUP_FLEXO':
-  	 	 	 const p_codProd = pedido ? pedido.codProduto : codProduto;
-  	 	 	 const p_qtdCores = pedido ? pedido.qtdCores : qtdCores;
-  	 	 	 const p_facaModelo = pedido ? pedido.faca : facaModelo;
-  	 	 	 abrirModalAnilox(linha, p_codProd, p_qtdCores, p_facaModelo);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'INICIAR_PRODUCAO_FLEXO':
-  	 	 	 iniciarProducao(btn, linha);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'FINALIZAR_PRODUCAO_FLEXO':
-  	 	 	 finalizarProducao(btn, linha);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'INICIAR_SETUP_DIGITAL':
-  	 	 	 iniciarSetupDigital(btn, linha);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'INICIAR_IMPRESSAO_DIGITAL':
-  	 	 	 iniciarImpressaoDigital(btn, linha);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'INICIAR_CORTE_DIGITAL':
-  	 	 	 iniciarCorteDigital(btn, linha);
-  	 	 	 break;
-  	 	 	
-  	 	 case 'FINALIZAR_PRODUCAO_DIGITAL':
-  	 	 	 finalizarProducaoDigital(btn, linha);
-  	 	 	 break;
-  	 }
-  	});
-  	// =============================================================
-  	// *** FIM DO LISTENER ***
-  	// =============================================================
-  	
-  	// Listener para botões de AÇÃO (Batida)
-  	batidaContainer.addEventListener('click', function(event) {
-  	 	 const btn = event.target.closest('button');
-  	 	 if (!btn) return;
-  	 	 const acao = btn.dataset.action;
-  	 	 const linha = btn.dataset.linha;
-  	 	 if (acao === 'FINALIZAR_BATIDA') {
-  	 	 	 finalizarBatida(btn, linha);
-  	 	 }
-  	});
-  	
-  	document.getElementById('btnSalvar').addEventListener('click', onSalvarClick);
+            if (acao === 'CONSUMIR_SOBRA') {
+                const numPedido = btn.dataset.numPedido;
+                const codProduto = btn.dataset.codProduto;
+                const obsPCP = btn.dataset.obsPcp;
+                
+                // Chama a função DIRETAMENTE (agora funciona)
+                abrirModalConsumirSobra(numPedido, codProduto, obsPCP);
+                return;
+            }
+            return;
+        }
+
+        // Se não foi um botão, verifica se foi um clique no link do N° Pedido
+        const linkPedido = event.target.closest('.link-pedido');
+        if (linkPedido) {
+            const linha = linkPedido.closest('tr').dataset.linhaPlanilha;
+            handleNumeroPedidoClick(linha);
+            return;
+        }
+    });
+    // =============================================================
+    // *** FIM DA CORREÇÃO ***
+    // =============================================================
+
+    // Listener de CLIQUE (Tabelas de Baixo) - Mantido
+    quadrosContainer.addEventListener('click', function(event) {
+        // Previne propagação para múltiplos botões
+        event.stopPropagation();
+        
+        const btn = event.target.closest('button');
+        if (!btn) return;
+        
+        const acao = btn.dataset.action;
+        const linha = btn.dataset.linha;
+        
+        // Se a ação for de fila, executa e para
+        if (acao === 'UP' || acao === 'DOWN') {
+            reordenarPedidos(linha, acao);
+            return;
+        }
+
+        // Tenta encontrar o pedido no cache 'todosPedidos'
+        const pedido = todosPedidos.find(p => p.linhaPlanilha == linha);
+        
+        // Pega dados do botão (para os casos de fallback)
+        const codProduto = btn.dataset.codProduto;
+        const qtdCores = btn.dataset.qtdCores;
+        const facaModelo = btn.dataset.facaModelo;
+        
+        switch(acao) {
+
+                    case 'ABRIR_MODAL_CONSUMO_PADRAO':
+                if (pedido) {
+                    abrirModalConsumo(pedido.numPedido, pedido.impressor || '');
+                } else {
+                    // Fallback se o pedido não estiver no cache (raro)
+                    const tr = btn.closest('tr');
+                    const numPedido = tr.querySelector('.col-pedido-mq').textContent;
+                    const impressor = tr.querySelector('.col-impressor-mq select').value;
+                    abrirModalConsumo(numPedido, impressor || '');
+                }
+                break;
+
+            // <<< INÍCIO DA CORREÇÃO >>>
+            case 'CONSUMIR_SOBRA':
+                const numPedido = btn.dataset.numPedido;
+                const codProduto = btn.dataset.codProduto;
+                const obsPCP = btn.dataset.obsPcp;
+                abrirModalConsumirSobra(numPedido, codProduto, obsPCP);
+                break;
+
+            case 'INICIAR_SETUP_FLEXO':
+                const p_codProd = pedido ? pedido.codProduto : codProduto;
+                const p_qtdCores = pedido ? pedido.qtdCores : qtdCores;
+                const p_facaModelo = pedido ? pedido.faca : facaModelo;
+                abrirModalAnilox(linha, p_codProd, p_qtdCores, p_facaModelo);
+                break;
+                
+            case 'INICIAR_PRODUCAO_FLEXO':
+                iniciarProducao(btn, linha);
+                break;
+                
+            case 'FINALIZAR_PRODUCAO_FLEXO':
+                finalizarProducao(btn, linha);
+                break;
+                
+            case 'INICIAR_SETUP_DIGITAL':
+                iniciarSetupDigital(btn, linha);
+                break;
+                
+            case 'INICIAR_IMPRESSAO_DIGITAL':
+                iniciarImpressaoDigital(btn, linha);
+                break;
+                
+            case 'INICIAR_CORTE_DIGITAL':
+                iniciarCorteDigital(btn, linha);
+                break;
+                
+            case 'FINALIZAR_PRODUCAO_DIGITAL':
+                finalizarProducaoDigital(btn, linha);
+                break;
+        }
+    });
+    
+    // Listener de CLIQUE (Batida) - Mantido
+    batidaContainer.addEventListener('click', function(event) {
+            const btn = event.target.closest('button');
+            if (!btn) return;
+            const acao = btn.dataset.action;
+            const linha = btn.dataset.linha;
+            if (acao === 'FINALIZAR_BATIDA') {
+                finalizarBatida(btn, linha);
+            }
+    });
+    
+    document.getElementById('btnSalvar').addEventListener('click', onSalvarClick);
 }
 
     function showErrorToast(error) {
@@ -1707,43 +1757,64 @@ function setupListeners() {
         M.Tooltip.init(document.querySelectorAll('.tooltipped'));
     }
 
-    function criarLinhaTabela(pedido) {
-        const tr = document.createElement('tr');
-        tr.dataset.linhaPlanilha = pedido.linhaPlanilha;
-        
-        const dataStatus = checkDataStatus(pedido.dataEntrega);
-        let opcoesMaquina = `<option value="" selected>Selecionar...</option>`;
-        listaMaquinas.forEach(maq => {
-            opcoesMaquina += `<option value="${maq}">${maq}</option>`;
-        });
-        
-        const obsPCP = pedido.obsPCP || ''; 
+    // [SUBSTITUA ESTA FUNÇÃO EM FormProducao.html]
 
-        tr.innerHTML = `
-            <td class="col-pedido link-pedido" onclick="handleNumeroPedidoClick('${pedido.linhaPlanilha}')" title="Ver Detalhes">${pedido.numPedido}</td>
-            <td class="col-data ${dataStatus.classe}">
-                ${pedido.dataEntrega} ${dataStatus.icone}
-            </td>
-            <td class="col-cliente">${pedido.cliente}</td>
-            <td class="col-descricao">${pedido.descricao}</td>
-            <td class="col-status-atual ${getStatusColorClass(pedido.status)}">
-                ${pedido.status}
-            </td>
-            <td class="col-maquina">
-                <div class="input-field" data-tipo-change="maquina">
-                    <select class="maquina-select">
-                        ${opcoesMaquina}
-                    </select>
-                </div>
-            </td>
-            <td class="col-obs">
-                <div class="input-field" data-tipo-change="obsPCP">
-                    <input type="text" value="${obsPCP}">
-                </div>
-            </td>
-        `;
-        return tr;
-    }
+// [SUBSTITUA ESTA FUNÇÃO EM FormProducao.html]
+
+// [SUBSTITUA A FUNÇÃO 'criarLinhaTabela' (L1092) INTEIRA]
+
+function criarLinhaTabela(pedido) {
+    const tr = document.createElement('tr');
+    tr.dataset.linhaPlanilha = pedido.linhaPlanilha;
+
+    const dataStatus = checkDataStatus(pedido.dataEntrega);
+    const obsPCP = pedido.obsPCP || '';
+    
+    // --- CORREÇÃO ---
+    // A lógica de "ESTOQUE DE SOBRA" foi REMOVIDA daqui.
+    // Esta função agora SEMPRE renderiza os campos para programação.
+    
+    let opcoesMaquina = `<option value="" selected>Selecionar...</option>`;
+    listaMaquinas.forEach(maq => {
+        opcoesMaquina += `<option value="${maq}">${maq}</option>`;
+    });
+    
+    // Renderiza o Dropdown de Máquina (SEMPRE)
+    const maquinaCellHtml = `
+        <div class="input-field" data-tipo-change="maquina">
+            <select class="maquina-select">
+                ${opcoesMaquina}
+            </select>
+        </div>`;
+    
+    // Renderiza o Input de Observação (SEMPRE)
+    const obsCellHtml = `
+        <div class="input-field" data-tipo-change="obsPCP">
+            <input type="text" value="${obsPCP}">
+        </div>`;
+    // --- FIM DA CORREÇÃO ---
+
+    // Monta o HTML da linha
+    tr.innerHTML = `
+        <td class="col-pedido link-pedido" title="Ver Detalhes">${pedido.numPedido}</td>
+        <td class="col-data ${dataStatus.classe}">
+            ${pedido.dataEntrega} ${dataStatus.icone}
+        </td>
+        <td class="col-cliente">${pedido.cliente}</td>
+        <td class="col-descricao">${pedido.descricao}</td>
+        <td class="col-status-atual ${getStatusColorClass(pedido.status)}">
+            ${pedido.status}
+        </td>
+        <td class="col-maquina">
+            ${maquinaCellHtml} 
+        </td>
+        <td class="col-obs">
+            ${obsCellHtml}
+        </td>
+    `;
+    
+    return tr;
+}
 
     function criarQuadroMaquinaComTabela(nomeMaquina, pedidos) {
         const divQuadro = document.createElement('div');
@@ -2054,18 +2125,11 @@ function abrirModalAnilox(linha, codProduto, qtdCores, facaModelo) {
     executarComRetry(
         'getFichaTecnicaParaSetup',
         [codProduto, tipoPedido],
-        preencherModalAniloxCallback, // Novo callback simples
+        preencherModalAnilox, // Novo callback simples
         onPreencherAniloxErro,
         3
     );
 }
-
-// NOVO CALLBACK (Para evitar o erro que vimos na primeira tentativa)
-function preencherModalAniloxCallback(data) {
-    // Chama a função principal de preenchimento, que você já tem no arquivo.
-    preencherModalAnilox(data);
-}
-
 
 // NOVO HELPER: Mude o nome da função que você usava para gerar as opções de cor
 // ELA DEVE RECEBER listaCoresLaminas para ser globalmente segura.
@@ -2079,6 +2143,8 @@ function gerarOptionsCores(valorSelecionado) {
     return html;
 }
 
+// [SUBSTITUA ESTA FUNÇÃO INTEIRA - aprox. Linha 1291]
+
 function preencherModalAnilox(data) {
     const wrapper = document.getElementById('anilox-estacoes-wrapper');
     const btnConfirm = document.getElementById('btnConfirmarSetup');
@@ -2086,12 +2152,12 @@ function preencherModalAnilox(data) {
 
     // Pré-requisito: Verifica se a mudança no Código.gs foi feita
     if (data.tipoPedido === undefined) {
-          wrapper.innerHTML = `<p class="mensagem-vazia" style="color: red; font-weight: bold;">
-              ERRO: Parece que as alterações no Código.gs (backend) não foram aplicadas.<br>
-              A função 'getFichaTecnicaParaSetup' não está retornando 'tipoPedido'.
-             </p>`;
-          console.error("Backend 'getFichaTecnicaParaSetup' está desatualizado.", data);
-          return;
+        wrapper.innerHTML = `<p class="mensagem-vazia" style="color: red; font-weight: bold;">
+                ERRO: Parece que as alterações no Código.gs (backend) não foram aplicadas.<br>
+                A função 'getFichaTecnicaParaSetup' não está retornando 'tipoPedido'.
+                </p>`;
+        console.error("Backend 'getFichaTecnicaParaSetup' está desatualizado.", data);
+        return;
     }
     
     let dadosSalvos = [];
@@ -2111,11 +2177,12 @@ function preencherModalAnilox(data) {
         btnConfirm.disabled = false;
     }
     
-    // <<< MODIFICAÇÃO 1: Limite de estações (8) e Lógica de Mensagem >>>
-    const MAX_ESTACOES_A_MOSTRAR = 8;
-    const numEstacoesComDados = setupQtdCores - 1; 
+    // <<< CORREÇÃO 1: Lógica de Estações >>>
+    // const numEstacoesComDados = setupQtdCores - 1; // <-- REMOVIDO
+    const numEstacoesComDados = setupQtdCores; // <-- CORRIGIDO
 
-    if (isNaN(setupQtdCores) || setupQtdCores <= 1) {
+    // if (isNaN(setupQtdCores) || setupQtdCores <= 1) { // <-- REMOVIDO
+    if (isNaN(setupQtdCores) || setupQtdCores < 1) { // <-- CORRIGIDO
         wrapper.innerHTML = `<p class="mensagem-vazia">Este produto tem ${setupQtdCores} cor(es). Nenhum Anilox/Lâmina é necessário.</p>`;
         return;
     }
@@ -2124,11 +2191,12 @@ function preencherModalAnilox(data) {
     const optionsAnilox = gerarOptions(listaAnilox, null, "Selecione (Opcional)");
     let html = '';
 
-    for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // Loop fixo até 8
+    // <<< CORREÇÃO 2: Loop de CRIAÇÃO de HTML >>>
+    // for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // <-- REMOVIDO
+    for (let i = 0; i < setupQtdCores; i++) { // <-- CORRIGIDO
         const estacaoNum = i + 1;
         
-        // Pega dados existentes se a estação for uma das que tem cor definida no produto
-        const dados = (estacaoNum <= numEstacoesComDados) ? (dadosSalvos[i] || {}) : {};
+        const dados = dadosSalvos[i] || {};
         
         const corSalva = dados.cor || "";
         const pantoneSalvo = dados.pantone || "";
@@ -2141,7 +2209,6 @@ function preencherModalAnilox(data) {
         // Gera opções de Cor/Lâmina
         const optionsCores = gerarOptionsCores(corSalva);
         
-        // *** MODIFICAÇÃO 2: Rótulo "Estação X" ***
         html += `
             <div class="row anilox-cor-row" data-estacao="${estacaoNum}">
                 
@@ -2152,45 +2219,45 @@ function preencherModalAnilox(data) {
                     <select id="anilox_cor_${estacaoNum}" class="anilox-cor-select" ${disabledState}>
                         ${optionsCores}
                     </select>
-                  </div>
+                </div>
                 </div>
                 
                 <div class="col s3"> 
-                  <div class="input-field"> 
-                    <input type="text" id="anilox_pantone_${estacaoNum}"
-                        value="${pantoneSalvo}"
-                        placeholder="Pantone"
-                        style="display: ${isPantone ? 'block' : 'none'};"
-                        ${disabledState}>
-                  </div>
+                    <div class="input-field"> 
+                        <input type="text" id="anilox_pantone_${estacaoNum}"
+                            value="${pantoneSalvo}"
+                            placeholder="Pantone"
+                            style="display: ${isPantone ? 'block' : 'none'};"
+                            ${disabledState}>
+                    </div>
                 </div>
                 
                 <div class="col s4"> 
-                  <div class="input-field"> 
-                    <select id="anilox_setup_${estacaoNum}" ${disabledState}>
-                        ${optionsAnilox}
-                    </select>
-                  </div>
+                    <div class="input-field"> 
+                        <select id="anilox_setup_${estacaoNum}" ${disabledState}>
+                            ${optionsAnilox}
+                        </select>
+                    </div>
                 </div>
-              </div>
-            `;
+            </div>
+        `;
     }
     
     wrapper.innerHTML = html;
 
-    // Preenche os valores dos Anilox (Selects)
-    for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // Loop fixo até 8
+    // <<< CORREÇÃO 3: Loop de PREENCHIMENTO de valores >>>
+    // (Este era o loop que estava quebrando seu script)
+    // for (let i = 0; i < MAX_ESTACOES_A_MOSTRAR; i++) { // <-- REMOVIDO
+    for (let i = 0; i < setupQtdCores; i++) { // <-- CORRIGIDO
         const estacaoNum = i + 1;
-        // Usa a mesma lógica para ler o valor de anilox (se existir)
-        const dados = (estacaoNum <= numEstacoesComDados) ? (dadosSalvos[i] || {}) : {}; 
+        const dados = dadosSalvos[i] || {}; 
         if (dados.anilox) {
             document.getElementById(`anilox_setup_${estacaoNum}`).value = dados.anilox;
         }
     }
-    // <<< FIM DAS MODIFICAÇÕES 1 e 2 >>>
     
     // Inicializa todos os selects
-    // Note que 'materializeSelectOptions' deve ser definida globalmente no seu script.
+    // Esta linha agora será executada, pois o loop acima não quebra mais.
     M.FormSelect.init(wrapper.querySelectorAll('select'), materializeSelectOptions);
 
     // --- Adiciona Listeners ---
@@ -2220,7 +2287,7 @@ function preencherModalAnilox(data) {
     });
 
     // 2. Listener para o botão de destravar
-    btnUnlock.onclick = function() {      
+    btnUnlock.onclick = function() {     
         // Habilita todos os campos
         wrapper.querySelectorAll('select, input').forEach(el => {
             el.disabled = false;
@@ -2234,14 +2301,14 @@ function preencherModalAnilox(data) {
     };
 }
 
-// [FORMPRODUCAO.HTML - JAVASCRIPT]
+// [SUBSTITUA ESTA FUNÇÃO INTEIRA - aprox. Linha 1458]
+
 function onSalvarAnilox() {
     const btn = document.getElementById('btnConfirmarSetup');
     btn.disabled = true;
     showSuccessToast("Salvando Anilox e iniciando setup...");
 
     const impressor = document.getElementById('anilox_impressor').textContent;
-    // const quantidade = setupQtdCores - 1; // LINHA REMOVIDA
 
     // 1. Pega o ID da Faca (Validação obrigatória)
     const idUnicoFaca = document.getElementById('anilox_faca_item').value;
@@ -2253,12 +2320,11 @@ function onSalvarAnilox() {
 
     // 3. Monta o JSON da Ficha Técnica
     let fichaTecnicaAtualizada = [];
-    // const wrapper = document.getElementById('anilox-estacoes-wrapper'); // LINHA REMOVIDA
 
-    // <<< MODIFICAÇÃO 3: Loop fixo até 8 e limpeza de dados vazios >>>
-    const MAX_ESTACOES_A_SALVAR = 8; 
-
-    for (let i = 0; i < MAX_ESTACOES_A_SALVAR; i++) { // Loop fixo até 8 estações
+    // <<< CORREÇÃO 4: Loop de LEITURA para salvar >>>
+    // const MAX_ESTACOES_A_SALVAR = 8; // <-- REMOVIDO
+    // for (let i = 0; i < MAX_ESTACOES_A_SALVAR; i++) { // <-- REMOVIDO
+    for (let i = 0; i < setupQtdCores; i++) { // <-- CORRIGIDO
         const estacaoNum = i + 1;
 
         const corSelect = document.getElementById(`anilox_cor_${estacaoNum}`);
@@ -2288,7 +2354,6 @@ function onSalvarAnilox() {
             break; // Para no primeiro item preenchido
         }
     }
-    // <<< FIM DA MODIFICAÇÃO 3 >>>
 
     const jsonParaSalvar = JSON.stringify(fichaTecnicaAtualizada);
 
@@ -3262,44 +3327,48 @@ function onFalhaReporte(erro) {
 }
 
 
-function handleConfirmarConsumoSobra() {
-  const numPedido = document.getElementById('sobra-num-pedido').value;
-  const codProduto = document.getElementById('sobra-cod-produto').textContent;
-  const qtdConsumir = document.getElementById('sobra-qtd-consumir').value;
-  
-  const qtdNum = parseFloat(qtdConsumir) || 0;
-  if (qtdNum <= 0) {
-    showErrorToast("A quantidade a consumir deve ser maior que zero.");
-    return;
-  }
-  
-  const btnConfirm = document.getElementById('btn-confirmar-consumo-sobra');
-  btnConfirm.disabled = true;
-  showSuccessToast("Processando consumo de sobra...");
-  
-  modalConsumirSobraInstance.close();
-  
-  google.script.run
-    .withSuccessHandler(function(resposta) {
-      btnConfirm.disabled = false;
-      if (resposta.sucesso) {
-        showSuccessToast(resposta.mensagem);
-        refreshPedidos(); 
-      } else {
-        showErrorToast(resposta.mensagem);
-      }
-    })
-    .withFailureHandler(function(error) {
-      btnConfirm.disabled = false;
-      showErrorToast(error.message || error);
-    })
-    .consumirSobraEstoque(codProduto, qtdNum, numPedido);
-}
+// [SUBSTITUA A FUNÇÃO INTEIRA]
 
-function onConsumirSobraErro(error) {
-  const btnConfirm = document.getElementById('btn-confirmar-consumo-sobra');
-  btnConfirm.disabled = false;
-  showErrorToast(error.message || error);
+function handleConfirmarConsumoSobra() {
+  const numPedido = document.getElementById('sobra-num-pedido').value;
+  const codProduto = document.getElementById('sobra-cod-produto').textContent;
+  const qtdConsumir = document.getElementById('sobra-qtd-consumir').value;
+  
+  const qtdNum = parseFloat(qtdConsumir) || 0;
+  if (qtdNum <= 0) {
+    showErrorToast("A quantidade a consumir deve ser maior que zero.");
+    return;
+  }
+  
+  const btnConfirm = document.getElementById('btn-confirmar-consumo-sobra');
+  // Salva o texto original do botão
+  const btnOriginalText = btnConfirm.innerHTML; 
+  
+  // 1. Mostrar estado de loading SEM fechar o modal
+  btnConfirm.disabled = true;
+  btnConfirm.innerHTML = 'Processando... <i class="material-icons right">hourglass_top</i>';
+  
+  google.script.run
+    .withSuccessHandler(function(resposta) {
+      // 2. SUCESSO: Agora sim, fecha o modal e atualiza
+      modalConsumirSobraInstance.close();
+      btnConfirm.disabled = false; // Restaura para a próxima vez
+      btnConfirm.innerHTML = btnOriginalText;
+
+      if (resposta.sucesso) {
+        showSuccessToast(resposta.mensagem);
+        refreshPedidos(); 
+      } else {
+        showErrorToast(resposta.mensagem); // Mostra o erro (ex: saldo insuficiente)
+      }
+    })
+    .withFailureHandler(function(error) {
+      // 3. FALHA: Restaura o botão e MANTÉM o modal aberto
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = btnOriginalText;
+      showErrorToast(error.message || error);
+    })
+    .consumirSobraEstoque(codProduto, qtdNum, numPedido);
 }
     
     </script>
