@@ -8914,17 +8914,13 @@ function _adicionarSobraEstoque(dadosLinhaPedido, qtdSobra) {
   }
 }
 
-// (ADICIONE ESTA FUNÇÃO ao Código.gs)
+/// [SUBSTITUA ESTA FUNÇÃO NO SEU ARQUIVO .GS]
 
-/**
- * (NOVO HELPER v3)
- * Adiciona uma entrada NEGATIVA no Estoque_Acabado (consumo).
- * @param {string} codProduto - O código do produto (ex: "FC-0001").
- * @param {number} qtdConsumida - A quantidade (positiva) a ser debitada.
- * @param {string} numPedidoOrigem - O pedido de produção que está consumindo a sobra.
- */
 function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
   try {
+    // =========================================================
+    // PARTE 1: SUA LÓGICA DE CONSUMO (IDÊNTICA À SUA)
+    // =========================================================
     const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
     
     const codBusca = codProduto.trim().toUpperCase();
@@ -8934,7 +8930,7 @@ function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
       throw new Error("A quantidade a consumir deve ser maior que zero.");
     }
 
-    // Valida se há saldo suficiente
+    // Valida se há saldo suficiente (Assumindo que _buscarSobraEstoque existe)
     const infoSobra = _buscarSobraEstoque(codBusca);
     if (infoSobra.qtd < qtdDebitar) {
       throw new Error(`Consumo (${qtdDebitar}) maior que o saldo em estoque (${infoSobra.qtd}).`);
@@ -8952,11 +8948,58 @@ function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
     abaEstoque.appendRow(novaLinha);
     SpreadsheetApp.flush();
     
-    return { sucesso: true, mensagem: `Baixa de ${qtdDebitar} rótulos (${codBusca}) registrada.` };
+    // =========================================================
+    // PARTE 2: [CORRIGIDO] - LIMPAR A OBSERVAÇÃO NA ABA "PEDIDOS"
+    // =========================================================
+        
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // VAI USAR SUA VARIÁVEL GLOBAL 'NOME_ABA_PEDIDOS'
+    const abaProducao = ss.getSheetByName(NOME_ABA_PEDIDOS); 
+    if (!abaProducao) {
+      throw new Error(`Aba "${NOME_ABA_PEDIDOS}" não encontrada.`); 
+    }
+
+    // Pega todos os dados da aba
+    const data = abaProducao.getDataRange().getValues(); 
+
+    let linhaPedido = -1; // Variável para guardar a linha (1-based)
+
+    // *** CORREÇÃO AQUI ***
+    // 'data' é um array 0-based. Suas constantes (COL_PEDIDO_NUMERO) são 1-based.
+    // Por isso, acessamos 'data[i][COL_PEDIDO_NUMERO - 1]'
+    const colPedidoIndexZeroBased = COL_PEDIDO_NUMERO - 1;
+
+    // 3. Encontre a linha do pedido (começa em i = 1 para pular o header)
+    for (let i = 1; i < data.length; i++) {
+      // Usamos '==' para o caso de "12345" (texto) ser igual a 12345 (número)
+      if (data[i][colPedidoIndexZeroBased] == numPedidoOrigem) { 
+        linhaPedido = i + 1; // +1 porque 'i' é 0-based e getRange é 1-based
+        break;
+      }
+    }
+    
+    if (linhaPedido === -1) {
+       // Apenas registra o log, não joga um erro
+       Logger.log(`[consumirSobraEstoque] Pedido ${numPedidoOrigem} não encontrado na aba ${NOME_ABA_PEDIDOS} para limpar OBS.`);
+    } else {
+       // 4. Limpa a célula de OBS
+       //    linhaPedido = 1-based (ex: 5)
+       //    COL_PEDIDO_OBS_PCP = 1-based (ex: 25)
+       abaProducao.getRange(linhaPedido, COL_PEDIDO_OBS_PCP).setValue(""); 
+       Logger.log(`OBS do Pedido ${numPedidoOrigem} (Linha ${linhaPedido}) limpa com sucesso.`);
+    }
+
+    // =========================================================
+    // PARTE 3: RETORNO DE SUCESSO
+    // =========================================================
+    return { 
+      sucesso: true, 
+      mensagem: `Baixa de ${qtdDebitar} rótulos (${codBusca}) registrada. Observação do pedido limpa.` 
+    };
     
   } catch (e) {
     Logger.log(`Erro ao consumir sobra de estoque: ${e.message}`);
-    return { sucesso: false, mensagem: e.message }; // Retorna o erro para o frontend
+    return { sucesso: false, mensagem: e.message }; 
   }
 }
 
@@ -9080,5 +9123,290 @@ function finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso) {
     throw new Error(e.message);
   } finally {
     lock.releaseLock();
+  }
+}
+
+// ===================================================================
+// FUNÇÕES PARA ESTOQUE DE PRODUTO ACABADO - VERSÃO SIMPLIFICADA
+// Cole este código no seu arquivo .gs
+// ===================================================================
+
+/**
+ * Abre o formulário de consulta de estoque
+ */
+function abrirFormEstoqueAcabado() {
+  try {
+    var html = HtmlService.createHtmlOutputFromFile('FormEstoqueAcabado')
+        .setTitle('Consultar Estoque de Produto Acabado')
+        .setWidth(1600)
+        .setHeight(900);
+    SpreadsheetApp.getUi().showModalDialog(html, ' ');
+  } catch (e) {
+    Logger.log('Erro ao abrir formulário: ' + e.message);
+    SpreadsheetApp.getUi().alert('Erro ao abrir formulário: ' + e.message);
+  }
+}
+
+/**
+ * Retorna produtos agrupados com saldo positivo
+ * VERSÃO SIMPLIFICADA E ROBUSTA
+ */
+function getEstoqueAcabadoAgrupado() {
+  try {
+    Logger.log('=== INÍCIO getEstoqueAcabadoAgrupado ===');
+    
+    // Obtém a planilha
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    Logger.log('Planilha obtida: ' + ss.getName());
+    
+    // Tenta obter a aba - use o nome exato da sua aba
+    var abaEstoque = ss.getSheetByName('Estoque_Acabado');
+    
+    if (!abaEstoque) {
+      Logger.log('❌ Aba "Estoque_Acabado" não encontrada');
+      Logger.log('Abas disponíveis: ' + ss.getSheets().map(function(s) { return s.getName(); }).join(', '));
+      return { 
+        sucesso: false, 
+        mensagem: 'Aba "Estoque_Acabado" não encontrada. Verifique o nome da aba.'
+      };
+    }
+    
+    Logger.log('✅ Aba encontrada: ' + abaEstoque.getName());
+
+    // Obtém todos os dados
+    var dadosEstoque = abaEstoque.getDataRange().getValues();
+    Logger.log('Total de linhas lidas: ' + dadosEstoque.length);
+    
+    // Se não houver dados além do cabeçalho
+    if (dadosEstoque.length < 2) {
+      Logger.log('⚠️ Nenhum dado encontrado além do cabeçalho');
+      return { 
+        sucesso: true, 
+        produtosAgrupados: [],
+        clientes: [],
+        mensagem: 'Nenhum dado encontrado na aba'
+      };
+    }
+
+    var produtos = {};
+    var clientesSet = {};
+    
+    // Índices das colunas (0-based)
+    var COL_ID_PRODUTO = 0;        // Coluna A
+    var COL_DESCRICAO = 1;         // Coluna B
+    var COL_CLIENTE = 2;           // Coluna C
+    var COL_QTD_MOVIMENTADA = 3;   // Coluna D
+    var COL_DATA_MOVIMENTACAO = 4; // Coluna E
+    var COL_ORIGEM_MOVIMENTACAO = 5; // Coluna F
+
+    // Processa dados começando da linha 2 (índice 1)
+    for (var i = 1; i < dadosEstoque.length; i++) {
+      var linha = dadosEstoque[i];
+      
+      // Obtém o código do produto
+      var codProduto = linha[COL_ID_PRODUTO];
+      if (!codProduto || codProduto === '') {
+        continue; // Pula linhas sem código
+      }
+      
+      codProduto = codProduto.toString().trim().toUpperCase();
+      
+      // Obtém a quantidade (pode ser negativa)
+      var qtd = parseFloat(linha[COL_QTD_MOVIMENTADA]);
+      if (isNaN(qtd)) {
+        qtd = 0;
+      }
+      
+      // Se o produto ainda não existe no objeto, inicializa
+      if (!produtos[codProduto]) {
+        var descricao = linha[COL_DESCRICAO] ? linha[COL_DESCRICAO].toString().trim() : 'N/A';
+        var cliente = linha[COL_CLIENTE] ? linha[COL_CLIENTE].toString().trim() : 'N/A';
+        
+        produtos[codProduto] = {
+          codProduto: codProduto,
+          descricao: descricao,
+          cliente: cliente,
+          saldo: 0,
+          ultimaData: new Date(0), // Data mínima
+          ultimaMov: 'N/A'
+        };
+        
+        // Adiciona cliente ao conjunto
+        if (cliente !== 'N/A' && cliente !== '') {
+          clientesSet[cliente] = true;
+        }
+      }
+
+      // Acumula o saldo (positivo ou negativo)
+      produtos[codProduto].saldo += qtd;
+
+      // Atualiza última movimentação
+      var dataMov = new Date(linha[COL_DATA_MOVIMENTACAO]);
+      if (!isNaN(dataMov.getTime()) && dataMov > produtos[codProduto].ultimaData) {
+        produtos[codProduto].ultimaData = dataMov;
+        produtos[codProduto].ultimaMov = linha[COL_ORIGEM_MOVIMENTACAO] ? 
+          linha[COL_ORIGEM_MOVIMENTACAO].toString().trim() : 'N/A';
+      }
+    }
+
+    // Converte objeto de produtos em array e filtra apenas saldo positivo
+    var produtosArray = [];
+    for (var cod in produtos) {
+      if (produtos[cod].saldo > 0) {
+        produtosArray.push(produtos[cod]);
+      }
+    }
+    
+    // Converte clientes em array ordenado
+    var clientesArray = [];
+    for (var cliente in clientesSet) {
+      clientesArray.push(cliente);
+    }
+    clientesArray.sort();
+    
+    Logger.log('✅ Produtos com saldo positivo: ' + produtosArray.length);
+    Logger.log('✅ Clientes únicos: ' + clientesArray.length);
+    Logger.log('=== FIM getEstoqueAcabadoAgrupado ===');
+
+    return { 
+      sucesso: true, 
+      produtosAgrupados: produtosArray,
+      clientes: clientesArray
+    };
+
+  } catch (e) {
+    Logger.log('❌ ERRO em getEstoqueAcabadoAgrupado: ' + e.message);
+    Logger.log('Stack: ' + e.stack);
+    return { 
+      sucesso: false, 
+      mensagem: 'Erro: ' + e.message,
+      stack: e.stack
+    };
+  }
+}
+
+/**
+ * Retorna detalhes de movimentação de um produto específico
+ */
+function getDetalhesEstoqueAcabado(codProduto) {
+  try {
+    Logger.log('=== INÍCIO getDetalhesEstoqueAcabado ===');
+    Logger.log('Buscando detalhes para: ' + codProduto);
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var abaEstoque = ss.getSheetByName('Estoque_Acabado');
+    
+    if (!abaEstoque) {
+      return { 
+        sucesso: false, 
+        mensagem: 'Aba "Estoque_Acabado" não encontrada' 
+      };
+    }
+
+    var dadosEstoque = abaEstoque.getDataRange().getValues();
+    var movimentos = [];
+    var codBusca = codProduto.toString().trim().toUpperCase();
+
+    // Índices das colunas
+    var COL_ID_PRODUTO = 0;
+    var COL_QTD_MOVIMENTADA = 3;
+    var COL_DATA_MOVIMENTACAO = 4;
+    var COL_ORIGEM_MOVIMENTACAO = 5;
+
+    // Processa dados começando da linha 2
+    for (var i = 1; i < dadosEstoque.length; i++) {
+      var linha = dadosEstoque[i];
+      var codLinha = linha[COL_ID_PRODUTO];
+      
+      if (!codLinha) continue;
+      
+      codLinha = codLinha.toString().trim().toUpperCase();
+      
+      if (codLinha === codBusca) {
+        var qtd = parseFloat(linha[COL_QTD_MOVIMENTADA]);
+        if (isNaN(qtd)) qtd = 0;
+        
+        movimentos.push({
+          data: new Date(linha[COL_DATA_MOVIMENTACAO]),
+          descricao: linha[COL_ORIGEM_MOVIMENTACAO] ? 
+            linha[COL_ORIGEM_MOVIMENTACAO].toString().trim() : 'N/A',
+          qtd: qtd
+        });
+      }
+    }
+
+    // Ordena por data (mais recente primeiro)
+    movimentos.sort(function(a, b) {
+      return b.data.getTime() - a.data.getTime();
+    });
+    
+    Logger.log('✅ Movimentações encontradas: ' + movimentos.length);
+    Logger.log('=== FIM getDetalhesEstoqueAcabado ===');
+
+    return { 
+      sucesso: true, 
+      detalhes: movimentos 
+    };
+
+  } catch (e) {
+    Logger.log('❌ ERRO em getDetalhesEstoqueAcabado: ' + e.message);
+    return { 
+      sucesso: false, 
+      mensagem: 'Erro: ' + e.message 
+    };
+  }
+}
+
+/**
+ * FUNÇÃO DE TESTE - Execute esta para verificar se está funcionando
+ */
+function testarEstoqueAcabadoCompleto() {
+  Logger.clear();
+  Logger.log('====================================');
+  Logger.log('TESTE COMPLETO - ESTOQUE ACABADO');
+  Logger.log('====================================\n');
+  
+  // Teste 1: Listar abas disponíveis
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  Logger.log('📊 Planilha: ' + ss.getName());
+  Logger.log('📋 Abas disponíveis:');
+  ss.getSheets().forEach(function(sheet) {
+    Logger.log('  - ' + sheet.getName() + ' (' + sheet.getLastRow() + ' linhas)');
+  });
+  Logger.log('');
+  
+  // Teste 2: getEstoqueAcabadoAgrupado
+  Logger.log('🧪 TESTE 1: getEstoqueAcabadoAgrupado()');
+  var resultado = getEstoqueAcabadoAgrupado();
+  Logger.log('Resultado: ' + JSON.stringify(resultado, null, 2));
+  Logger.log('');
+  
+  // Teste 3: getDetalhesEstoqueAcabado (se houver produtos)
+  if (resultado.sucesso && resultado.produtosAgrupados.length > 0) {
+    var primeiroProduto = resultado.produtosAgrupados[0];
+    Logger.log('🧪 TESTE 2: getDetalhesEstoqueAcabado()');
+    Logger.log('Testando produto: ' + primeiroProduto.codProduto);
+    var detalhes = getDetalhesEstoqueAcabado(primeiroProduto.codProduto);
+    Logger.log('Resultado: ' + JSON.stringify(detalhes, null, 2));
+  }
+  
+  Logger.log('\n====================================');
+  Logger.log('✅ TESTE CONCLUÍDO');
+  Logger.log('====================================');
+  
+  // Exibe resultado em popup
+  if (resultado.sucesso) {
+    SpreadsheetApp.getUi().alert(
+      '✅ Teste Concluído!\n\n' +
+      'Produtos encontrados: ' + resultado.produtosAgrupados.length + '\n' +
+      'Clientes únicos: ' + resultado.clientes.length + '\n\n' +
+      'Verifique os logs (Ctrl+Enter) para mais detalhes.'
+    );
+  } else {
+    SpreadsheetApp.getUi().alert(
+      '❌ Erro no teste!\n\n' +
+      resultado.mensagem + '\n\n' +
+      'Verifique os logs (Ctrl+Enter) para mais detalhes.'
+    );
   }
 }
