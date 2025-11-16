@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    
+    <style>
+        body { 
+            background-color: #f9faff; 
+            margin: 0; 
+            padding: 0 0 80px 0; 
+        }
+        
+        main { 
+            padding: 20px 30px; 
+            margin: 0 auto;
+        }
+        
+        .header-container {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 20px 30px; 
+            background-color: #ffffff;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #37417c, #C8E154) 1; 
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-container h4 {
+            font-size: 1.8rem; 
+            font-weight: 600; 
+            color: #37417c;
+            display: flex; 
+            align-items: center; 
+            margin: 0;
+        }
+        
+        .header-container h4 > i { 
+            font-size: 2.2rem; 
+            margin-right: 10px; 
+        }
+        
+        .section-card {
+            background: #ffffff; 
+            border-radius: 8px; 
+            padding: 25px;
+            margin-top: 25px; 
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: 1.5rem; 
+            font-weight: 500; 
+            color: #37417c;
+            display: flex; 
+            align-items: center; 
+            margin: -5px 0 20px 0;
+        }
+        
+        .section-title i { 
+            margin-right: 10px; 
+            font-size: 2rem; 
+        }
+        
+        .responsive-table {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .responsive-table thead th {
+            background-color: #37417c;
+            color: #fff;
+            padding: 12px 10px;
+            text-align: left;
+            padding-left: 15px;
+        }
+        
+        .responsive-table th.text-center, 
+        .responsive-table td.text-center { 
+            text-align: center; 
+        }
+        
+        .responsive-table th.text-right, 
+        .responsive-table td.text-right {
+            text-align: right;
+            padding-right: 15px;
+            font-weight: 500;
+        }
+        
+        .responsive-table tbody td {
+            padding: 10px 10px;
+            color: #333;
+            font-size: 0.95rem;
+            padding-left: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .responsive-table tbody tr.clickable:hover {
+            background-color: #f5f7fa;
+            cursor: pointer;
+        }
+        
+        .responsive-table td.total-saldo {
+            color: #00695c;
+            font-weight: 700;
+        }
+
+        .filtro-container {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px 20px 0px 20px;
+            margin-top: 15px;
+        }
+        
+        .filtro-container .row {
+            display: flex;
+            align-items: flex-end; 
+            margin-bottom: 0;
+        }
+        
+        .filtro-container .input-field { 
+            margin-top: 0; 
+            margin-bottom: 15px;
+            padding: 0 !important;
+        }
+        
+        .filtro-container .input-field input[type=text],
+        .filtro-container .input-field .select-wrapper input.select-dropdown {
+            border-bottom: none !important;
+            box-shadow: none !important;
+        }
+        
+        .input-box {
+            background-color: #f5f7fa;
+            border: 2px solid #37417c;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 45px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-box:focus-within {
+            box-shadow: 0 0 0 2px rgba(55, 65, 124, 0.2);
+        }
+        
+        .input-box input[type=text] {
+            padding: 0 15px !important;
+            margin: 0 !important;
+            height: 41px !important;
+            line-height: 41px !important;
+            box-sizing: border-box;
+        }
+        
+        .input-box .select-wrapper {
+            padding: 0 0 0 15px;
+            height: 41px;
+            border: none !important;
+        }
+        
+        .input-box .select-wrapper input.select-dropdown {
+            height: 41px !important;
+            line-height: 41px !important;
+            margin: 0 !important;
+        }
+        
+        .input-box .caret {
+            fill: #37417c;
+        }
+
+        .filtro-container label {
+            position: relative;
+            transform: none;
+            color: #37417c !important;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 3px;
+            margin-bottom: 5px;
+            display: block;
+            top: 0;
+        }
+        
+        .filtro-container .input-field.col.m2 {
+            padding-bottom: 0.5rem;
+            text-align: right;
+        }
+        
+        .btn-flat { 
+            color: #37417c !important; 
+            font-weight: 500; 
+        }
+
+        #loader { 
+            text-align: center; 
+            padding: 40px; 
+        }
+        
+        .msg-vazio { 
+            display: none; 
+            text-align: center; 
+            padding: 20px; 
+            font-style: italic; 
+            color: #777; 
+        }
+        
+        .modal { 
+            max-height: 85%; 
+            width: 70%; 
+            max-width: 900px; 
+            display: none;
+        }
+        
+        .modal.open {
+            display: block;
+        }
+        
+        .modal .modal-content {
+            padding: 0; 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+        
+        #modal-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(to right, #37417c, #C8E154) 1;
+            flex-shrink: 0; 
+        }
+        
+        #modal-header h4 { 
+            color: #37417c; 
+            font-weight: 600; 
+            font-size: 1.8rem; 
+            margin: 0 0 5px 0;
+        }
+        
+        #modal-header p { 
+            color: #555; 
+            font-size: 1.1rem; 
+            margin: 0;
+        }
+        
+        #modal-loader {
+            text-align: center; 
+            padding: 40px 20px;
+            display: none;
+        }
+        
+        #modal-corpo {
+            padding: 20px 24px;
+            flex: 1 1 auto; 
+            overflow-y: auto; 
+        }
+        
+        #modal-corpo table {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        #modal-corpo th {
+            background-color: #37417c;
+            color: #fff;
+            padding: 12px 10px;
+            text-align: left;
+            padding-left: 15px;
+        }
+        
+        #modal-corpo td {
+            padding: 10px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            padding-left: 15px;
+        }
+        
+        #modal-corpo th.text-center, 
+        #modal-corpo td.text-center { 
+            text-align: center; 
+        }
+        
+        #modal-corpo th.text-right, 
+        #modal-corpo td.text-right { 
+            text-align: right; 
+            padding-right: 15px; 
+        }
+        
+        #modal-corpo tr:nth-child(even) { 
+            background-color: #f5f7fa; 
+        }
+        
+        #modal-corpo td.mov-positiva { 
+            color: #00695c; 
+            font-weight: 500; 
+        }
+        
+        #modal-corpo td.mov-negativa { 
+            color: #D32F2F; 
+            font-weight: 500; 
+        }
+
+        .modal-footer {
+            background-color: #f5f7fa;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0; 
+            padding: 10px 24px;
+            text-align: right;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            border: 1px solid #ef5350;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px;
+            color: #c62828;
+        }
+        
+        .error-message h5 {
+            margin-top: 0;
+        }
+        
+        .error-message ul {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-container">
+        <h4>
+            <i class="material-icons">manage_search</i>
+            Estoque de Produto Acabado
+        </h4>
+    </div>
+
+    <main>
+        <div class="filtro-container">
+            <div class="row">
+                <div class="input-field col s12 m3">
+                    <label for="filtro-codigo">Buscar por Código</label>
+                    <div class="input-box">
+                        <input id="filtro-codigo" type="text">
+                    </div>
+                </div>
+                <div class="input-field col s12 m4">
+                    <label for="filtro-descricao">Buscar por Descrição</label>
+                    <div class="input-box">
+                        <input id="filtro-descricao" type="text">
+                    </div>
+                </div>
+                <div class="input-field col s12 m3">
+                    <label>Filtrar por Cliente</label>
+                    <div class="input-box">
+                        <select id="filtro-cliente">
+                            <option value="" selected>Todos os Clientes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-field col s12 m2">
+                    <button id="btn-limpar-filtros" class="btn-flat waves-effect">LIMPAR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loader">
+            <div class="preloader-wrapper big active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left"><div class="circle"></div></div>
+                    <div class="gap-patch"><div class="circle"></div></div>
+                    <div class="circle-clipper right"><div class="circle"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="conteudo-estoque" style="display:none;">
+            <div class="section-card">
+                <h5 class="section-title">
+                    <i class="material-icons">inventory_2</i>
+                    Produtos em Estoque
+                </h5>
+                <div class="responsive-table">
+                    <table id="tabela-estoque" class="highlight">
+                        <thead>
+                            <tr>
+                                <th>Cód. Produto</th>
+                                <th>Descrição</th>
+                                <th>Cliente</th>
+                                <th class="text-right">Saldo Atual (Unid.)</th>
+                                <th class="text-center">Última Movimentação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-estoque-corpo"></tbody>
+                    </table>
+                </div>
+                <p id="msg-sem-estoque" class="msg-vazio">Nenhum produto em estoque encontrado.</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-detalhes" class="modal">
+        <div class="modal-content">
+            <div id="modal-header">
+                <h4 id="modal-titulo">Log de Movimentação</h4>
+                <p id="modal-subtitulo">...</p>
+            </div>
+            
+            <div id="modal-loader">
+                <div class="preloader-wrapper active">
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left"><div class="circle"></div></div>
+                        <div class="gap-patch"><div class="circle"></div></div>
+                        <div class="circle-clipper right"><div class="circle"></div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="modal-corpo"></div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="modal-close btn-flat waves-effect">Fechar</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+        let globalCache = {
+            produtosAgrupados: [],
+            clientes: new Set()
+        };
+        let modalInstance;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            console.log('🚀 Inicializando aplicação...');
+            
+            // Inicializa select do Materialize
+            const selects = document.querySelectorAll('.input-box select');
+            M.FormSelect.init(selects);
+            
+            // Inicializa modal
+            const modalElement = document.getElementById('modal-detalhes');
+            modalInstance = M.Modal.init(modalElement, {
+                dismissible: true,
+                opacity: 0.5
+            });
+            
+            // Adiciona event listeners
+            document.getElementById('filtro-codigo').addEventListener('keyup', renderizarTabelaEstoque);
+            document.getElementById('filtro-descricao').addEventListener('keyup', renderizarTabelaEstoque);
+            document.getElementById('filtro-cliente').addEventListener('change', renderizarTabelaEstoque);
+            document.getElementById('btn-limpar-filtros').addEventListener('click', limparFiltros);
+            
+            // Carrega dados
+            carregarDados();
+        });
+
+        function carregarDados() {
+            console.log('🔄 Carregando dados do servidor...');
+            
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('conteudo-estoque').style.display = 'none';
+
+            google.script.run
+                .withSuccessHandler(onDadosCarregados)
+                .withFailureHandler(onFailure)
+                .getEstoqueAcabadoAgrupado();
+        }
+
+        function onDadosCarregados(dados) {
+            console.log('📦 Dados recebidos:', dados);
+            
+            document.getElementById('loader').style.display = 'none';
+            
+            if (!dados || typeof dados !== 'object') {
+                mostrarErro('Nenhum dado retornado do servidor');
+                return;
+            }
+            
+            if (dados.sucesso === true) {
+                globalCache.produtosAgrupados = dados.produtosAgrupados || [];
+                globalCache.clientes = new Set(dados.clientes || []);
+                
+                console.log('✅ Produtos carregados:', globalCache.produtosAgrupados.length);
+                console.log('✅ Clientes únicos:', globalCache.clientes.size);
+                
+                popularFiltros();
+                renderizarTabelaEstoque(); 
+                
+                document.getElementById('conteudo-estoque').style.display = 'block';
+            } else {
+                mostrarErro(dados.mensagem || 'Erro desconhecido ao carregar dados');
+            }
+        }
+        
+        function popularFiltros() {
+            const selCliente = document.getElementById('filtro-cliente');
+            selCliente.innerHTML = '<option value="" selected>Todos os Clientes</option>';
+            
+            const clientesArray = Array.from(globalCache.clientes).sort();
+            
+            clientesArray.forEach(function(cliente) {
+                const option = document.createElement('option');
+                option.value = cliente;
+                option.textContent = cliente;
+                selCliente.appendChild(option);
+            });
+            
+            M.FormSelect.init(selCliente);
+        }
+
+        function renderizarTabelaEstoque() {
+            const filtroCodigo = document.getElementById('filtro-codigo').value.toUpperCase();
+            const filtroDescricao = document.getElementById('filtro-descricao').value.toUpperCase();
+            const filtroCliente = document.getElementById('filtro-cliente').value;
+            
+            const corpoTabela = document.getElementById('tabela-estoque-corpo');
+            const msgVazio = document.getElementById('msg-sem-estoque');
+            
+            corpoTabela.innerHTML = "";
+            let html = "";
+            let count = 0;
+
+            globalCache.produtosAgrupados.forEach(function(produto) {
+                if (filtroCodigo && !produto.codProduto.toUpperCase().includes(filtroCodigo)) {
+                    return;
+                }
+                if (filtroDescricao && !produto.descricao.toUpperCase().includes(filtroDescricao)) {
+                    return;
+                }
+                if (filtroCliente && produto.cliente !== filtroCliente) {
+                    return;
+                }
+
+                const dataFormatada = new Date(produto.ultimaData).toLocaleDateString('pt-BR');
+                const saldoFormatado = formatarNumero(produto.saldo);
+                
+                html += '<tr class="clickable" onclick="abrirModalDetalhes(\'' + produto.codProduto + '\')">';
+                html += '<td>' + produto.codProduto + '</td>';
+                html += '<td>' + produto.descricao + '</td>';
+                html += '<td>' + produto.cliente + '</td>';
+                html += '<td class="text-right total-saldo">' + saldoFormatado + '</td>';
+                html += '<td class="text-center">' + dataFormatada + '</td>';
+                html += '</tr>';
+                
+                count++;
+            });
+
+            corpoTabela.innerHTML = html;
+            
+            if (count === 0) {
+                if (filtroCodigo || filtroDescricao || filtroCliente) {
+                    msgVazio.textContent = "Nenhum produto encontrado com os filtros selecionados.";
+                } else {
+                    msgVazio.textContent = "Nenhum produto em estoque encontrado.";
+                }
+                msgVazio.style.display = 'block';
+            } else {
+                msgVazio.style.display = 'none';
+            }
+        }
+        
+        function limparFiltros() {
+            document.getElementById('filtro-codigo').value = "";
+            document.getElementById('filtro-descricao').value = "";
+            document.getElementById('filtro-cliente').value = "";
+            
+            const selects = document.querySelectorAll('.input-box select');
+            M.FormSelect.init(selects);
+            
+            renderizarTabelaEstoque();
+        }
+
+        function onFailure(erro) {
+            console.error('❌ Erro ao carregar dados:', erro);
+            mostrarErro(erro.message || 'Erro ao carregar dados do servidor');
+        }
+        
+        function mostrarErro(mensagem) {
+            document.getElementById('loader').style.display = 'none';
+            
+            const conteudoEstoque = document.getElementById('conteudo-estoque');
+            conteudoEstoque.style.display = 'none';
+            
+            const main = document.querySelector('main');
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = '<h5><i class="material-icons" style="vertical-align: middle;">error</i> Erro ao carregar dados</h5>' +
+                '<p><strong>Detalhes:</strong> ' + mensagem + '</p>' +
+                '<p><strong>Possíveis causas:</strong></p>' +
+                '<ul>' +
+                '<li>A constante NOME_ABA_ESTOQUE_ACABADO não está definida no arquivo .gs</li>' +
+                '<li>O nome da aba está incorreto (deve ser exatamente "Estoque_Acabado")</li>' +
+                '<li>A função getEstoqueAcabadoAgrupado() não existe no arquivo .gs</li>' +
+                '<li>Há erro de sintaxe no código backend</li>' +
+                '</ul>' +
+                '<button onclick="location.reload()" class="btn waves-effect" style="background-color: #37417c;">Tentar Novamente</button>';
+            
+            main.appendChild(errorDiv);
+            
+            M.toast({
+                html: 'Erro: ' + mensagem, 
+                classes: 'red darken-2', 
+                displayLength: 5000
+            });
+        }
+        
+        function abrirModalDetalhes(codProduto) {
+            console.log('🔍 Abrindo detalhes para:', codProduto);
+            
+            const produto = globalCache.produtosAgrupados.find(function(p) {
+                return p.codProduto === codProduto;
+            });
+            
+            if (!produto) {
+                console.error('❌ Produto não encontrado:', codProduto);
+                return;
+            }
+
+            document.getElementById('modal-titulo').textContent = "Log de Movimentação";
+            document.getElementById('modal-subtitulo').textContent = produto.codProduto + ' - ' + produto.descricao;
+            document.getElementById('modal-corpo').innerHTML = "";
+            document.getElementById('modal-loader').style.display = 'block';
+            
+            modalInstance.open();
+            
+            google.script.run
+                .withSuccessHandler(onModalDetalhesSuccess)
+                .withFailureHandler(onModalFailure)
+                .getDetalhesEstoqueAcabado(codProduto);
+        }
+        
+        function onModalDetalhesSuccess(dados) {
+            console.log('📋 Detalhes recebidos:', dados);
+            
+            document.getElementById('modal-loader').style.display = 'none';
+            
+            if (!dados || dados.sucesso !== true) {
+                onModalFailure({ 
+                    message: dados ? dados.mensagem : 'Erro desconhecido ao carregar detalhes' 
+                });
+                return;
+            }
+            
+            let html = '<table class="striped">';
+            html += '<thead><tr>';
+            html += '<th>Data</th>';
+            html += '<th>Descrição da Movimentação</th>';
+            html += '<th class="text-right">Quantidade</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            let saldoTotal = 0;
+            
+            const detalhesRevertidos = dados.detalhes.slice().reverse();
+            
+            detalhesRevertidos.forEach(function(mov) {
+                const classeQtd = mov.qtd > 0 ? 'mov-positiva' : 'mov-negativa';
+                saldoTotal += mov.qtd;
+                
+                const dataFormatada = new Date(mov.data).toLocaleString('pt-BR', {
+                    dateStyle: 'short', 
+                    timeStyle: 'short'
+                });
+                
+                html += '<tr>';
+                html += '<td>' + dataFormatada + '</td>';
+                html += '<td>' + mov.descricao + '</td>';
+                html += '<td class="text-right ' + classeQtd + '">' + formatarNumero(mov.qtd) + '</td>';
+                html += '</tr>';
+            });
+            
+            html += '<tr style="background-color: #f5f7fa; border-top: 2px solid #37417c;">';
+            html += '<td colspan="2" class="text-right" style="font-weight: 700; color: #37417c;">SALDO ATUAL:</td>';
+            html += '<td class="text-right total-saldo" style="font-size: 1.1rem;">' + formatarNumero(saldoTotal) + '</td>';
+            html += '</tr>';
+            html += '</tbody></table>';
+            
+            document.getElementById('modal-corpo').innerHTML = html;
+        }
+        
+        function onModalFailure(erro) {
+            console.error('❌ Erro ao carregar detalhes:', erro);
+            
+            document.getElementById('modal-loader').style.display = 'none';
+            document.getElementById('modal-corpo').innerHTML = '<p class="red-text">Erro ao carregar detalhes: ' + erro.message + '</p>';
+        }
+
+        function formatarNumero(valor) {
+            if (valor === null || valor === undefined || valor === "") {
+                return '0';
+            }
+            
+            const num = parseFloat(valor);
+            
+            if (isNaN(num)) {
+                return '0';
+            }
+            
+            return num.toLocaleString('pt-BR', { 
+                maximumFractionDigits: 0, 
+                minimumFractionDigits: 0 
+            });
+        }
+    </script>
+</body>
+</html>
