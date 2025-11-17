@@ -409,30 +409,35 @@
         </div>
     </main>
 
-    <div id="modal-detalhes" class="modal">
-        <div class="modal-content">
-            <div id="modal-header">
-                <h4 id="modal-titulo">Log de Movimentação</h4>
-                <p id="modal-subtitulo">...</p>
-            </div>
-            
-            <div id="modal-loader">
-                <div class="preloader-wrapper active">
-                    <div class="spinner-layer spinner-blue-only">
-                        <div class="circle-clipper left"><div class="circle"></div></div>
-                        <div class="gap-patch"><div class="circle"></div></div>
-                        <div class="circle-clipper right"><div class="circle"></div></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="modal-corpo"></div>
-        </div>
+    <div id="modalDetalhes" class="modal">
+    <div class="modal-content">
         
-        <div class="modal-footer">
-            <button class="modal-close btn-flat waves-effect">Fechar</button>
+        <div id="modal-header">
+            <h4>Movimentação do Produto</h4>
+            </div>
+
+        <div id="modal-corpo">
+            
+            <table class="highlight"> <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Cliente</th>
+                        <th class="text-right">Qtd</th>
+                        <th>Origem</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaDetalhesCorpo">
+                    </tbody>
+            </table>
         </div>
+
+        <div class="modal-footer">
+            <a href="#!" onclick="fecharModalDetalhes()" class="modal-close waves-effect btn-flat">Fechar</a>
+        </div>
+
     </div>
+</div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
@@ -452,7 +457,7 @@
             M.FormSelect.init(selects);
             
             // Inicializa modal
-            const modalElement = document.getElementById('modal-detalhes');
+            const modalElement = document.getElementById('modalDetalhes');
             modalInstance = M.Modal.init(modalElement, {
                 dismissible: true,
                 opacity: 0.5
@@ -548,7 +553,7 @@
                 const dataFormatada = new Date(produto.ultimaData).toLocaleDateString('pt-BR');
                 const saldoFormatado = formatarNumero(produto.saldo);
                 
-                html += '<tr class="clickable" onclick="abrirModalDetalhes(\'' + produto.codProduto + '\')">';
+                html += '<tr class="clickable" onclick="carregarDetalhes(\'' + produto.codProduto + '\')">';
                 html += '<td>' + produto.codProduto + '</td>';
                 html += '<td>' + produto.descricao + '</td>';
                 html += '<td>' + produto.cliente + '</td>';
@@ -619,86 +624,91 @@
             });
         }
         
-        function abrirModalDetalhes(codProduto) {
-            console.log('🔍 Abrindo detalhes para:', codProduto);
-            
-            const produto = globalCache.produtosAgrupados.find(function(p) {
-                return p.codProduto === codProduto;
-            });
-            
-            if (!produto) {
-                console.error('❌ Produto não encontrado:', codProduto);
-                return;
-            }
+function carregarDetalhes(codProduto) {
+  console.log("FRONTEND: Enviando código para o backend:", codProduto);
+    google.script.run
+        .withSuccessHandler(abrirModalDetalhes)
+        .withFailureHandler(function(err) {
+            console.error("Erro ao buscar detalhes:", err);
+            alert("Erro ao carregar detalhes da movimentação.");
+        })
+        .getDetalhesMovimentacao(codProduto);
+}
 
-            document.getElementById('modal-titulo').textContent = "Log de Movimentação";
-            document.getElementById('modal-subtitulo').textContent = produto.codProduto + ' - ' + produto.descricao;
-            document.getElementById('modal-corpo').innerHTML = "";
-            document.getElementById('modal-loader').style.display = 'block';
-            
-            modalInstance.open();
-            
-            google.script.run
-                .withSuccessHandler(onModalDetalhesSuccess)
-                .withFailureHandler(onModalFailure)
-                .getDetalhesEstoqueAcabado(codProduto);
-        }
-        
-        function onModalDetalhesSuccess(dados) {
-            console.log('📋 Detalhes recebidos:', dados);
-            
-            document.getElementById('modal-loader').style.display = 'none';
-            
-            if (!dados || dados.sucesso !== true) {
-                onModalFailure({ 
-                    message: dados ? dados.mensagem : 'Erro desconhecido ao carregar detalhes' 
-                });
-                return;
-            }
-            
-            let html = '<table class="striped">';
-            html += '<thead><tr>';
-            html += '<th>Data</th>';
-            html += '<th>Descrição da Movimentação</th>';
-            html += '<th class="text-right">Quantidade</th>';
-            html += '</tr></thead>';
-            html += '<tbody>';
-            
-            let saldoTotal = 0;
-            
-            const detalhesRevertidos = dados.detalhes.slice().reverse();
-            
-            detalhesRevertidos.forEach(function(mov) {
-                const classeQtd = mov.qtd > 0 ? 'mov-positiva' : 'mov-negativa';
-                saldoTotal += mov.qtd;
-                
-                const dataFormatada = new Date(mov.data).toLocaleString('pt-BR', {
-                    dateStyle: 'short', 
-                    timeStyle: 'short'
-                });
-                
-                html += '<tr>';
-                html += '<td>' + dataFormatada + '</td>';
-                html += '<td>' + mov.descricao + '</td>';
-                html += '<td class="text-right ' + classeQtd + '">' + formatarNumero(mov.qtd) + '</td>';
-                html += '</tr>';
-            });
-            
-            html += '<tr style="background-color: #f5f7fa; border-top: 2px solid #37417c;">';
-            html += '<td colspan="2" class="text-right" style="font-weight: 700; color: #37417c;">SALDO ATUAL:</td>';
-            html += '<td class="text-right total-saldo" style="font-size: 1.1rem;">' + formatarNumero(saldoTotal) + '</td>';
-            html += '</tr>';
-            html += '</tbody></table>';
-            
-            document.getElementById('modal-corpo').innerHTML = html;
-        }
-        
-        function onModalFailure(erro) {
-            console.error('❌ Erro ao carregar detalhes:', erro);
-            
-            document.getElementById('modal-loader').style.display = 'none';
-            document.getElementById('modal-corpo').innerHTML = '<p class="red-text">Erro ao carregar detalhes: ' + erro.message + '</p>';
-        }
+/**
+ * Abre o modal de detalhes após receber a resposta do servidor.
+ * @param {object} resposta O objeto de resposta do google.script.run.
+ */
+function abrirModalDetalhes(resposta) {
+    console.log("Resposta recebida:", resposta);
+
+    const modal = document.getElementById("modalDetalhes");
+    const corpo = document.getElementById("tabelaDetalhesCorpo");
+    corpo.innerHTML = ""; // Limpa o corpo da tabela
+
+    // 2. Verificar se a chamada foi bem-sucedida
+    if (!resposta || !resposta.sucesso) {
+        const msgErro = resposta ? resposta.mensagem : "Erro desconhecido ao buscar detalhes.";
+        console.error("Falha ao buscar detalhes:", msgErro);
+        corpo.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; color:red;">${msgErro}</td>
+            </tr>
+        `;
+        // Usa a instância do Materialize para abrir
+        if (modalInstance) modalInstance.open();
+        else modal.style.display = "block";
+        return;
+    }
+
+    // 3. Acessar o array *dentro* da resposta
+    const listaMovimentos = resposta.movimentacoes;
+
+    // 4. Verificar se o *array* está vazio
+    if (!listaMovimentos || listaMovimentos.length === 0) {
+        corpo.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center;">Nenhuma movimentação encontrada.</td>
+            </tr>
+        `;
+        if (modalInstance) modalInstance.open();
+        else modal.style.display = "block";
+        return;
+    }
+
+    // 5. Iterar sobre a 'listaMovimentos' (o array)
+    //    Esta ordem deve bater com o <thead> corrigido: Data, Descrição, Cliente, Qtd, Origem
+    listaMovimentos.forEach(m => {
+        corpo.innerHTML += `
+            <tr>
+                <td>${m.data}</td>
+                <td>${m.descricao}</td>
+                <td>${m.cliente}</td>
+                <td style="color: ${m.corMovimento}; font-weight: bold;">${m.qtd}</td>
+                <td>${m.origem}</td>
+            </tr>
+        `;
+    });
+
+    // Abre o modal no final
+    if (modalInstance) modalInstance.open();
+    else modal.style.display = "block";
+}
+
+/**
+ * Fecha o modal de detalhes usando a instância do Materialize.
+ */
+function fecharModalDetalhes() {
+    const modal = document.getElementById("modalDetalhes");
+    
+    // Usa a instância do Materialize para fechar
+    if (modalInstance) {
+        modalInstance.close();
+    } else {
+        // Fallback caso a instância não tenha sido criada
+        modal.style.display = "none";
+    }
+}
 
         function formatarNumero(valor) {
             if (valor === null || valor === undefined || valor === "") {
