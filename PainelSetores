@@ -422,6 +422,14 @@
               <p>Cadastrar modelos, pedir cópias e gerenciar o inventário de facas.</p>
             </div>
           </div>
+
+          <div class="action-card" onclick="abrirFormulario('abrirFormEstoqueAcabado')">
+  <div>
+    <div class="icon-wrapper"><i class="material-icons">manage_search</i></div>
+    <h3>Estoque de Produto Acabado</h3>
+    <p>Verificar o saldo de produtos acabados e suas movimentações.</p>
+  </div>
+</div>
           </div>
       </div>
 
@@ -476,6 +484,14 @@
               </div>
             </div>
 
+            <div class="action-card" onclick="abrirFormulario('abrirFormEstoqueAcabado')">
+  <div>
+    <div class="icon-wrapper"><i class="material-icons">manage_search</i></div>
+    <h3>Estoque de Produto Acabado</h3>
+    <p>Verificar o saldo de produtos acabados e suas movimentações.</p>
+  </div>
+</div>
+
           </div>
         </div>
 
@@ -490,6 +506,14 @@
                 <p>Inspecionar pedidos, aprovar lotes e liberar para expedição.</p>
               </div>
             </div>
+
+            <div class="action-card" onclick="abrirFormulario('abrirFormEstoqueAcabado')">
+  <div>
+    <div class="icon-wrapper"><i class="material-icons">manage_search</i></div>
+    <h3>Estoque de Produto Acabado</h3>
+    <p>Verificar o saldo de produtos acabados e suas movimentações.</p>
+  </div>
+</div>
 
           </div>
         </div>
