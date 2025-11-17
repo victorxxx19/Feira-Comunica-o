@@ -610,10 +610,18 @@ const COL_PEDIDO_DATA_FIM_SETUP = 46;     // AT - Data Fim Setup
 const COL_PEDIDO_ID_CLICHE = 47;          // AU - ID_Cliche
 const COL_PEDIDO_ID_UNICO_FACA = 48;
 const COL_PEDIDO_QTD_REPROVADA_CQ = 49; // AW
-const COL_PEDIDO_DATA_CONCLUSAO_CQ = 50; // AX      
+const COL_PEDIDO_DATA_CONCLUSAO_CQ = 50; // AX    
 
 // Total de colunas da aba Pedidos
 const TOTAL_COLUNAS_PEDIDOS = 50;
+
+  
+const COL_COD = 0;
+const COL_DESC = 1;
+const COL_CLIENTE = 2;
+const COL_QTD = 3;
+const COL_DATA_MOV = 4;
+const COL_ORIGEM = 5;
 
 const STATUS_ALERTA = ["Em produção", "Liberado para produção", "Programado"];
 
@@ -8848,33 +8856,45 @@ function _criarMapaDetalhesPedidos() {
  */
 function _buscarSobraEstoque(codProduto) {
   let saldoTotal = 0;
-  let cliente = ""; // Pega o cliente da primeira entrada encontrada
+  let cliente = "";
+  let descricao = "";  // NOVO: vamos capturar a descrição real
   
   try {
     const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
     if (abaEstoque.getLastRow() > 1) {
-      // Col A (ID_Produto), C (Cliente), D (Qtd_Movimentada)
-      const dados = abaEstoque.getRange(2, 1, abaEstoque.getLastRow() - 1, 4).getValues();
-      const codBusca = codProduto.trim().toUpperCase();
       
+      // Agora pegamos 4 colunas: A (ID), B (Descrição), C (Cliente), D (Qtd)
+      const dados = abaEstoque.getRange(2, 1, abaEstoque.getLastRow() - 1, 4).getValues();
+      
+      const codBusca = codProduto.trim().toUpperCase();
+
       for (const linha of dados) {
-        if (linha[0].toString().trim().toUpperCase() === codBusca) {
+        const id = linha[0].toString().trim().toUpperCase();
+        
+        if (id === codBusca) {
+
+          // Soma saldo
           saldoTotal += parseFloat(String(linha[3]).replace(",", ".")) || 0;
-          if (!cliente) {
-            cliente = linha[2].toString(); // Col C
-          }
+
+          // Captura cliente na primeira ocorrência
+          if (!cliente) cliente = linha[2] || "";
+
+          // Captura descrição somente na primeira ocorrência
+          if (!descricao) descricao = linha[1] || "";
         }
       }
     }
   } catch (e) {
     Logger.log(`Erro ao buscar sobra de estoque para ${codProduto}: ${e.message}`);
   }
-  
+
   return {
-    qtd: Math.max(0, saldoTotal), // Garante que o saldo nunca é negativo
-    cliente: cliente
+    qtd: Math.max(0, saldoTotal),
+    cliente: cliente,
+    descricao: descricao  // NOVO — agora a descrição existe
   };
 }
+
 
 // (ADICIONE ESTA FUNÇÃO ao Código.gs)
 
@@ -8938,7 +8958,7 @@ function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
 
     const novaLinha = [
       codBusca,
-      `Consumo Pedido ${numPedidoOrigem}`, // Descrição
+      infoSobra.descricao, // Descrição
       infoSobra.cliente, // Cliente
       -Math.abs(qtdDebitar), // Quantidade NEGATIVA
       new Date(),
@@ -9126,287 +9146,293 @@ function finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso) {
   }
 }
 
-// ===================================================================
-// FUNÇÕES PARA ESTOQUE DE PRODUTO ACABADO - VERSÃO SIMPLIFICADA
-// Cole este código no seu arquivo .gs
-// ===================================================================
 
-/**
- * Abre o formulário de consulta de estoque
- */
 function abrirFormEstoqueAcabado() {
-  try {
-    var html = HtmlService.createHtmlOutputFromFile('FormEstoqueAcabado')
-        .setTitle('Consultar Estoque de Produto Acabado')
-        .setWidth(1600)
-        .setHeight(900);
-    SpreadsheetApp.getUi().showModalDialog(html, ' ');
-  } catch (e) {
-    Logger.log('Erro ao abrir formulário: ' + e.message);
-    SpreadsheetApp.getUi().alert('Erro ao abrir formulário: ' + e.message);
-  }
+  var html = HtmlService.createHtmlOutputFromFile('FormEstoqueAcabado')
+      .setTitle('Estoque de Produto Acabado')
+      .setWidth(1600)
+      .setHeight(800);
+  SpreadsheetApp.getUi().showModalDialog(html, ' ');
 }
 
-/**
- * Retorna produtos agrupados com saldo positivo
- * VERSÃO SIMPLIFICADA E ROBUSTA
- */
-function getEstoqueAcabadoAgrupado() {
+function getEstoqueAcabadoAgrupado(filtroCodigo, filtroDescricao, filtroCliente) {
   try {
     Logger.log('=== INÍCIO getEstoqueAcabadoAgrupado ===');
-    
-    // Obtém a planilha
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    Logger.log('Planilha obtida: ' + ss.getName());
-    
-    // Tenta obter a aba - use o nome exato da sua aba
-    var abaEstoque = ss.getSheetByName('Estoque_Acabado');
-    
-    if (!abaEstoque) {
-      Logger.log('❌ Aba "Estoque_Acabado" não encontrada');
-      Logger.log('Abas disponíveis: ' + ss.getSheets().map(function(s) { return s.getName(); }).join(', '));
-      return { 
-        sucesso: false, 
-        mensagem: 'Aba "Estoque_Acabado" não encontrada. Verifique o nome da aba.'
-      };
-    }
-    
-    Logger.log('✅ Aba encontrada: ' + abaEstoque.getName());
+    var aba = ss.getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    if (!aba) return { sucesso: false, mensagem: 'Aba "' + NOME_ABA_ESTOQUE_ACABADO + '" não encontrada' };
 
-    // Obtém todos os dados
-    var dadosEstoque = abaEstoque.getDataRange().getValues();
-    Logger.log('Total de linhas lidas: ' + dadosEstoque.length);
-    
-    // Se não houver dados além do cabeçalho
-    if (dadosEstoque.length < 2) {
-      Logger.log('⚠️ Nenhum dado encontrado além do cabeçalho');
-      return { 
-        sucesso: true, 
-        produtosAgrupados: [],
-        clientes: [],
-        mensagem: 'Nenhum dado encontrado na aba'
-      };
-    }
+    var ultimaLinha = aba.getLastRow();
+    if (ultimaLinha < 2) return { sucesso: true, produtosAgrupados: [], clientes: [] };
 
-    var produtos = {};
-    var clientesSet = {};
-    
-    // Índices das colunas (0-based)
-    var COL_ID_PRODUTO = 0;        // Coluna A
-    var COL_DESCRICAO = 1;         // Coluna B
-    var COL_CLIENTE = 2;           // Coluna C
-    var COL_QTD_MOVIMENTADA = 3;   // Coluna D
-    var COL_DATA_MOVIMENTACAO = 4; // Coluna E
-    var COL_ORIGEM_MOVIMENTACAO = 5; // Coluna F
+    // Lê todas as colunas existentes (pelo menos A..F)
+    var dados = aba.getRange(2, 1, ultimaLinha - 1, aba.getLastColumn()).getValues();
 
-    // Processa dados começando da linha 2 (índice 1)
-    for (var i = 1; i < dadosEstoque.length; i++) {
-      var linha = dadosEstoque[i];
-      
-      // Obtém o código do produto
-      var codProduto = linha[COL_ID_PRODUTO];
-      if (!codProduto || codProduto === '') {
-        continue; // Pula linhas sem código
-      }
-      
-      codProduto = codProduto.toString().trim().toUpperCase();
-      
-      // Obtém a quantidade (pode ser negativa)
-      var qtd = parseFloat(linha[COL_QTD_MOVIMENTADA]);
-      if (isNaN(qtd)) {
-        qtd = 0;
-      }
-      
-      // Se o produto ainda não existe no objeto, inicializa
-      if (!produtos[codProduto]) {
-        var descricao = linha[COL_DESCRICAO] ? linha[COL_DESCRICAO].toString().trim() : 'N/A';
-        var cliente = linha[COL_CLIENTE] ? linha[COL_CLIENTE].toString().trim() : 'N/A';
-        
-        produtos[codProduto] = {
+    var estoqueAgrupado = {};
+    var clientesSet = new Set();
+
+    var fCod = filtroCodigo ? String(filtroCodigo).trim().toLowerCase() : null;
+    var fDesc = filtroDescricao ? String(filtroDescricao).trim().toLowerCase() : null;
+    var fCliente = filtroCliente ? String(filtroCliente).trim().toLowerCase() : null;
+
+    dados.forEach(function(linha) {
+      if (!linha || linha.length === 0) return;
+
+      // NOTE: constantes zero-based: COL_COD = 0, COL_DESC = 1, COL_CLIENTE = 2, COL_QTD = 3, COL_DATA_MOV = 4, COL_ORIGEM = 5
+      var codProdutoRaw = linha[COL_COD];
+      var descricaoRaw = linha[COL_DESC];
+      var clienteRaw = linha[COL_CLIENTE];
+      var qtdRaw = linha[COL_QTD];
+      var dataMovRaw = linha[COL_DATA_MOV];
+
+      if (codProdutoRaw === undefined || codProdutoRaw === null || String(codProdutoRaw).trim() === '') return;
+
+      var codProduto = String(codProdutoRaw).trim();
+      var descricao  = descricaoRaw !== undefined && descricaoRaw !== null ? String(descricaoRaw).trim() : '';
+      var cliente    = clienteRaw !== undefined && clienteRaw !== null ? String(clienteRaw).trim() : '';
+
+      // parse qtd com segurança (remove vírgula/pts se houver)
+      var qtd = parseFloat(String(qtdRaw).replace(/\./g,'').replace(/,/g,'.'));
+      if (isNaN(qtd)) qtd = 0;
+
+      // aplica filtros (case-insensitive)
+      if (fCod && !codProduto.toLowerCase().includes(fCod)) return;
+      if (fDesc && !descricao.toLowerCase().includes(fDesc)) return;
+      if (fCliente && cliente.toLowerCase() !== fCliente) return;
+
+      // adiciona cliente ao set
+      if (cliente) clientesSet.add(cliente);
+
+      // AGRUPAMENTO POR PRODUTO + CLIENTE (ignora variações de descrição)
+      var chave = codProduto + '|' + cliente;
+
+      if (!estoqueAgrupado[chave]) {
+        estoqueAgrupado[chave] = {
           codProduto: codProduto,
-          descricao: descricao,
+          descricao: descricao || '', // primeira descrição encontrada
           cliente: cliente,
           saldo: 0,
-          ultimaData: new Date(0), // Data mínima
-          ultimaMov: 'N/A'
+          ultimaData: null
         };
-        
-        // Adiciona cliente ao conjunto
-        if (cliente !== 'N/A' && cliente !== '') {
-          clientesSet[cliente] = true;
+      } else {
+        // se temos uma descricao vazia e a nova linha tem descrição, atualiza
+        if (!estoqueAgrupado[chave].descricao && descricao) {
+          estoqueAgrupado[chave].descricao = descricao;
         }
       }
 
-      // Acumula o saldo (positivo ou negativo)
-      produtos[codProduto].saldo += qtd;
+      // soma TODAS as movimentações (positivas e negativas)
+      estoqueAgrupado[chave].saldo += qtd;
 
-      // Atualiza última movimentação
-      var dataMov = new Date(linha[COL_DATA_MOVIMENTACAO]);
-      if (!isNaN(dataMov.getTime()) && dataMov > produtos[codProduto].ultimaData) {
-        produtos[codProduto].ultimaData = dataMov;
-        produtos[codProduto].ultimaMov = linha[COL_ORIGEM_MOVIMENTACAO] ? 
-          linha[COL_ORIGEM_MOVIMENTACAO].toString().trim() : 'N/A';
+      // trata data
+      var dataObj = null;
+      if (dataMovRaw) {
+        dataObj = new Date(dataMovRaw);
+        if (isNaN(dataObj.getTime())) {
+          var parsed = Date.parse(String(dataMovRaw));
+          dataObj = isNaN(parsed) ? null : new Date(parsed);
+        }
       }
-    }
-
-    // Converte objeto de produtos em array e filtra apenas saldo positivo
-    var produtosArray = [];
-    for (var cod in produtos) {
-      if (produtos[cod].saldo > 0) {
-        produtosArray.push(produtos[cod]);
+      if (dataObj) {
+        if (!estoqueAgrupado[chave].ultimaData || dataObj > estoqueAgrupado[chave].ultimaData) {
+          estoqueAgrupado[chave].ultimaData = dataObj;
+        }
       }
-    }
-    
-    // Converte clientes em array ordenado
-    var clientesArray = [];
-    for (var cliente in clientesSet) {
-      clientesArray.push(cliente);
-    }
-    clientesArray.sort();
-    
-    Logger.log('✅ Produtos com saldo positivo: ' + produtosArray.length);
-    Logger.log('✅ Clientes únicos: ' + clientesArray.length);
-    Logger.log('=== FIM getEstoqueAcabadoAgrupado ===');
-
-    return { 
-      sucesso: true, 
-      produtosAgrupados: produtosArray,
-      clientes: clientesArray
-    };
-
-  } catch (e) {
-    Logger.log('❌ ERRO em getEstoqueAcabadoAgrupado: ' + e.message);
-    Logger.log('Stack: ' + e.stack);
-    return { 
-      sucesso: false, 
-      mensagem: 'Erro: ' + e.message,
-      stack: e.stack
-    };
-  }
-}
-
-/**
- * Retorna detalhes de movimentação de um produto específico
- */
-function getDetalhesEstoqueAcabado(codProduto) {
-  try {
-    Logger.log('=== INÍCIO getDetalhesEstoqueAcabado ===');
-    Logger.log('Buscando detalhes para: ' + codProduto);
-    
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var abaEstoque = ss.getSheetByName('Estoque_Acabado');
-    
-    if (!abaEstoque) {
-      return { 
-        sucesso: false, 
-        mensagem: 'Aba "Estoque_Acabado" não encontrada' 
-      };
-    }
-
-    var dadosEstoque = abaEstoque.getDataRange().getValues();
-    var movimentos = [];
-    var codBusca = codProduto.toString().trim().toUpperCase();
-
-    // Índices das colunas
-    var COL_ID_PRODUTO = 0;
-    var COL_QTD_MOVIMENTADA = 3;
-    var COL_DATA_MOVIMENTACAO = 4;
-    var COL_ORIGEM_MOVIMENTACAO = 5;
-
-    // Processa dados começando da linha 2
-    for (var i = 1; i < dadosEstoque.length; i++) {
-      var linha = dadosEstoque[i];
-      var codLinha = linha[COL_ID_PRODUTO];
-      
-      if (!codLinha) continue;
-      
-      codLinha = codLinha.toString().trim().toUpperCase();
-      
-      if (codLinha === codBusca) {
-        var qtd = parseFloat(linha[COL_QTD_MOVIMENTADA]);
-        if (isNaN(qtd)) qtd = 0;
-        
-        movimentos.push({
-          data: new Date(linha[COL_DATA_MOVIMENTACAO]),
-          descricao: linha[COL_ORIGEM_MOVIMENTACAO] ? 
-            linha[COL_ORIGEM_MOVIMENTACAO].toString().trim() : 'N/A',
-          qtd: qtd
-        });
-      }
-    }
-
-    // Ordena por data (mais recente primeiro)
-    movimentos.sort(function(a, b) {
-      return b.data.getTime() - a.data.getTime();
     });
-    
-    Logger.log('✅ Movimentações encontradas: ' + movimentos.length);
-    Logger.log('=== FIM getDetalhesEstoqueAcabado ===');
 
-    return { 
-      sucesso: true, 
-      detalhes: movimentos 
-    };
+    // Converte em array e filtra (ex.: saldo != 0). Se preferir só saldo > 0, troque a condição.
+    var produtosAgrupados = Object.values(estoqueAgrupado)
+      .filter(function(p) {
+        return p.saldo !== 0; // mostra apenas com movimentação líquida diferente de zero
+      })
+      .map(function(p) {
+        return {
+          codProduto: p.codProduto,
+          descricao: p.descricao,
+          cliente: p.cliente,
+          saldo: p.saldo,
+          ultimaData: p.ultimaData ? p.ultimaData.toISOString() : ''
+        };
+      });
+
+    var clientesArray = Array.from(clientesSet).sort(function(a,b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
+
+    return { sucesso: true, produtosAgrupados: produtosAgrupados, clientes: clientesArray };
 
   } catch (e) {
-    Logger.log('❌ ERRO em getDetalhesEstoqueAcabado: ' + e.message);
-    return { 
-      sucesso: false, 
-      mensagem: 'Erro: ' + e.message 
-    };
+    Logger.log('Erro em getEstoqueAcabadoAgrupado: ' + e.message + ' (' + (e.lineNumber||'sem linha') + ')');
+    return { sucesso: false, mensagem: e.message || String(e) };
   }
 }
 
-/**
- * FUNÇÃO DE TESTE - Execute esta para verificar se está funcionando
- */
-function testarEstoqueAcabadoCompleto() {
-  Logger.clear();
-  Logger.log('====================================');
-  Logger.log('TESTE COMPLETO - ESTOQUE ACABADO');
-  Logger.log('====================================\n');
-  
-  // Teste 1: Listar abas disponíveis
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  Logger.log('📊 Planilha: ' + ss.getName());
-  Logger.log('📋 Abas disponíveis:');
-  ss.getSheets().forEach(function(sheet) {
-    Logger.log('  - ' + sheet.getName() + ' (' + sheet.getLastRow() + ' linhas)');
-  });
-  Logger.log('');
-  
-  // Teste 2: getEstoqueAcabadoAgrupado
-  Logger.log('🧪 TESTE 1: getEstoqueAcabadoAgrupado()');
-  var resultado = getEstoqueAcabadoAgrupado();
-  Logger.log('Resultado: ' + JSON.stringify(resultado, null, 2));
-  Logger.log('');
-  
-  // Teste 3: getDetalhesEstoqueAcabado (se houver produtos)
-  if (resultado.sucesso && resultado.produtosAgrupados.length > 0) {
-    var primeiroProduto = resultado.produtosAgrupados[0];
-    Logger.log('🧪 TESTE 2: getDetalhesEstoqueAcabado()');
-    Logger.log('Testando produto: ' + primeiroProduto.codProduto);
-    var detalhes = getDetalhesEstoqueAcabado(primeiroProduto.codProduto);
-    Logger.log('Resultado: ' + JSON.stringify(detalhes, null, 2));
+
+function getDetalhesMovimentacao(codProduto) {
+  try {
+    // logs imediatos
+    Logger.log(">>> chamada getDetalhesMovimentacao");
+    Logger.log("tipo codProduto: " + typeof codProduto);
+    Logger.log("valor codProduto: " + codProduto);
+
+    // validação do parâmetro
+    if (!codProduto && codProduto !== 0) {
+      return { sucesso: false, mensagem: "Código do produto não fornecido." };
+    }
+
+    // validação de constantes mínimas (evita erro de carregamento)
+    if (typeof NOME_ABA_ESTOQUE_ACABADO === 'undefined') {
+      return { sucesso: false, mensagem: "Constante NOME_ABA_ESTOQUE_ACABADO indefinida." };
+    }
+    if (typeof COL_COD === 'undefined' ||
+        typeof COL_DESC === 'undefined' ||
+        typeof COL_CLIENTE === 'undefined' ||
+        typeof COL_QTD === 'undefined' ||
+        typeof COL_DATA_MOV === 'undefined' ||
+        typeof COL_ORIGEM === 'undefined') {
+      return { sucesso: false, mensagem: "Constantes de coluna indefinidas." };
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var aba = ss.getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
+    if (!aba) {
+      return { sucesso: false, mensagem: "Aba não encontrada: " + NOME_ABA_ESTOQUE_ACABADO };
+    }
+
+    var ultimaLinha = aba.getLastRow();
+    Logger.log("ultimaLinha: " + ultimaLinha);
+    if (ultimaLinha <= 1) {
+      return { sucesso: true, movimentacoes: [] };
+    }
+
+    // garante que lemos apenas linhas válidas
+    var numLinhas = ultimaLinha - 1;
+    var numCols = 6;
+    var dados = aba.getRange(2, 1, numLinhas, numCols).getValues();
+    Logger.log("linhas lidas: " + dados.length);
+
+    var busca = String(codProduto).trim();
+    var movimentacoes = [];
+
+    dados.forEach(function(linha, idx) {
+      // linha pode ter menos colunas — protege
+      if (!linha || linha.length < numCols) {
+        Logger.log("linha " + (idx + 2) + " ignorada (incompleta).");
+        return;
+      }
+
+      var idRaw = linha[COL_COD];
+      if (idRaw === undefined || idRaw === null) return;
+      var id = String(idRaw).trim();
+      if (id !== busca) return;
+
+      // campos seguros (somente primitivos / strings)
+      var descricao = linha[COL_DESC] ? String(linha[COL_DESC]).trim() : "";
+      var cliente = linha[COL_CLIENTE] ? String(linha[COL_CLIENTE]).trim() : "";
+      var origem = linha[COL_ORIGEM] ? String(linha[COL_ORIGEM]).trim() : "N/A";
+
+      // quantidade
+      var qtdRaw = linha[COL_QTD];
+      var qtd = 0;
+      if (qtdRaw !== null && qtdRaw !== "") {
+        // transforma formatos tipo "2.000" ou "2000" ou "-2000" ou "2,000.50"
+        try {
+          qtd = parseFloat(String(qtdRaw).replace(/\./g, "").replace(/,/g, "."));
+          if (isNaN(qtd)) qtd = 0;
+        } catch (e) {
+          qtd = 0;
+        }
+      }
+
+      // data -> sempre string formatada dd/MM/yyyy (não retorna Date)
+      var dataCell = linha[COL_DATA_MOV];
+      var dataFormatada = "";
+      if (dataCell instanceof Date) {
+        dataFormatada = Utilities.formatDate(dataCell, "America/Sao_Paulo", "dd/MM/yyyy");
+      } else if (dataCell) {
+        // tenta converter de dd/MM/yyyy ou ISO
+        var s = String(dataCell).trim();
+        // se estiver no formato dd/MM/yyyy (como teus exemplos), mantemos tal como está
+        // tenta detectar formato com regex
+        if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(s)) {
+          dataFormatada = s;
+        } else {
+          var parsed = Date.parse(s);
+          if (!isNaN(parsed)) {
+            dataFormatada = Utilities.formatDate(new Date(parsed), "America/Sao_Paulo", "dd/MM/yyyy");
+          } else {
+            dataFormatada = s; // devolve bruto
+          }
+        }
+      }
+
+      movimentacoes.push({
+        data: dataFormatada,
+        origem: origem,
+        descricao: descricao,
+        cliente: cliente,
+        qtd: qtd,
+        tipoMovimento: qtd >= 0 ? "entrada" : "saida",
+        corMovimento: qtd >= 0 ? "#008000" : "#B22222"
+      });
+    });
+
+    Logger.log("movimentacoes encontro: " + movimentacoes.length);
+
+    // ordenar por data string (se necessário por data real, precisaríamos parsear)
+    // como as datas no sheet estão em dd/MM/yyyy, para ordenar corretamente converteríamos,
+    // mas aqui vamos manter a ordem do sheet e retornar o array.
+    return { sucesso: true, movimentacoes: movimentacoes };
+
+  } catch (err) {
+    Logger.log("ERRO getDetalhesMovimentacao: " + (err && err.message ? err.message : String(err)));
+    return { sucesso: false, mensagem: (err && err.message) ? err.message : String(err) };
   }
-  
-  Logger.log('\n====================================');
-  Logger.log('✅ TESTE CONCLUÍDO');
-  Logger.log('====================================');
-  
-  // Exibe resultado em popup
-  if (resultado.sucesso) {
-    SpreadsheetApp.getUi().alert(
-      '✅ Teste Concluído!\n\n' +
-      'Produtos encontrados: ' + resultado.produtosAgrupados.length + '\n' +
-      'Clientes únicos: ' + resultado.clientes.length + '\n\n' +
-      'Verifique os logs (Ctrl+Enter) para mais detalhes.'
-    );
-  } else {
-    SpreadsheetApp.getUi().alert(
-      '❌ Erro no teste!\n\n' +
-      resultado.mensagem + '\n\n' +
-      'Verifique os logs (Ctrl+Enter) para mais detalhes.'
-    );
+}
+
+
+function testarEstoqueAcabadoCompleto() {
+  try {
+    Logger.clear();
+    Logger.log('====================================');
+    Logger.log('TESTE COMPLETO - ESTOQUE ACABADO');
+    Logger.log('====================================\n');
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    Logger.log('📊 Planilha: ' + ss.getName());
+    Logger.log('📋 Abas disponíveis:');
+    ss.getSheets().forEach(function(sheet) {
+      Logger.log('  - ' + sheet.getName() + ' (' + sheet.getLastRow() + ' linhas)');
+    });
+    Logger.log('');
+
+    Logger.log('🧪 TESTE 1: getEstoqueAcabadoAgrupado()');
+    var resultado = getEstoqueAcabadoAgrupado();
+    Logger.log('Resultado: ' + JSON.stringify(resultado, null, 2));
+    Logger.log('');
+
+    if (resultado.sucesso && resultado.produtosAgrupados.length > 0) {
+      var primeiroProduto = resultado.produtosAgrupados[0];
+      Logger.log('🧪 TESTE 2: getDetalhesEstoqueAcabado() para: ' + primeiroProduto.codProduto);
+      var detalhes = getDetalhesEstoqueAcabado(primeiroProduto.codProduto);
+      Logger.log('Resultado detalhes: ' + JSON.stringify(detalhes, null, 2));
+    }
+
+    Logger.log('\n====================================');
+    Logger.log('✅ TESTE CONCLUÍDO');
+    Logger.log('====================================');
+
+    if (resultado.sucesso) {
+      SpreadsheetApp.getUi().alert(
+        '✅ Teste Concluído!\n\n' +
+        'Produtos encontrados: ' + resultado.produtosAgrupados.length + '\n' +
+        'Clientes únicos: ' + (resultado.clientes ? resultado.clientes.length : 0) + '\n\n' +
+        'Verifique os logs (Executions/Logs) para mais detalhes.'
+      );
+    } else {
+      SpreadsheetApp.getUi().alert('❌ Erro no teste!\n\n' + resultado.mensagem);
+    }
+
+  } catch (e) {
+    Logger.log('Erro em testarEstoqueAcabadoCompleto: ' + e.message);
+    SpreadsheetApp.getUi().alert('Erro no teste: ' + e.message);
   }
 }
