@@ -189,13 +189,23 @@ function gerarFichaTecnicaPDF(produto) {
 }
 
 function abrirPainelSetores() {
-  const html = HtmlService.createHtmlOutputFromFile('PainelSetores')
-    .setWidth(1600) // <-- A LARGURA QUE QUERÍAMOS!
-    .setHeight(900);
-  
-  // Em vez de showSidebar, usamos showModelessDialog
-  SpreadsheetApp.getUi().showModelessDialog(html, ' ');
+  // 1. Usa Template (Obrigatório agora, por causa das variáveis)
+  var template = HtmlService.createTemplateFromFile('PainelSetores');
+  
+  // 2. Define a variável que o HTML está esperando
+  template.isWebApp = false; // No computador, isso é FALSO
+  
+  // 3. Avalia o template para gerar o HTML final
+  var html = template.evaluate()
+      .setWidth(1600)
+      .setHeight(900)
+      .setTitle('Painel de Setores');
+    
+  // 4. Abre a janela (Interface do Planilhas)
+  // IMPORTANTE: Use SpreadsheetApp.getUi() diretamente aqui
+  SpreadsheetApp.getUi().showModelessDialog(html, ' ');
 }
+
 function limparCnpjCpf(dado) {
   if (!dado) return "";
   return String(dado).replace(/\D/g, ""); 
@@ -1368,7 +1378,6 @@ function buscarSugestoesProduto(termo, tipoBusca) {
   }
 }
 
-// (SUBSTITUA A FUNÇÃO EM Código.gs)
 function getDadosCompletosProduto(identificador, tipoBusca) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1377,24 +1386,16 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
     const abaClicheMestre = ss.getSheetByName(NOME_ABA_CLICHE_MESTRE); 
     const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS); 
     
+    // --- CARREGA INVENTÁRIOS ---
     const facasDisponiveis = new Set();
-    if (abaFacasInventario.getLastRow() > 1) {
-      const dadosFacasInv = abaFacasInventario.getRange(2, 2, abaFacasInventario.getLastRow() - 1, 2).getValues(); 
-      for (const f of dadosFacasInv) {
-        if (f[1].toString().trim().toLowerCase() === "disponível") {
-          facasDisponiveis.add(f[0].toString().trim().toLowerCase()); 
-        }
-      }
+    if (abaFacasInventario && abaFacasInventario.getLastRow() > 1) {
+      const d = abaFacasInventario.getRange(2, 2, abaFacasInventario.getLastRow()-1, 2).getValues();
+      d.forEach(r => { if(r[1] && r[1].toString().trim().toLowerCase() === "disponível") facasDisponiveis.add(r[0].toString().trim().toLowerCase()); });
     }
-    
     const clichesDisponiveis = new Set();
-    if (abaClicheMestre.getLastRow() > 1) {
-      const dadosCliches = abaClicheMestre.getRange(2, 1, abaClicheMestre.getLastRow() - 1, 7).getValues(); 
-      for (const c of dadosCliches) {
-        if (c[6].toString().trim().toLowerCase() === "disponível") {
-          clichesDisponiveis.add(c[0].toString().trim().toLowerCase()); 
-        }
-      }
+    if (abaClicheMestre && abaClicheMestre.getLastRow() > 1) {
+      const d = abaClicheMestre.getRange(2, 1, abaClicheMestre.getLastRow()-1, 7).getValues();
+      d.forEach(r => { if(r[6] && r[6].toString().trim().toLowerCase() === "disponível") clichesDisponiveis.add(r[0].toString().trim().toLowerCase()); });
     }
 
     const mapa = _criarMapaDeColunas(abaProdutos);
@@ -1406,6 +1407,7 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
     const colunaBuscaIndex = (tipoBusca === 'codigo') ? idxCodigo : idxDescricao;
     const idxClicheVinculado = mapa["ID_Cliche_Vinculado"];
     const idxDataAlteracaoArte = mapa["Data - Alteração de Arte"]; 
+    const idxFichaTecnica = mapa["FichaTecnicaCores"]; 
 
     if (colunaBuscaIndex === undefined || dadosProdutos.length === 0) {
       throw new Error(`A coluna de busca (${tipoBusca}) não foi encontrada.`);
@@ -1417,7 +1419,7 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
     let statusFaca = "Inexistente";
     let statusCliche = "Inexistente";
     let idCliche = "N/A";
-    let infoSobra = { qtd: 0, cliente: "" }; // <-- INÍCIO DA ADIÇÃO (REQ 5)
+    let infoSobra = { qtd: 0, cliente: "" };
 
     for (const linha of dadosProdutos) {
       const valorPlanilha = linha[colunaBuscaIndex].toString().trim().toLowerCase();
@@ -1427,33 +1429,42 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
         const statusProduto = linha[mapa["Status"]] || "Ativo";
         
         if(idxDataAlteracaoArte !== undefined && linha[idxDataAlteracaoArte]) {
-            produtoDataAlteracaoArte = parseDate(linha[idxDataAlteracaoArte]);
+            produtoDataAlteracaoArte = new Date(linha[idxDataAlteracaoArte]);
         }
         
-        if (statusProduto.toLowerCase() === "bloqueado" || statusProduto.toLowerCase() === "cancelado") {
-           return { sucesso: false, bloqueado: true, motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]] || "Motivo não especificado.", status: statusProduto };
+        if (statusProduto.toLowerCase().includes("bloqueado") || statusProduto.toLowerCase().includes("cancelado")) {
+           return { sucesso: false, bloqueado: true, motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]], status: statusProduto, codigo: codigoProdutoFinal };
         }
 
         const facaDoProduto = linha[mapa["Faca"]].toString().trim().toLowerCase();
-        if (facaDoProduto && facasDisponiveis.has(facaDoProduto)) {
-          statusFaca = "Existente";
+        if (facaDoProduto && facasDisponiveis.has(facaDoProduto)) statusFaca = "Existente";
+
+        if (idxClicheVinculado && linha[idxClicheVinculado]) {
+          idCliche = linha[idxClicheVinculado].trim();
+          if (clichesDisponiveis.has(idCliche.toLowerCase())) statusCliche = "Existente";
         }
 
-        const clicheVinculado = (idxClicheVinculado !== undefined) ? linha[idxClicheVinculado] : "";
-        if (clicheVinculado && clicheVinculado.trim() !== "") {
-          idCliche = clicheVinculado.trim();
-          if (clichesDisponiveis.has(idCliche.toLowerCase())) {
-            statusCliche = "Existente";
-          }
-        }
-
-        // --- INÍCIO DA ADIÇÃO (REQ 5) ---
-        // Busca o estoque de sobra para este produto
         infoSobra = _buscarSobraEstoque(codigoProdutoFinal);
-        // --- FIM DA ADIÇÃO ---
+        const dataFormatada = produtoDataAlteracaoArte ? Utilities.formatDate(produtoDataAlteracaoArte, Session.getScriptTimeZone(), "dd/MM/yyyy") : "";
 
-        const dataAlteracaoArteObj = linha[mapa["Data - Alteração de Arte"]];
-        const dataFormatada = dataAlteracaoArteObj ? Utilities.formatDate(new Date(dataAlteracaoArteObj), Session.getScriptTimeZone(), "dd/MM/yyyy") : "";
+        // --- PROCESSAMENTO DE CORES (RIGOROSO) ---
+        const fichaRaw = (idxFichaTecnica !== undefined) ? linha[idxFichaTecnica] : "";
+        const fichaString = fichaRaw ? fichaRaw.toString() : "";
+        
+        const specsTecnicas = _processarFichaTecnica(fichaString);
+        
+        // Lógica de Decisão:
+        // 1. Se a ficha técnica tem texto, CONFIAMOS NO CÁLCULO DA FICHA (mesmo que dê zero).
+        // 2. Só usamos a coluna antiga "Quantidade de Cores" se a ficha técnica estiver VAZIA.
+        let qtdCoresFinal = 0;
+        if (fichaString.trim() !== "") {
+            qtdCoresFinal = specsTecnicas.qtdCores;
+        } else {
+            qtdCoresFinal = linha[mapa["Quantidade de Cores"]] || 0;
+        }
+        
+        const acabamentoFinal = specsTecnicas.acabamento || linha[mapa["Tipo de Acabamento"]] || "Sem Acabamento";
+        const coldFinal = specsTecnicas.cold || linha[mapa["Cold"]] || "Sem Cold";
 
         produtoEncontrado = {
            codigo: codigoProdutoFinal,
@@ -1465,69 +1476,49 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
            largura: linha[mapa["Largura (mm)"]],
            altura: linha[mapa["Altura (mm)"]],
            puxada: linha[mapa["Puxada (mm)"]],
-           qtdLaminas: linha[mapa["Quantidade de Cores"]], 
+           qtdLaminas: qtdCoresFinal, 
            carreiras: linha[mapa["Carreiras"]],
-           dataAlteracaoArte: dataFormatada,
            status: statusProduto,
-           acabamento: linha[mapa["Tipo de Acabamento"]],
-           cold: linha[mapa["Cold"]],
-           motivo: linha[mapa["Motivo do Bloqueio/Cancelamento"]],
+           acabamento: acabamentoFinal,
+           cold: coldFinal,
            tipoRotulo: linha[mapa["Tipo do Rótulo"]] || "Único",
-           fichaTecnicaCores: linha[mapa["FichaTecnicaCores"]] || "[]",
            diametroTubete: linha[mapa["Diametro Tubete"]],
            qtdPorRolo: linha[mapa["Qtd por Rolo"]],
            sentidoImpressao: linha[mapa["Sentido Impressao"]],
-           layoutArte: linha[mapa["Layout Arte"]]
+           layoutArte: linha[mapa["Layout Arte"]],
+           dataAlteracaoArte: dataFormatada
         };
         break; 
       }
     }
 
-    if (!produtoEncontrado) {
-      return null;
-    }
+    if (!produtoEncontrado) return null;
 
-    // Cálculo de Tipo de Pedido (Lógica mantida)
+    // Lógica de Repetição
     let tipoPedido = "Primeira Fabricação";
+    let jaHouvePedidoPosAlteracao = false;
     if (abaPedidos.getLastRow() > 1) {
         const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, 10).getValues(); 
         let encontrouPedido = false;
         for (const linhaPedido of dadosPedidos) {
             const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
-            if (codProdPedido === codigoProdutoFinal) {
+            if (codProdPedido === codigoProdutoFinal.toUpperCase()) {
                 encontrouPedido = true;
-                tipoPedido = "Repetição";
                 if (produtoDataAlteracaoArte) {
-                     const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
-                    if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
-                         tipoPedido = "Repetição"; 
-                        break; 
-                    }
+                     let dataPedidoAnt = linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1];
+                     if (typeof dataPedidoAnt === 'string') dataPedidoAnt = new Date(dataPedidoAnt);
+                     const dPedido = new Date(dataPedidoAnt.getFullYear(), dataPedidoAnt.getMonth(), dataPedidoAnt.getDate());
+                     const dAlteracao = new Date(produtoDataAlteracaoArte.getFullYear(), produtoDataAlteracaoArte.getMonth(), produtoDataAlteracaoArte.getDate());
+                     if (dPedido >= dAlteracao) jaHouvePedidoPosAlteracao = true; 
                 }
             }
         }
-        if (!encontrouPedido) {
-            tipoPedido = "Primeira Fabricação";
-        } else if (tipoPedido === "Repetição" && produtoDataAlteracaoArte) {
-             let ultimoPedidoAnterior = false;
-             for (const linhaPedido of dadosPedidos) {
-                const codProdPedido = linhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1].toString().trim().toUpperCase();
-                if (codProdPedido === codigoProdutoFinal) {
-                    const dataPedido = parseDate(linhaPedido[COL_PEDIDO_DATA_PEDIDO - 1]);
-                    if (dataPedido && dataPedido > produtoDataAlteracaoArte) {
-                         ultimoPedidoAnterior = true;
-                    }
-                }
-             }
-             if (!ultimoPedidoAnterior) {
-                 tipoPedido = "Primeira Fabricação";
-             }
-        }
+        if (encontrouPedido) tipoPedido = "Repetição";
     }
     
     let arteAlteradaRecentemente = false;
     if (produtoDataAlteracaoArte && produtoDataAlteracaoArte.getFullYear() > 1970) {
-        arteAlteradaRecentemente = true;
+        if (!jaHouvePedidoPosAlteracao) arteAlteradaRecentemente = true;
     }
 
     return {
@@ -1535,19 +1526,77 @@ function getDadosCompletosProduto(identificador, tipoBusca) {
       dadosDoProduto: produtoEncontrado,
       tipoPedido: tipoPedido,
       arteAlteradaRecentemente: arteAlteradaRecentemente,
-      statusFaca: statusFaca,
-      statusCliche: statusCliche,
+      statusFaca: statusFaca, 
+      statusCliche: statusCliche, 
       idCliche: idCliche,
-      infoSobra: infoSobra // <-- RETORNO ADICIONADO (REQ 5)
+      infoSobra: infoSobra
     };
 
   } catch (e) {
-     Logger.log(`Erro ao buscar dados completos do produto: ${e}`);
-     throw new Error(`Erro ao buscar dados completos do produto: ${e.message}`);
+     Logger.log(`Erro: ${e}`);
+     throw new Error(`Erro backend: ${e.message}`);
   }
 }
 
+/**
+ * Conta cores REAIS ignorando Acabamentos e Cold.
+ * Agora com REGEX mais poderosa para evitar falso-positivos.
+ */
+function _processarFichaTecnica(textoFicha) {
+  if (!textoFicha) return { qtdCores: 0, acabamento: "", cold: "" };
+  
+  let itens = [];
+  try {
+      // Tenta JSON primeiro
+      if (textoFicha.toString().trim().startsWith("[")) {
+        itens = JSON.parse(textoFicha);
+      } else {
+        // Split mais agressivo: quebra por enter, virgula, ponto e virgula
+        itens = textoFicha.toString().split(/[\n,;]+/); 
+      }
+  } catch(e) {
+      itens = textoFicha.toString().split(/[\n,]+/);
+  }
 
+  let countCores = 0;
+  let listaAcabamentos = [];
+  let listaCold = [];
+
+  // Palavras EXCLUDENTES (Se tiver isso na linha, NÃO É COR)
+  const termosIgnorar = ["VERNIZ", "LAMINACAO", "LAMINAÇÃO", "BRILHO", "FOSCO", "BOPP", "COLD", "HOT STAMPING", "HOLOGRAFICO", "CAST & CURE", "REFILE", "TROQUEL", "LÂMINA", "LAMINA", "ESTAÇÃO", "ESTACAO"];
+  
+  const termosAcabamento = ["VERNIZ", "LAMINACAO", "LAMINAÇÃO", "BRILHO", "FOSCO"];
+  const termosCold = ["COLD", "HOT STAMPING", "HOLOGRAFICO"];
+
+  itens.forEach(item => {
+      const s = item.toString().trim();
+      const upper = s.toUpperCase();
+      if(!s) return;
+
+      // 1. Identifica Cold
+      if (termosCold.some(t => upper.includes(t))) {
+          listaCold.push(s);
+      } 
+      // 2. Identifica Acabamento
+      else if (termosAcabamento.some(t => upper.includes(t))) {
+          listaAcabamentos.push(s);
+      }
+
+      // 3. CONTAGEM DE CORES (Lógica Inversa)
+      // Se NÃO TIVER nenhum termo proibido, contamos como cor.
+      const temTermoProibido = termosIgnorar.some(t => upper.includes(t));
+      
+      if (!temTermoProibido) {
+          countCores++;
+      }
+  });
+
+  return {
+      qtdCores: countCores,
+      acabamento: listaAcabamentos.length > 0 ? listaAcabamentos.join(" + ") : null,
+      cold: listaCold.length > 0 ? listaCold.join(" + ") : null
+  };
+}
 
 function _extrairAcabamentoECold(fichaJSON) {
   let acabamento = "";
@@ -2859,58 +2908,49 @@ function abrirFormQualidade() {
 
 function buscarPedidosParaQualidade_v2() {
   try {
-    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
-    
-    // 1. Buscar Lotes de Inspeção e Agrupar
-    const lotesInspecao = {}; 
-    
-    if (abaLogCQ.getLastRow() > 1) {
-      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 6).getValues();
-      for (const linhaLog of dadosLog) {
-        const numPedido = linhaLog[0]; 
-        if (!numPedido) continue;
-        const qtdAprovada = parseFloat(String(linhaLog[4]).replace(",", ".")) || 0; 
-        const qtdReprovada = parseFloat(String(linhaLog[5]).replace(",", ".")) || 0; 
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName("Pedidos");
+    if (!aba || aba.getLastRow() < 2) return { sucesso: true, pedidos: [], lotesInspecao: {} };
 
-        if (!lotesInspecao[numPedido]) {
-          lotesInspecao[numPedido] = { totalAprovado: 0, totalReprovado: 0, count: 0 };
-        }
-        lotesInspecao[numPedido].totalAprovado += qtdAprovada;
-        lotesInspecao[numPedido].totalReprovado += qtdReprovada;
-        lotesInspecao[numPedido].count++;
-      }
-    }
+    const dados = aba.getRange(2, 1, aba.getLastRow() - 1, 50).getValues();
+    const timeZone = Session.getScriptTimeZone();
+    let listaInspetores = [];
+    try { listaInspetores = getListaDeAba("Inspetores", 1); } catch(e) {}
+    const dadosLotes = _getResumoLotesCQ();
+    const props = PropertiesService.getScriptProperties(); // Cache de pesos
 
-    // 2. Buscar Pedidos
     const pedidosParaCQ = [];
-    if (abaPedidos.getLastRow() < 2) {
-      throw new Error("Aba Pedidos está vazia.");
-    }
-    
-    const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow() - 1, TOTAL_COLUNAS_PEDIDOS).getDisplayValues();
-    
-    for (let i = 0; i < dadosPedidos.length; i++) {
-      const linha = dadosPedidos[i];
-      const statusOriginal = String(linha[COL_PEDIDO_STATUS - 1] || "").trim();
-      if (statusOriginal === "") continue;
-      const statusNormalizado = normalizarStatus(statusOriginal); 
-      
-      // --- MODIFICAÇÃO AQUI ---
-      // Agora inclui "emproducao"
-      if (statusNormalizado === "emproducao" ||  // <--- ADICIONADO
-          statusNormalizado === "producaofinalizada" || 
-          statusNormalizado === "controlando") 
-      {
+
+    for (let i = 0; i < dados.length; i++) {
+      const linha = dados[i];
+      const statusRaw = String(linha[8]).trim();
+      const status = statusRaw.toLowerCase().replace(/\s/g, '');
+
+      if (status === "produçãofinalizada" || status === "producaofinalizada" || 
+          status === "controlando" || 
+          status === "emprodução" || status === "emproducao") {
+
+        let dataEntregaFmt = "";
+        if (linha[6] instanceof Date) {
+          dataEntregaFmt = Utilities.formatDate(linha[6], timeZone, "dd/MM/yyyy");
+        } else {
+          dataEntregaFmt = String(linha[6]);
+        }
+        
+        // Busca peso salvo
+        const pesoRef = parseFloat(props.getProperty(`PESO_ROLO_${linha[0]}`)) || 0;
+
         pedidosParaCQ.push({
-          linhaPlanilha: i + 2, 
-          numPedido: linha[COL_PEDIDO_NUMERO - 1], 
-          dataEntrega: linha[COL_PEDIDO_DATA_ENTREGA - 1], 
-          cliente: linha[COL_PEDIDO_CLIENTE - 1], 
-          descricao: linha[COL_PEDIDO_DESCRICAO - 1], 
-          quantidade: linha[COL_PEDIDO_QUANTIDADE - 1], 
-          status: statusOriginal,
-          semExcedente: linha[COL_PEDIDO_SEM_EXCEDENTE - 1]
+          linhaPlanilha: i + 2,
+          numPedido: linha[0],
+          cliente: linha[10],
+          descricao: linha[11],
+          quantidade: linha[3],
+          dataEntrega: dataEntregaFmt,
+          status: statusRaw,
+          semExcedente: linha[30],
+          qtdPorRolo: linha[20] || 1000,
+          pesoReferencia: pesoRef // <--- NOVO
         });
       }
     }
@@ -2918,13 +2958,172 @@ function buscarPedidosParaQualidade_v2() {
     return {
       sucesso: true,
       pedidos: pedidosParaCQ,
-      lotesInspecao: lotesInspecao,
-      inspetores: getListaDeAba(NOME_ABA_INSPETORES, 1)
+      lotesInspecao: dadosLotes,
+      inspetores: listaInspetores
     };
 
   } catch (e) {
-    Logger.log(`Erro ao buscar pedidos para Qualidade (v2.1): ${e.message} ${e.stack}`);
-    return { sucesso: false, erro: e.message }; 
+    return { sucesso: false, erro: e.message };
+  }
+}
+
+// ==============================================================
+// 1. ATUALIZAR ESTA FUNÇÃO EXISTENTE (Cálculo da Tabela Principal)
+// ==============================================================
+function _getResumoLotesCQ() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const abaLog = ss.getSheetByName("Log_InspecaoCQ");
+  const props = PropertiesService.getScriptProperties();
+  const resumo = {}; 
+
+  if (abaLog && abaLog.getLastRow() > 1) {
+    // Log: ID(A), Pedido(B), Data(C), Unidade(D), Inspetor(E), QtdAprov(F), ReprovaString(G), Motivo(H)
+    const dados = abaLog.getRange(2, 1, abaLog.getLastRow() - 1, 8).getValues();
+
+    for (let i = 0; i < dados.length; i++) {
+      const numPedido = String(dados[i][1]);
+      const qtdAprov = parseFloat(dados[i][5]) || 0;
+      
+      // Extrair Peso do Refugo da string "0,500 kg (2%)"
+      const strReprova = String(dados[i][6]);
+      let pesoRefugo = 0;
+      if (strReprova.includes('kg')) {
+         const partes = strReprova.split('kg');
+         pesoRefugo = parseFloat(partes[0].replace(',', '.').trim()) || 0;
+      }
+
+      if (!resumo[numPedido]) {
+        // Busca peso de referência salvo (se houver) para cálculos
+        const pesoRef = parseFloat(props.getProperty(`PESO_ROLO_${numPedido}`)) || 0;
+        resumo[numPedido] = { 
+          totalAprovado: 0, 
+          totalPesoRefugo: 0, 
+          count: 0,
+          pesoReferencia: pesoRef 
+        };
+      }
+
+      resumo[numPedido].totalAprovado += qtdAprov;
+      resumo[numPedido].totalPesoRefugo += pesoRefugo;
+      resumo[numPedido].count += 1;
+    }
+  }
+  return resumo;
+}
+
+function getLogCompletoPedido(numPedido) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName("Log_InspecaoCQ");
+  if(!aba || aba.getLastRow() < 2) return [];
+  
+  // Pega todas as colunas de A até H
+  const dados = aba.getRange(2, 1, aba.getLastRow()-1, 8).getValues();
+  const lista = [];
+  const timeZone = Session.getScriptTimeZone();
+
+  for(let i=0; i<dados.length; i++) {
+    // Verifica se o pedido bate (Coluna B = índice 1)
+    if(String(dados[i][1]) == String(numPedido)) {
+       
+       // Extrai peso numérico da string (Ex: "0,500 kg (2%)")
+       let peso = 0;
+       const textoReprova = String(dados[i][6] || ""); // Coluna G = índice 6
+       
+       if(textoReprova && textoReprova.includes('kg')) {
+         // Tenta limpar e converter
+         const parteNumerica = textoReprova.split('kg')[0].replace(',', '.').trim();
+         peso = parseFloat(parteNumerica) || 0;
+       }
+
+       lista.push({
+         idLog: dados[i][0],
+         data: Utilities.formatDate(new Date(dados[i][2]), timeZone, "dd/MM/yy HH:mm"),
+         unidade: dados[i][3],
+         inspetor: dados[i][4],
+         qtdAprovada: dados[i][5],
+         strReprova: textoReprova || "0 kg (0%)", // Garante que nunca vá undefined
+         pesoRefugo: peso,
+         motivos: dados[i][7]
+       });
+    }
+  }
+  // Retorna invertido (mais recente no topo)
+  return lista.reverse();
+}
+
+function editarLoteCQ(dadosEditados) {
+  const lock = LockService.getScriptLock();
+  // Tenta travar por 5s para evitar conflito de edição simultânea na mesma linha
+  if (!lock.tryLock(5000)) {
+     throw new Error("Sistema ocupado. Tente novamente.");
+  }
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName("Log_InspecaoCQ");
+    
+    // Busca a linha pelo ID (Coluna A)
+    // Otimização: Ler apenas a coluna A para achar a linha rápido
+    const dadosIds = aba.getRange(2, 1, aba.getLastRow()-1, 1).getValues();
+    let linha = -1;
+    
+    for(let i=0; i<dadosIds.length; i++) {
+      if(String(dadosIds[i][0]) == String(dadosEditados.idLog)) {
+        linha = i + 2;
+        break;
+      }
+    }
+    
+    if(linha > 0) {
+      // Atualiza as colunas: D=4 (Unidade), E=5 (Inspetor), F=6 (Aprov), G=7 (Reprov), H=8 (Motivo)
+      aba.getRange(linha, 4).setValue(dadosEditados.unidade);
+      aba.getRange(linha, 5).setValue(dadosEditados.inspetor);
+      aba.getRange(linha, 6).setValue(dadosEditados.qtdAprovada);
+      
+      // CORREÇÃO: Salva a string formatada que veio do Front ("0,500 kg (5%)")
+      aba.getRange(linha, 7).setValue(dadosEditados.strReprovaFinal);
+      
+      aba.getRange(linha, 8).setValue(dadosEditados.motivos);
+      
+      SpreadsheetApp.flush();
+      return { sucesso: true };
+    }
+    return { sucesso: false, erro: "Lote não encontrado (ID inválido)." };
+    
+  } catch(e) {
+    return { sucesso: false, erro: e.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Excluir Lote
+function excluirLoteCQ(idLog) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(5000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName("Log_InspecaoCQ");
+    const dados = aba.getRange(2, 1, aba.getLastRow()-1, 1).getValues();
+    
+    let linha = -1;
+    for(let i=0; i<dados.length; i++) {
+      if(String(dados[i][0]) == String(idLog)) {
+        linha = i + 2;
+        break;
+      }
+    }
+    
+    if(linha > 0) {
+      aba.deleteRow(linha);
+      SpreadsheetApp.flush();
+      return { sucesso: true };
+    }
+    return { sucesso: false, erro: "Lote não encontrado." };
+  } catch(e) {
+    return { sucesso: false, erro: e.message };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -2942,33 +3141,96 @@ function salvarInicioCQ(linhaPlanilha) {
   }
 }
 
+function salvarPesoReferencia(numPedido, pesoRolo) {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  scriptProperties.setProperty(`PESO_ROLO_${numPedido}`, String(pesoRolo));
+  return "Peso de referência salvo.";
+}
+
+function getPesoReferencia(numPedido) {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const peso = scriptProperties.getProperty(`PESO_ROLO_${numPedido}`);
+  return parseFloat(peso) || 0;
+}
+
 function salvarNovoLoteCQ(dadosLote) {
+  const lock = LockService.getScriptLock();
+  // Tenta obter acesso exclusivo por 10 segundos
+  if (!lock.tryLock(10000)) {
+    throw new Error("Sistema ocupado. Tente novamente.");
+  }
+
   try {
-    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaLogCQ = ss.getSheetByName("Log_InspecaoCQ");
     
-    const idLog = `CQ-${String(abaLogCQ.getLastRow() + 1).padStart(5, '0')}`;
+    if (!abaLogCQ) throw new Error("Aba 'Log_InspecaoCQ' não encontrada.");
+
+    // --- LÓGICA SEQUENCIAL INTELIGENTE (BUSCA O MAIOR ID) ---
+    let maiorNumero = 0;
+
+    // Verifica se tem dados além do cabeçalho
+    if (abaLogCQ.getLastRow() > 1) {
+       // Pega todos os valores da Coluna A (onde ficam os IDs)
+       const dadosIds = abaLogCQ.getRange(2, 1, abaLogCQ.getLastRow() - 1, 1).getValues();
+
+       // Percorre a lista para achar o maior número já registrado
+       for (let i = 0; i < dadosIds.length; i++) {
+          const idTexto = String(dadosIds[i][0]).trim(); // Ex: "CQ-00005" ou "CQ-81923..."
+          
+          // Verifica se começa com CQ-
+          if (idTexto.startsWith("CQ-")) {
+              // Quebra o texto no traço "-" e pega a segunda parte
+              const partes = idTexto.split("-");
+              if (partes.length > 1) {
+                  const numero = parseInt(partes[1], 10); // Converte "00005" para 5
+                  
+                  // Se for um número válido e for maior que o atual, atualiza o maiorNumero
+                  if (!isNaN(numero) && numero > maiorNumero) {
+                      maiorNumero = numero;
+                  }
+              }
+          }
+       }
+    }
+
+    // O próximo será sempre o Maior encontrado + 1
+    const proximoNumero = maiorNumero + 1;
+    const idLog = `CQ-${String(proximoNumero).padStart(5, '0')}`; // CQ-00001
+    
     const dataInspecao = new Date();
     
-    // [ID_Log, Num_Pedido, Data, Unidade_CQ, Inspetor, Qtd_Aprovada, Qtd_Reprovada, Motivo_Reprova]
-    const novaLinha = [
+    // Formata peso e perda
+    const pesoFmt = String(dadosLote.pesoRefugo).replace(".", ",");
+    const perdaFmt = dadosLote.percPerda || "0%";
+    const valorReprovaCombinado = `${pesoFmt} kg (${perdaFmt})`;
+
+    let motivosStr = dadosLote.motivosSelecionados;
+    if (!motivosStr) motivosStr = "";
+    if (Array.isArray(motivosStr)) motivosStr = motivosStr.join(", ");
+
+    if (dadosLote.pesoRoloReferencia && parseFloat(dadosLote.pesoRoloReferencia) > 0) {
+       PropertiesService.getScriptProperties().setProperty(`PESO_ROLO_${dadosLote.numPedido}`, String(dadosLote.pesoRoloReferencia));
+    }
+
+    abaLogCQ.appendRow([
       idLog,
-      dadosLote.numPedido,
+      String(dadosLote.numPedido),
       dataInspecao,
       dadosLote.unidadeCQ,
       dadosLote.inspetor,
-      parseFloat(String(dadosLote.qtdAprovada).replace(",", ".")) || 0,
-      parseFloat(String(dadosLote.qtdReprovada).replace(",", ".")) || 0,
-      dadosLote.motivoReprova || ""
-    ];
+      dadosLote.qtdAprovada,       
+      valorReprovaCombinado,       
+      motivosStr
+    ]);
     
-    abaLogCQ.appendRow(novaLinha);
-    SpreadsheetApp.flush();
+    SpreadsheetApp.flush(); 
+    return true;
     
-    // Retorna todos os dados atualizados para o frontend
-    return buscarPedidosParaQualidade_v2();
   } catch (e) {
-    Logger.log(`Erro ao salvar novo lote de CQ: ${e.message}`);
-    throw new Error(e.message);
+    throw new Error("Erro ao salvar lote: " + e.message);
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -3001,43 +3263,7 @@ function getDetalhesInspecaoCQ(numPedido) {
   }
 }
 
-// (ADICIONE ESTA FUNÇÃO ao Código.gs)
 
-/**
- * (NOVO HELPER v2)
- * Adiciona uma entrada POSITIVA no Estoque_Acabado.
- * @param {Array} dadosLinhaPedido - O array da linha da aba "Pedidos".
- * @param {number} qtdSobra - A quantidade (positiva) a ser adicionada.
- */
-function _adicionarSobraEstoque(dadosLinhaPedido, qtdSobra) {
-  try {
-    if (qtdSobra <= 0) return; // Não faz nada se a sobra for zero ou negativa
-    
-    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
-    
-    // Pega os dados do pedido (base 0)
-    const codProduto = dadosLinhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1];
-    const descricao = dadosLinhaPedido[COL_PEDIDO_DESCRICAO - 1];
-    const cliente = dadosLinhaPedido[COL_PEDIDO_CLIENTE - 1];
-    const numPedido = dadosLinhaPedido[COL_PEDIDO_NUMERO - 1];
-    
-    const novaLinha = [
-      codProduto,
-      descricao,
-      cliente,
-      qtdSobra, // Quantidade POSITIVA
-      new Date(),
-      `Sobra CQ Pedido ${numPedido}`
-    ];
-    
-    abaEstoque.appendRow(novaLinha);
-    Logger.log(`Estoque de Sobra: +${qtdSobra} de ${codProduto} (Pedido ${numPedido}) adicionado.`);
-    
-  } catch (e) {
-    Logger.log(`ERRO ao adicionar sobra ao estoque: ${e.message}`);
-    // Não lança erro para não parar a finalização do CQ
-  }
-}
 
 function reportarProblemaCQ_v2(dadosProblema) {
   try {
@@ -3972,15 +4198,7 @@ function registrarCancelamentoPedido(linhaPlanilha, numPedido, motivo) {
   }
 }
 
-/**
- * ==================================================================
- * FUNÇÕES DO GERADOR DE ORÇAMENTO
- * ==================================================================
- */
 
-// --- (COLE O ID DO SEU TEMPLATE AQUI) ---
-const TEMPLATE_ID = "1jWpJOcmCM14wFe5HCOyOsPGxbMAEubJFHkJsDfVwIDM"; 
-// (O ID é a parte longa no link: docs.google.com/document/d/ [O_ID_FICA_AQUI] /edit)
 
 const NOME_ABA_ORCAMENTOS = "Orçamentos";
 
@@ -3994,151 +4212,339 @@ function abrirFormOrcamento() {
   SpreadsheetApp.getUi().showModalDialog(html, ' ');
 }
 
+// ======================================================
+//  MÓDULO DE ORÇAMENTOS (NOVO)
+// ======================================================
 
 /**
- * Busca dados das vendedoras para o formulário.
- * (Esta função já existe no seu código, mas 'getDadosIniciaisOrcamento' é um bom nome)
+ * Gera o próximo número sequencial (Iniciando em 55000)
  */
-function getDadosIniciaisOrcamento() {
-  // Reutilizamos sua função 'getListaDeAba'
-  return getListaDeAba(NOME_ABA_VENDEDORAS, 1); 
-}
-
-/**
- * Gera o próximo número de orçamento (Ex: ORC-2025-0001)
- */
-function getProximoNumOrcamento() {
-  const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ORCAMENTOS);
-  const ultimoNum = aba.getLastRow();
-  const ano = new Date().getFullYear();
+function getProximoNumeroOrcamento() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let aba = ss.getSheetByName("Orçamentos");
   
-  if (ultimoNum < 2) {
-    return `ORC-${ano}-0001`;
+  // Se a aba não existir, cria ela
+  if (!aba) {
+    aba = ss.insertSheet("Orçamentos");
+    // Cria cabeçalhos se for nova
+    aba.appendRow([
+      "ID", "Data", "Vendedora", "Cliente", "CNPJ", "Cond. Pagto", "Frete", "Prazo", "Validade", "Obs",
+      "Tipo Item", "Cód.", "Descrição", "Faca", "Substrato", "Cores", "Tipo Rótulo", "NF", "NCM", "Qtd", "Tipo Preço", "Valor Venda", "Total Item"
+    ]);
+    return 55000;
   }
+
+  const ultimaLinha = aba.getLastRow();
+  if (ultimaLinha <= 1) return 55000; // Se só tiver cabeçalho
+
+  // Pega o último ID da coluna A e soma 1
+  const ultimoId = aba.getRange(ultimaLinha, 1).getValue();
   
-  // Tenta encontrar o último número do ano atual
-  const dados = aba.getRange(2, 1, ultimoNum - 1, 1).getValues().flat();
-  let maiorNumeroDoAno = 0;
-  
-  dados.forEach(d => {
-    if (d.startsWith(`ORC-${ano}-`)) {
-      const num = parseInt(d.split('-')[2], 10);
-      if (num > maiorNumeroDoAno) {
-        maiorNumeroDoAno = num;
-      }
-    }
-  });
-  
-  const proximoNum = (maiorNumeroDoAno + 1).toString().padStart(4, '0');
-  return `ORC-${ano}-${proximoNum}`;
+  // Validação simples se for número
+  if (typeof ultimoId === 'number') {
+    return ultimoId + 1;
+  } else {
+    return 55000; // Fallback
+  }
 }
 
-
 /**
- * FUNÇÃO PRINCIPAL: Gera o PDF do Orçamento
- * --- VERSÃO CORRIGIDA FINAL (Link PDF) ---
+ * Salva o Orçamento (ATUALIZADO COM NOVAS COLUNAS)
  */
-function gerarOrcamentoPDF(dados) {
+function salvarOrcamentoComplexo(payload) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) throw new Error("Servidor ocupado.");
+
   try {
-    const abaOrcamentos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ORCAMENTOS);
-    const abaVendedoras = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_VENDEDORAS);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let aba = ss.getSheetByName("Orçamentos");
     
-    // 1. Buscar dados da Vendedora (Email/Telefone)
-    const dadosVendedoras = abaVendedoras.getRange(2, 1, abaVendedoras.getLastRow() - 1, 3).getValues();
-    let vendedoraEmail = "N/A";
-    let vendedoraTelefone = "N/A";
-    
-    for (const v of dadosVendedoras) {
-      if (v[0] === dados.vendedora) {
-        vendedoraEmail = v[1];
-        vendedoraTelefone = v[2];
-        break;
-      }
+    // Se não existir, cria com cabeçalho expandido (Adicionei a Forma Pagto no final)
+    if (!aba) {
+      aba = ss.insertSheet("Orçamentos");
+      aba.appendRow([
+        "ID", "Data", "Vendedora", "Cliente", "CNPJ", "Cond. Pagto", "Frete", "Prazo", "Validade", "Obs", // A-J
+        "Tipo Item", "Cód.", "Descrição", "Faca", "Substrato", "Cores", "Tipo Rótulo", "NF", "NCM", "Qtd", "Unidade", "Valor", "Total", // K-W
+        "Cola", "Acabamento", "Cold", // X-Z
+        "Forma Pagto" // AA (Índice 26) - NOVA COLUNA
+      ]);
     }
 
-    // 2. Gerar Nº do Orçamento e Data
-    const numOrcamento = getProximoNumOrcamento();
-    const dataFormatada = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
+    const idOrcamento = getProximoNumeroOrcamento();
+    const dataHoje = new Date();
+    const head = payload.cabecalho;
+    const linhasParaSalvar = [];
 
-    // 3. Salvar na Planilha 'Orçamentos'
-    const novaLinha = [
-      numOrcamento, new Date(), dados.vendedora, dados.clienteNome,
-      dados.itemCod, dados.itemDesc, dados.itemQtd, dados.itemPrecoUnit,
-      dados.precoFinalTotal, dados.condPagamento, dados.validade,
-      dados.observacoes, "" // Link em branco por enquanto
-    ];
-    abaOrcamentos.appendRow(novaLinha);
-    const linhaAtual = abaOrcamentos.getLastRow();
-    
-    // 4. Encontrar ou Criar a pasta de destino
-    const nomePasta = "Orçamentos";
-    let pastaDestino;
-    const pastas = DriveApp.getFoldersByName(nomePasta);
-    
-    if (pastas.hasNext()) {
-      pastaDestino = pastas.next(); 
-    } else {
-      pastaDestino = DriveApp.createFolder(nomePasta); 
+    payload.itens.forEach(item => {
+      // Parse de números
+      const qtd = _parseNumero(item.qtd);
+      const valorVenda = _parseNumero(item.precoInput);
+      const totalItem = _parseNumero(item.totalItem);
+      
+      const linha = [
+        idOrcamento,          // A
+        dataHoje,             // B
+        head.vendedora,       // C
+        head.cliente,         // D
+        head.cnpj,            // E
+        head.condPagto,       // F
+        head.frete,           // G
+        head.prazo,           // H
+        head.validade,        // I
+        head.observacoes,     // J
+        
+        item.tipoItem,        // K
+        item.codigo,          // L
+        item.descricao,       // M
+        item.faca,            // N
+        item.substrato,       // O
+        item.cores,           // P
+        item.tipoRotulo,      // Q
+        item.nota,            // R
+        item.ncm,             // S
+        qtd,                  // T
+        item.unidade,         // U
+        valorVenda,           // V
+        totalItem,            // W
+        
+        item.cola,            // X (23)
+        item.acabamento,      // Y (24)
+        item.cold,            // Z (25)
+        
+        // >>> CAMPO NOVO ADICIONADO NO FINAL <<<
+        head.formaPagto       // AA (26)
+      ];
+      
+      linhasParaSalvar.push(linha);
+    });
+
+    if (linhasParaSalvar.length > 0) {
+      // Salva tudo de uma vez
+      aba.getRange(aba.getLastRow() + 1, 1, linhasParaSalvar.length, linhasParaSalvar[0].length).setValues(linhasParaSalvar);
     }
-    
-    const templateDoc = DriveApp.getFileById(TEMPLATE_ID);
-    const nomeNovoDoc = `Orçamento ${numOrcamento} - ${dados.clienteNome}`;
-    
-    const copia = templateDoc.makeCopy(nomeNovoDoc, pastaDestino); 
-    
-    const doc = DocumentApp.openById(copia.getId());
-    const body = doc.getBody();
 
-    // 5. Substituir TODOS os Placeholders
-    body.replaceText("{{ORCAMENTO_NUM}}", numOrcamento);
-    body.replaceText("{{DATA}}", dataFormatada);
-    body.replaceText("{{VALIDADE}}", dados.validade);
-    body.replaceText("{{CLIENTE_NOME}}", dados.clienteNome);
-    body.replaceText("{{CLIENTE_CNPJ}}", dados.clienteCNPJ || "N/A");
-    
-    body.replaceText("{{VENDEDORA_NOME}}", dados.vendedora);
-    body.replaceText("{{VENDEDORA_EMAIL}}", vendedoraEmail);
-    body.replaceText("{{VENDEDORA_TELEFONE}}", vendedoraTelefone);
-    
-    body.replaceText("{{ITEM_DESC}}", dados.itemDesc);
-    body.replaceText("{{ITEM_QTD}}", dados.itemQtd);
-    body.replaceText("{{ITEM_PRECO_UNIT}}", dados.itemPrecoUnit);
-    body.replaceText("{{ITEM_PRECO_TOTAL}}", dados.itemPrecoTotal);
-    
-    body.replaceText("{{ITEM_COD}}", dados.itemCod);
-    body.replaceText("{{ITEM_FACA}}", dados.itemFaca);
-    body.replaceText("{{ITEM_SUBSTRATO}}", dados.itemSubstrato);
-    
-    body.replaceText("{{PRECO_FINAL_TOTAL}}", dados.precoFinalTotal);
-    
-    body.replaceText("{{CONDICOES_PAGAMENTO}}", dados.condPagamento);
-    body.replaceText("{{TIPO_FRETE}}", dados.tipoFrete);
-    body.replaceText("{{PRAZO_ENTREGA}}", dados.prazoEntrega);
-    body.replaceText("{{OBSERVACOES}}", dados.observacoes || "Sem observações.");
-
-    // ==========================================================
-    // ==== CORREÇÃO FINAL AQUI ====
-    // ==========================================================
-    
-    // 6. Salvar e Fechar o Documento
-    doc.saveAndClose();
-    
-    // 7. Gerar o Link de PDF usando o ID do arquivo (à prova de falhas)
-    const docId = copia.getId(); // Pega o ID do arquivo que acabamos de criar
-    const pdfLink = `https://docs.google.com/document/d/${docId}/export?format=pdf`;
-    
-    // 8. Atualizar a planilha com o link do PDF
-    abaOrcamentos.getRange(linhaAtual, 13).setValue(pdfLink); // Coluna 13 = "Link do Documento"
-    
-    // 9. Retornar sucesso
-    return { sucesso: true, pdfLink: pdfLink };
-    // ==========================================================
+    return idOrcamento;
 
   } catch (e) {
-    Logger.log(e);
-    return { sucesso: false, mensagem: e.message };
+    throw new Error("Erro ao salvar: " + e.message);
+  } finally {
+    lock.releaseLock();
   }
 }
+
+function DIAGNOSTICO_COLUNAS() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName("Orçamentos"); // <--- VERIFIQUE SE O NOME É ESSE MESMO
+  
+  if (!aba) {
+    console.log("ERRO: Aba 'Orçamentos' não encontrada. Verifique o nome (acentos, espaços).");
+    return;
+  }
+  
+  // Pega as 2 primeiras linhas para vermos onde estão os dados
+  const dados = aba.getRange(1, 1, 2, 25).getValues(); 
+  
+  console.log("--- CABEÇALHO (Linha 1) ---");
+  // Mostra o nome da coluna e o número do índice (0, 1, 2...) para você ajustar
+  dados[0].forEach((col, index) => {
+    console.log(`Índice [${index}] (Coluna ${String.fromCharCode(65 + index)}): ${col}`);
+  });
+  
+  console.log("--- DADOS (Linha 2 - Exemplo) ---");
+  console.log("ID do Orçamento na Coluna A (índice 0) é: " + dados[1][0]);
+}
+
+function buscarOrcamentoPorId(idBuscado) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // --- 1. BUSCA O ORÇAMENTO ---
+  const abaOrc = ss.getSheetByName("Orçamentos");
+  if (!abaOrc) return null;
+
+  const dadosOrc = abaOrc.getDataRange().getValues();
+  // Filtro flexível (Texto/Número e Espaços)
+  const linhasOrc = dadosOrc.filter(row => String(row[0]).trim() == String(idBuscado).trim());
+  
+  if (linhasOrc.length === 0) return null;
+  
+  const head = linhasOrc[0];   
+  const nomeClienteOrcamento = String(head[3]).trim(); // Coluna D (Nome no Orçamento)
+
+  // --- 2. BUSCA DADOS CADASTRAIS (CRUZAMENTO) ---
+  const abaCli = ss.getSheetByName("Clientes");
+  let dadosCliente = { endereco: "---", email: "---", contato: "---", cnpj: "---" };
+  
+  if (abaCli) {
+    const dadosCli = abaCli.getDataRange().getValues();
+    
+    // Busca o cliente ignorando maiúsculas/minúsculas e espaços
+    const clienteEncontrado = dadosCli.find(row => {
+      // SUPONDO QUE O NOME DO CLIENTE ESTEJA NA COLUNA B (Índice 1)
+      // Se estiver na A, mude row[1] para row[0]
+      return String(row[1]).trim().toUpperCase() === nomeClienteOrcamento.toUpperCase();
+    });
+    
+    if (clienteEncontrado) {
+       // 🔴 VERIFIQUE OS ÍNDICES ABAIXO COM O SEU LOG (A=0, B=1, C=2, D=3, E=4, F=5...)
+       const cnpj    = clienteEncontrado[2]; // Coluna C
+       const contato = clienteEncontrado[3]; // Coluna D
+       const cep     = clienteEncontrado[4]; // Coluna E
+       const end     = clienteEncontrado[5]; // Coluna F (Rua)
+       const bairro  = clienteEncontrado[6]; // Coluna G
+       const cidade  = clienteEncontrado[7]; // Coluna H
+       const uf      = clienteEncontrado[8]; // Coluna I
+       const email   = clienteEncontrado[9]; // Coluna J
+       
+       dadosCliente.endereco = `${end}, ${bairro} - ${cidade}/${uf} (CEP: ${cep})`;
+       dadosCliente.email    = email;
+       dadosCliente.cnpj     = cnpj;
+       dadosCliente.contato  = contato;
+    } else {
+       console.log("Cliente não encontrado na base: " + nomeClienteOrcamento);
+    }
+  }
+
+  // --- 3. LISTA DE ITENS (Mantido do seu log anterior) ---
+  const listaItens = linhasOrc.map(row => {
+    return {
+      tipoItem:   row[10], codigo: row[11], descricao: row[12], faca: row[13],
+      substrato:  row[14], cores: row[15], tipoRotulo: row[16], nota: row[17],
+      ncm:        row[18], qtd: row[19], unidade: row[20], precoInput: row[21],
+      totalItem:  row[22], cola: row[23], acabamento: row[24], cold: row[25] || ""
+    };
+  });
+
+  const notaOrc = (head.length > 17) ? head[17] : ""; 
+  const ncmOrc = (head.length > 18) ? head[18] : ""; 
+
+  // --- 4. RETORNO ---
+  return {
+    // Raiz (Para o Pedido)
+    vendedora:  head[2],
+    cliente:    nomeClienteOrcamento,
+    endereco:   dadosCliente.endereco,
+    email:      dadosCliente.email,
+    cnpj:       dadosCliente.cnpj,
+    contato:    dadosCliente.contato,
+    condPagto:  head[5],
+    formaPagto: head[26],
+    frete:      head[6],
+    ncm:        ncmOrc,
+    notaFiscal: notaOrc,
+
+    // Objeto (Para o Clonar)
+    cabecalho: {
+      vendedora:   head[2], cliente: nomeClienteOrcamento, condPagto: head[5], formaPagto:  head[26],
+      frete:       head[6], prazo: head[7], validade: head[8], observacoes: head[9]
+    },
+    itens: listaItens
+  };
+}
+
+function buscarDadosClientePorNome(nomeCliente) {
+  // 1. Validação básica
+  if (!nomeCliente || nomeCliente == "") return null;
+
+  console.log("Buscando cliente: " + nomeCliente); // Log para debug
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // CORREÇÃO PRINCIPAL: Nome da aba exato
+  const aba = ss.getSheetByName("Clientes"); 
+  
+  if (!aba) {
+    console.log("ERRO: Aba 'Clientes' não encontrada.");
+    return null;
+  }
+  
+  const dados = aba.getDataRange().getValues();
+  
+  // 2. BUSCA (Ignora maiúsculas e espaços)
+  // Baseado no seu log: Índice [1] (Coluna B) = Cliente
+  const linha = dados.find(r => {
+    return String(r[1]).trim().toUpperCase() === String(nomeCliente).trim().toUpperCase();
+  });
+  
+  if (!linha) {
+    console.log("Cliente não encontrado. Verifique se o nome no Produto é IDÊNTICO ao da aba Clientes.");
+    return null;
+  }
+
+  // 3. MAPEAMENTO EXATO (Baseado no seu LOG)
+  // [2]=CNPJ, [3]=Contato, [4]=CEP, [5]=Endereço, [6]=Bairro, [7]=Cidade, [8]=Estado, [9]=Email
+  
+  return {
+    cnpj:     linha[2], 
+    contato:  linha[3],
+    cep:      linha[4],
+    endereco: linha[5],
+    bairro:   linha[6],
+    cidade:   linha[7],
+    uf:       linha[8],
+    email:    linha[9],
+    
+    // Formatação do endereço completo para impressão
+    enderecoCompleto: `${linha[5]}, ${linha[6]} - ${linha[7]}/${linha[8]} (CEP: ${linha[4]})`
+  };
+}
+
+// Mantenha a função _parseNumero que já existia
+function _parseNumero(valorStr) {
+  if (!valorStr) return 0;
+  if (typeof valorStr === 'number') return valorStr;
+  const limpo = valorStr.toString().replace(/[R$\s.]/g, '').replace(',', '.');
+  const num = parseFloat(limpo);
+  return isNaN(num) ? 0 : num;
+}
+
+// --- NOVAS FUNÇÕES PARA O FORM ORÇAMENTO v2 ---
+
+/**
+ * Busca lista de Clientes para o Autocomplete
+ * Mapeamento Real: B=Cliente, C=CNPJ, F=Endereço, G=Bairro, H=Cidade, I=Estado, E=CEP
+ */
+/**
+ * Retorna lista de clientes para o autocomplete com Endereço Completo
+ */
+function getListaClientesCompleta() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName("Clientes"); 
+  if (!aba || aba.getLastRow() <= 1) return [];
+  
+  // B=Cliente, C=CNPJ, F=Endereço, G=Bairro, H=Cidade, I=Estado, E=CEP
+  const dados = aba.getRange(2, 1, aba.getLastRow() - 1, 11).getValues();
+  
+  return dados.map(linha => {
+    // Monta endereço bonitinho
+    const end = linha[5] ? `${linha[5]}, ${linha[6]} - ${linha[7]}/${linha[8]} - CEP: ${linha[4]}` : "Endereço não cadastrado";
+    
+    return {
+      nome: linha[1], 
+      cnpj: linha[2], 
+      endereco: end 
+    };
+  }).filter(c => c.nome && c.nome.toString().trim() !== "");
+}
+
+// OBS: A função getDadosCompletosProduto que fizemos anteriormente JÁ traz 
+// 'tipoRotulo', 'qtdLaminas' (cores), 'substrato', etc. 
+// O erro de não preencher era no Frontend (JS), que corrigi abaixo.
+
+/**
+ * Busca listas auxiliares (Substratos, Acabamentos, Colas)
+ * Você pode ajustar para pegar de abas reais se tiver.
+ * Por enquanto, vou deixar fixo ou pegar de uma aba "Config" se quiser.
+ */
+function getListasSuspensas() {
+  // Tente pegar das abas reais, ou use estes arrays como fallback
+  return {
+    substratos: ["Couchê", "Bopp Leitoso", "Bopp Fosco", "Bopp Transparente","Bopp Metalizado", "Papel Térmico", "Cartolina 90g", "Polinil", "PEAD"],
+    colas: ["Acrílica", "Cola de Borracha 20G", "Cola de Borracha 25G"],
+    acabamentos: ["Verniz Brilho", "Verniz Fosco", "Laminação Brilho", "Laminação Fosca", "Neutra"],
+    colds: ["Sem Cold", "Cold Stamping Ouro", "Cold Stamping Prata"]
+  };
+}
+
 
 /**
  * ==================================================================
@@ -8848,304 +9254,326 @@ function _criarMapaDetalhesPedidos() {
     return mapa;
 }
 
-/**
- * (NOVO HELPER v1)
- * Busca o saldo total de um produto no Estoque_Acabado.
- * @param {string} codProduto O código do produto (ex: "FC-0001").
- * @returns {object} { qtd: 500, cliente: "Cliente Exemplo" }
- */
+// ==========================================================
+// GESTÃO DE SOBRAS DE ESTOQUE (OTIMIZADO)
+// ==========================================================
+
+// 1. BUSCAR SOBRA (Para o FormPedido e Validações)
+function buscarSobraEstoquePublica(codProduto) {
+  return _buscarSobraEstoque(codProduto);
+}
+
 function _buscarSobraEstoque(codProduto) {
   let saldoTotal = 0;
   let cliente = "";
-  let descricao = "";  // NOVO: vamos capturar a descrição real
+  let descricao = "";
   
   try {
     const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
-    if (abaEstoque.getLastRow() > 1) {
+    if (abaEstoque && abaEstoque.getLastRow() > 1) {
       
-      // Agora pegamos 4 colunas: A (ID), B (Descrição), C (Cliente), D (Qtd)
+      // Lê Colunas A, B, C, D (ID, Descrição, Cliente, Qtd)
       const dados = abaEstoque.getRange(2, 1, abaEstoque.getLastRow() - 1, 4).getValues();
-      
-      const codBusca = codProduto.trim().toUpperCase();
+      const codBusca = String(codProduto).trim().toUpperCase();
 
       for (const linha of dados) {
-        const id = linha[0].toString().trim().toUpperCase();
+        const id = String(linha[0]).trim().toUpperCase();
         
         if (id === codBusca) {
+          // Soma a Qtd (Coluna D, índice 3)
+          let val = linha[3];
+          if (typeof val === 'string') {
+             val = parseFloat(val.replace(",", ".")) || 0;
+          }
+          saldoTotal += val;
 
-          // Soma saldo
-          saldoTotal += parseFloat(String(linha[3]).replace(",", ".")) || 0;
-
-          // Captura cliente na primeira ocorrência
+          // Captura metadados do primeiro registro encontrado
           if (!cliente) cliente = linha[2] || "";
-
-          // Captura descrição somente na primeira ocorrência
           if (!descricao) descricao = linha[1] || "";
         }
       }
     }
   } catch (e) {
-    Logger.log(`Erro ao buscar sobra de estoque para ${codProduto}: ${e.message}`);
+    Logger.log(`Erro ao buscar sobra: ${e.message}`);
   }
 
   return {
-    qtd: Math.max(0, saldoTotal),
+    qtd: Math.max(0, saldoTotal), // Evita saldo negativo por erro de arredondamento
     cliente: cliente,
-    descricao: descricao  // NOVO — agora a descrição existe
+    descricao: descricao
   };
 }
 
+// 2. REGISTRAR SOBRA (Entrada Positiva - Usada pelo CQ)
+// Função Wrapper Pública
+function _adicionarSobraEstoquePublica(numPedido, qtd) {
+  try {
+    // Busca a linha do pedido para pegar os dados completos
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    const dados = abaPedidos.getDataRange().getValues();
+    let linhaDados = null;
+    
+    // Procura o pedido (Coluna A = índice 0)
+    for(let i=1; i<dados.length; i++) {
+      if(String(dados[i][0]) == String(numPedido)) {
+        linhaDados = dados[i];
+        break;
+      }
+    }
+    
+    if(linhaDados) {
+      // Chama a função interna com a linha encontrada
+      _adicionarSobraEstoque(linhaDados, parseFloat(qtd));
+      return "Sobra registrada com sucesso.";
+    } else {
+      throw new Error("Pedido não encontrado.");
+    }
+  } catch(e) {
+    throw new Error("Erro ao registrar sobra: " + e.message);
+  }
+}
 
-// (ADICIONE ESTA FUNÇÃO ao Código.gs)
-
-/**
- * (NOVO HELPER v2)
- * Adiciona uma entrada POSITIVA no Estoque_Acabado.
- * @param {Array} dadosLinhaPedido - O array da linha da aba "Pedidos".
- * @param {number} qtdSobra - A quantidade (positiva) a ser adicionada.
- */
+// Função Interna (Realmente grava)
 function _adicionarSobraEstoque(dadosLinhaPedido, qtdSobra) {
   try {
-    if (qtdSobra <= 0) return; // Não faz nada se a sobra for zero ou negativa
-    
+    if (qtdSobra <= 0) return;
+
     const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
     
-    // Pega os dados do pedido (base 0)
+    // Extrai dados da linha do pedido (Baseado nas suas Constantes Globais)
     const codProduto = dadosLinhaPedido[COL_PEDIDO_PRODUTO_CODIGO - 1];
     const descricao = dadosLinhaPedido[COL_PEDIDO_DESCRICAO - 1];
     const cliente = dadosLinhaPedido[COL_PEDIDO_CLIENTE - 1];
     const numPedido = dadosLinhaPedido[COL_PEDIDO_NUMERO - 1];
     
-    const novaLinha = [
+    // ORDEM CORRETA: ID | Desc | Cli | Qtd | Data | Origem
+    abaEstoque.appendRow([
       codProduto,
       descricao,
       cliente,
-      qtdSobra, // Quantidade POSITIVA
+      Math.abs(parseFloat(qtdSobra)), // Garante positivo
       new Date(),
       `Sobra CQ Pedido ${numPedido}`
-    ];
+    ]);
     
-    abaEstoque.appendRow(novaLinha);
-    Logger.log(`Estoque de Sobra: +${qtdSobra} de ${codProduto} (Pedido ${numPedido}) adicionado.`);
+    SpreadsheetApp.flush();
     
   } catch (e) {
-    Logger.log(`ERRO ao adicionar sobra ao estoque: ${e.message}`);
-    // Não lança erro para não parar a finalização do CQ
+    Logger.log(`ERRO ao adicionar sobra: ${e.message}`);
   }
 }
 
-/// [SUBSTITUA ESTA FUNÇÃO NO SEU ARQUIVO .GS]
-
+// 3. CONSUMIR SOBRA (Saída Negativa - Usada pela Produção)
 function consumirSobraEstoque(codProduto, qtdConsumida, numPedidoOrigem) {
   try {
-    // =========================================================
-    // PARTE 1: SUA LÓGICA DE CONSUMO (IDÊNTICA À SUA)
-    // =========================================================
     const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
-    
-    const codBusca = codProduto.trim().toUpperCase();
+    const codBusca = String(codProduto).trim().toUpperCase();
     const qtdDebitar = parseFloat(String(qtdConsumida).replace(",", ".")) || 0;
     
-    if (qtdDebitar <= 0) {
-      throw new Error("A quantidade a consumir deve ser maior que zero.");
-    }
+    if (qtdDebitar <= 0) throw new Error("Qtd deve ser maior que zero.");
 
-    // Valida se há saldo suficiente (Assumindo que _buscarSobraEstoque existe)
+    // Valida saldo
     const infoSobra = _buscarSobraEstoque(codBusca);
     if (infoSobra.qtd < qtdDebitar) {
-      throw new Error(`Consumo (${qtdDebitar}) maior que o saldo em estoque (${infoSobra.qtd}).`);
+      throw new Error(`Saldo insuficiente (${infoSobra.qtd}).`);
     }
 
-    const novaLinha = [
+    // Lança saída negativa
+    abaEstoque.appendRow([
       codBusca,
-      infoSobra.descricao, // Descrição
-      infoSobra.cliente, // Cliente
-      -Math.abs(qtdDebitar), // Quantidade NEGATIVA
+      infoSobra.descricao,
+      infoSobra.cliente,
+      -Math.abs(qtdDebitar), // Negativo
       new Date(),
-      `Consumo Produção Pedido ${numPedidoOrigem}` // Origem
-    ];
+      `Consumo Produção Pedido ${numPedidoOrigem}`
+    ]);
     
-    abaEstoque.appendRow(novaLinha);
     SpreadsheetApp.flush();
     
-    // =========================================================
-    // PARTE 2: [CORRIGIDO] - LIMPAR A OBSERVAÇÃO NA ABA "PEDIDOS"
-    // =========================================================
-        
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    // VAI USAR SUA VARIÁVEL GLOBAL 'NOME_ABA_PEDIDOS'
-    const abaProducao = ss.getSheetByName(NOME_ABA_PEDIDOS); 
-    if (!abaProducao) {
-      throw new Error(`Aba "${NOME_ABA_PEDIDOS}" não encontrada.`); 
-    }
-
-    // Pega todos os dados da aba
-    const data = abaProducao.getDataRange().getValues(); 
-
-    let linhaPedido = -1; // Variável para guardar a linha (1-based)
-
-    // *** CORREÇÃO AQUI ***
-    // 'data' é um array 0-based. Suas constantes (COL_PEDIDO_NUMERO) são 1-based.
-    // Por isso, acessamos 'data[i][COL_PEDIDO_NUMERO - 1]'
-    const colPedidoIndexZeroBased = COL_PEDIDO_NUMERO - 1;
-
-    // 3. Encontre a linha do pedido (começa em i = 1 para pular o header)
-    for (let i = 1; i < data.length; i++) {
-      // Usamos '==' para o caso de "12345" (texto) ser igual a 12345 (número)
-      if (data[i][colPedidoIndexZeroBased] == numPedidoOrigem) { 
-        linhaPedido = i + 1; // +1 porque 'i' é 0-based e getRange é 1-based
+    // Limpa a OBS do pedido (Lógica otimizada)
+    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
+    const dadosPedidos = abaPedidos.getRange(2, 1, abaPedidos.getLastRow()-1, 1).getValues(); // Lê só a coluna de ID
+    
+    for (let i = 0; i < dadosPedidos.length; i++) {
+      if (String(dadosPedidos[i][0]) == String(numPedidoOrigem)) {
+        // i+2 pois o array é base 0 e pulamos o header (linha 1)
+        abaPedidos.getRange(i + 2, COL_PEDIDO_OBS_PCP).setValue(""); 
         break;
       }
     }
-    
-    if (linhaPedido === -1) {
-       // Apenas registra o log, não joga um erro
-       Logger.log(`[consumirSobraEstoque] Pedido ${numPedidoOrigem} não encontrado na aba ${NOME_ABA_PEDIDOS} para limpar OBS.`);
-    } else {
-       // 4. Limpa a célula de OBS
-       //    linhaPedido = 1-based (ex: 5)
-       //    COL_PEDIDO_OBS_PCP = 1-based (ex: 25)
-       abaProducao.getRange(linhaPedido, COL_PEDIDO_OBS_PCP).setValue(""); 
-       Logger.log(`OBS do Pedido ${numPedidoOrigem} (Linha ${linhaPedido}) limpa com sucesso.`);
-    }
 
-    // =========================================================
-    // PARTE 3: RETORNO DE SUCESSO
-    // =========================================================
     return { 
       sucesso: true, 
-      mensagem: `Baixa de ${qtdDebitar} rótulos (${codBusca}) registrada. Observação do pedido limpa.` 
+      mensagem: `Baixa de ${qtdDebitar} rótulos registrada.` 
     };
     
   } catch (e) {
-    Logger.log(`Erro ao consumir sobra de estoque: ${e.message}`);
+    Logger.log(`Erro ao consumir: ${e.message}`);
     return { sucesso: false, mensagem: e.message }; 
   }
 }
 
-
-function finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso) {
+// 4. DESCARTAR SOBRA (Saída Negativa Total - Usada pelo Estoque)
+function descartarSobraEstoque(codProduto, motivo) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) {
-    throw new Error("O sistema está ocupado. Tente novamente.");
-  }
-  
+  if (!lock.tryLock(5000)) throw new Error("Sistema ocupado.");
+
   try {
-    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-    const abaLogCQ = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    const abaEstoque = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ESTOQUE_ACABADO);
     
-    // 1. Pegar dados do Pedido
-    const rangePedido = abaPedidos.getRange(linhaPlanilha, 1, 1, TOTAL_COLUNAS_PEDIDOS);
-    const dadosPedido = rangePedido.getValues()[0]; 
-    const displayPedido = rangePedido.getDisplayValues()[0]; 
-    
-    // Validação 1: Data Fim Produção
-    const dataFimProducao = dadosPedido[COL_PEDIDO_DATA_FIM_PROD - 1]; // Col AM (39)
-    if (!dataFimProducao || String(dataFimProducao).trim() === "") {
-      throw new Error(`Pedido ${numPedido}: Não pode ser finalizado. A Produção (Data Fim Produção) ainda não foi concluída.`);
-    }
+    // Busca saldo atual para zerar
+    const saldoAtualObj = _buscarSobraEstoque(codProduto);
+    const saldoParaZerar = saldoAtualObj.qtd;
 
-    const qtdPedidoOriginal = parseFloat(String(displayPedido[COL_PEDIDO_QUANTIDADE - 1]).replace(/\./g, '').replace(',', '.')) || 0;
-    const semExcedenteFlag = String(dadosPedido[COL_PEDIDO_SEM_EXCEDENTE - 1]).trim().toUpperCase();
-    const isSemExcedente = (semExcedenteFlag === "TRUE" || semExcedenteFlag === "VERDADEIRO" || semExcedenteFlag === "SIM");
-    const dataEntregaStr = displayPedido[COL_PEDIDO_DATA_ENTREGA - 1];
-    
-    // 2. Calcular Totais e Coletar Dados do Log_InspecaoCQ
-    let totalAprovado = 0;
-    let totalReprovado = 0;
-    const inspetoresUsados = new Set();
-    const unidadesUsadas = new Set();
-    const motivosReprova = [];
-    
-    if (abaLogCQ.getLastRow() > 1) {
-      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 7).getValues();
-      for (const linhaLog of dadosLog) {
-        if (linhaLog[0] == numPedido) { 
-          totalAprovado += parseFloat(linhaLog[4]) || 0; 
-          totalReprovado += parseFloat(linhaLog[5]) || 0; 
-          if (linhaLog[2]) unidadesUsadas.add(linhaLog[2].trim());
-          if (linhaLog[3]) inspetoresUsados.add(linhaLog[3].trim());
-          if (linhaLog[6] && linhaLog[6].trim() !== "") {
-            motivosReprova.push(`(${linhaLog[3] || 'N/D'}): ${linhaLog[6].trim()}`);
-          }
-        }
-      }
-    }
-    
-    const inspetoresString = Array.from(inspetoresUsados).join(', ');
-    const unidadesString = Array.from(unidadesUsadas).join(', ');
-    const motivosString = motivosReprova.join(' | ');
-
-    // 3. Validação de Quantidade (COM A REGRA CORRIGIDA)
-    let valido = false;
-    let limiteMin = 0;
-    let limiteMaxSobra = 0; // O que passar disso, vira sobra
-
-    if (isSemExcedente) {
-      // REGRA 1: Sem Excedente
-      limiteMin = qtdPedidoOriginal; // Mínimo é 100%
-      limiteMaxSobra = qtdPedidoOriginal; // O que passar de 100% vira sobra
-      valido = (totalAprovado >= limiteMin);
-      if (!valido) {
-        throw new Error(`Falha na validação: Pedido é SEM EXCEDENTE. Qtd Aprovada (${totalAprovado}) deve ser no MÍNIMO 100% (${limiteMin}).`);
-      }
+    if (saldoParaZerar > 0) {
+      // Lança saída total
+      abaEstoque.appendRow([
+        codProduto,
+        saldoAtualObj.descricao,
+        saldoAtualObj.cliente,
+        -Math.abs(saldoParaZerar), // Negativo total
+        new Date(),
+        "DESCARTE: " + motivo
+      ]);
+      return `Sucesso! Saldo zerado.`;
     } else {
-      // REGRA 2: Com Excedente
-      limiteMin = Math.round(qtdPedidoOriginal * 0.90); // Mínimo é 90%
-      limiteMaxSobra = Math.round(qtdPedidoOriginal * 1.10); // O que passar de 110% vira sobra
-      valido = (totalAprovado >= limiteMin);
-      if (!valido) {
-        throw new Error(`Falha na validação: Qtd Aprovada (${totalAprovado}) está abaixo do limite mínimo de 90% (${limiteMin}).`);
-      }
+      return "Erro: Saldo já é zero.";
     }
-
-    // 4. Se passou, salvar na aba Pedidos
-    const dataConclusaoCQ = new Date();
-    const novoStatus = "Na Expedição";
-    
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_STATUS).setValue(novoStatus);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_QTD_APROVADA_CQ).setValue(totalAprovado);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_QTD_REPROVADA_CQ).setValue(totalReprovado);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_DATA_CONCLUSAO_CQ).setValue(dataConclusaoCQ);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_UNIDADE_CQ).setValue(unidadesString);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_INSPETOR).setValue(inspetoresString);
-    abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_PROBLEMAS_CQ).setValue(motivosString);
-    
-    if (motivoAtraso && motivoAtraso.trim() !== "") {
-      abaPedidos.getRange(linhaPlanilha, COL_PEDIDO_MOTIVO_ATRASO).setValue(motivoAtraso.trim());
-    }
-    
-    // 5. CALCULAR E SALVAR SOBRA (COM A REGRA CORRIGIDA)
-    // A sobra é o que foi APROVADO menos o limite máximo (100% ou 110%)
-    const sobra = totalAprovado - limiteMaxSobra;
-    if (sobra > 0) {
-      _adicionarSobraEstoque(dadosPedido, sobra); 
-    }
-    
-    SpreadsheetApp.flush();
-    
-    // 6. Enviar E-mail
-    try {
-      enviarNotificacaoStatus(
-        novoStatus, 
-        numPedido, 
-        dadosPedido[COL_PEDIDO_CLIENTE - 1], 
-        dadosPedido[COL_PEDIDO_DESCRICAO - 1], 
-        dataEntregaStr,
-        motivoAtraso
-      );
-    } catch(e) { Logger.log(`Falha ao enviar e-mail de finalização de CQ: ${e.message}`); }
-
-    return buscarPedidosParaQualidade_v2();
 
   } catch (e) {
-    Logger.log(`Erro ao finalizar CQ (Pedido ${numPedido}): ${e.message} ${e.stack}`);
-    throw new Error(e.message);
+    throw new Error("Erro ao descartar: " + e.message);
   } finally {
     lock.releaseLock();
   }
 }
 
+
+function finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso) {
+  // OTIMIZAÇÃO: Lock removido ou reduzido apenas para escrita final se necessário.
+  // Para garantir integridade na finalização, manteremos um lock curto, mas otimizamos o resto.
+  const lock = LockService.getScriptLock();
+  lock.tryLock(5000); // Wait less
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaPedidos = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    const abaLogCQ = ss.getSheetByName(NOME_ABA_LOG_INSPECAOCQ);
+    
+    // 1. DADOS DO PEDIDO
+    const rangePedido = abaPedidos.getRange(linhaPlanilha, 1, 1, 50);
+    const dadosPedido = rangePedido.getValues()[0];
+    
+    // Validação Data Produção
+    if (!dadosPedido[38] || String(dadosPedido[38]).trim() === "") { // Col AM (39) -> Indice 38
+      throw new Error("Erro: A Produção não preencheu a Data Fim.");
+    }
+
+    const qtdPedidoOriginal = parseFloat(String(dadosPedido[3]).replace(/\./g, '').replace(',', '.')) || 0; // Col D (4)
+    const semExcedente = String(dadosPedido[30]).toUpperCase() === "TRUE"; // Col AE (31)
+    const qtdPorRolo = parseFloat(dadosPedido[20]) || 1000; // Col U (21) -> Indice 20 (Qtd/Rolo)
+
+    // Busca Peso de Referência Salvo
+    const pesoReferencia = parseFloat(PropertiesService.getScriptProperties().getProperty(`PESO_ROLO_${numPedido}`)) || 0;
+
+    // 2. PROCESSAR LOGS (SOMAR TUDO)
+    let totalAprovado = 0;
+    let pesoTotalRefugo = 0;
+    const inspetores = new Set();
+    const unidades = new Set();
+    const motivos = [];
+
+    if (abaLogCQ.getLastRow() > 1) {
+      // Lê colunas B (Pedido) até H (Motivo)
+      const dadosLog = abaLogCQ.getRange(2, 2, abaLogCQ.getLastRow() - 1, 7).getValues();
+      
+      for (const linha of dadosLog) {
+        if (String(linha[0]) == String(numPedido)) {
+          totalAprovado += parseFloat(linha[4]) || 0; // Col F (Qtd Aprov)
+          
+          // A coluna G agora guarda string "0,500 kg (2%)". Precisamos extrair o peso.
+          const stringRefugo = String(linha[5]); 
+          const pesoExtraido = parseFloat(stringRefugo.split(' ')[0].replace(',', '.')) || 0;
+          pesoTotalRefugo += pesoExtraido;
+
+          if(linha[2]) unidades.add(linha[2]);
+          if(linha[3]) inspetores.add(linha[3]);
+          if(linha[6]) motivos.push(linha[6]);
+        }
+      }
+    }
+
+    // 3. CÁLCULO DA REPROVAÇÃO ESTIMADA
+    let stringReprovaFinal = "0 kg (0%) : 0";
+    
+    if (pesoReferencia > 0 && qtdPorRolo > 0) {
+      // Peso Total Teórico do Pedido = (QtdPedido / QtdPorRolo) * Peso1Rolo
+      // Ex: (4000 / 1000) * 2kg = 8kg totais teóricos
+      const numRolosTeoricos = qtdPedidoOriginal / qtdPorRolo;
+      const pesoTotalTeorico = numRolosTeoricos * pesoReferencia;
+
+      let percPerdaFinal = 0;
+      if (pesoTotalTeorico > 0) {
+        percPerdaFinal = (pesoTotalRefugo / pesoTotalTeorico) * 100;
+      }
+
+      // Qtd Estimada da Perca = (PesoPerdido / Peso1Rolo) * Qtd1Rolo
+      // Ex: (0.835 / 2) * 1000 = 417,5 -> 417
+      const qtdEstimadaPerda = Math.floor((pesoTotalRefugo / pesoReferencia) * qtdPorRolo);
+
+      // Formatação: "0,835 kg (10,43%) : 417"
+      stringReprovaFinal = `${String(pesoTotalRefugo.toFixed(3)).replace('.', ',')} kg (${percPerdaFinal.toFixed(2).replace('.', ',')}%) : ${qtdEstimadaPerda}`;
+    
+    } else {
+      // Fallback se não tiver peso de referência
+      stringReprovaFinal = `${String(pesoTotalRefugo.toFixed(3)).replace('.', ',')} kg (?%) : ?`;
+    }
+
+    // 4. VALIDAÇÃO (SE É SEM EXCEDENTE OU COM)
+    if (semExcedente) {
+      if (totalAprovado > qtdPedidoOriginal) throw new Error(`ERRO: Pedido SEM EXCEDENTE com quantidade a maior. Registre sobra.`);
+      //if (totalAprovado < qtdPedidoOriginal) throw new Error(`ERRO: Pedido incompleto.`); // Opcional
+    } else {
+      const min = qtdPedidoOriginal * 0.90;
+      const max = qtdPedidoOriginal * 1.10;
+      if (totalAprovado < min) throw new Error(`ERRO: Abaixo de 90%.`);
+      if (totalAprovado > max) throw new Error(`ERRO: Acima de 110%. Registre sobra.`);
+    }
+
+    // 5. SALVAR DADOS
+    const dataHoje = new Date();
+    
+    // Status
+    abaPedidos.getRange(linhaPlanilha, 9).setValue("Na Expedição"); // Col I
+    // Qtd Aprovada
+    abaPedidos.getRange(linhaPlanilha, 41).setValue(totalAprovado); // Col AP
+    // Qtd Reprovada (STRING FORMATADA)
+    abaPedidos.getRange(linhaPlanilha, 49).setValue(stringReprovaFinal); // Col AW (Qtd Reprovada CQ)
+    // Data Conclusão CQ
+    abaPedidos.getRange(linhaPlanilha, 50).setValue(dataHoje); // Col AX
+    
+    // Meta dados
+    abaPedidos.getRange(linhaPlanilha, 32).setValue(Array.from(unidades).join(', ')); // AF
+    abaPedidos.getRange(linhaPlanilha, 33).setValue(Array.from(inspetores).join(', ')); // AG
+    abaPedidos.getRange(linhaPlanilha, 36).setValue(motivos.join(' | ')); // AJ (Problemas CQ)
+
+    if (motivoAtraso) {
+      abaPedidos.getRange(linhaPlanilha, 26).setValue(motivoAtraso); // Col Z
+    }
+
+    SpreadsheetApp.flush();
+    
+    // Limpa memória temporária do peso
+    PropertiesService.getScriptProperties().deleteProperty(`PESO_ROLO_${numPedido}`);
+
+    return true; 
+
+  } catch (e) {
+    throw new Error(e.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 function abrirFormEstoqueAcabado() {
   var html = HtmlService.createHtmlOutputFromFile('FormEstoqueAcabado')
@@ -9435,4 +9863,450 @@ function testarEstoqueAcabadoCompleto() {
     Logger.log('Erro em testarEstoqueAcabadoCompleto: ' + e.message);
     SpreadsheetApp.getUi().alert('Erro no teste: ' + e.message);
   }
+}
+
+// --- FUNÇÕES PARA O HISTÓRICO DE PEDIDOS ---
+
+// --- FUNÇÕES PARA ABRIR OS NOVOS FORMULÁRIOS ---
+
+function abrirFormHistorico() {
+  var html = HtmlService.createTemplateFromFile('FormHistorico')
+      .evaluate()
+      .setWidth(1600)
+      .setHeight(800);
+  SpreadsheetApp.getUi().showModalDialog(html, ' ');
+}
+
+function getHistoricoPedidosData() {
+  try {
+    const aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Pedidos");
+    if (!aba || aba.getLastRow() < 2) return JSON.stringify([]);
+
+    // Lê os valores (A até AX = 50 colunas)
+    const dados = aba.getRange(2, 1, aba.getLastRow() - 1, 50).getValues();
+    
+    const historico = [];
+    const timeZone = Session.getScriptTimeZone();
+
+    // Helper para data
+    const formatarData = (valor, comHora = false) => {
+      if (!valor) return "";
+      if (valor instanceof Date) {
+        const formato = comHora ? "dd/MM/yyyy HH:mm" : "dd/MM/yyyy";
+        return Utilities.formatDate(valor, timeZone, formato);
+      }
+      return String(valor);
+    };
+
+    for (let i = 0; i < dados.length; i++) {
+      const linha = dados[i];
+      const status = String(linha[8]).trim(); // Coluna I (9)
+
+      // FILTRO: Apenas "Concluído"
+      if (status === "Concluído") {
+        
+        // Lógica Sem Excedente (Sim/Não)
+        const rawSemExcedente = String(linha[30]).toUpperCase(); // Coluna AE (31)
+        const semExcedenteFormatado = (rawSemExcedente === "TRUE" || rawSemExcedente === "VERDADEIRO" || rawSemExcedente === "SIM") ? "Sim" : "Não";
+
+        const pedido = {
+          linhaPlanilha: i + 2,
+          numPedido: linha[0],                
+          dataPedido: formatarData(linha[1]),
+          tipo: String(linha[2]), // Força string (Col C - Tipo do Pedido)
+          quantidade: linha[3],               
+          vendedora: linha[4],                
+          tipoExpedicao: linha[5],            
+          dataEntrega: formatarData(linha[6]), 
+          dataConclusao: formatarData(linha[7], true), 
+          status: status,                     
+          codProduto: linha[9],               
+          cliente: linha[10],                 
+          descricao: linha[11],               
+          faca: linha[12],                    
+          substrato: linha[13],               
+          tipoCola: linha[14],                
+          largura: linha[15],                 
+          altura: linha[16],                  
+          puxada: linha[17],                  
+          qtdCores: linha[18],                
+          carreiras: linha[19],               
+          tipoAcabamento: linha[20],          
+          cold: linha[21],                    
+          maquina: linha[22],                 
+          fila: linha[23],                    
+          obsPCP: linha[24],                  
+          motivoAtraso: linha[25],            
+          fornecedorSubstrato: linha[26],     
+          loteSubstrato: linha[27],           
+          metragem: linha[28],                
+          impressor: linha[29],               
+          semExcedente: semExcedenteFormatado, // Valor tratado (Sim/Não)
+          unidadeCQ: linha[31],               
+          inspetor: linha[32],                
+          obsEspeciais: linha[33],            
+          problemasProducao: linha[34],       
+          problemasCQ: linha[35],             
+          motivoCancelamento: linha[36],      
+          dataInicioProd: formatarData(linha[37], true),          
+          dataFimProd: formatarData(linha[38], true),             
+          metragemReal: linha[39],            
+          qtdAprovadaCQ: linha[40],           
+          motivoMaisMetragem: linha[41],      
+          refugoMetragem: linha[42],          
+          tempoSetupMin: linha[43],           
+          dataInicioSetup: formatarData(linha[44], true),         
+          dataFimSetup: formatarData(linha[45], true),            
+          idCliche: linha[46],                
+          idUnicoFaca: linha[47],             
+          qtdReprovadaCQ: linha[48],          
+          dataConclusaoCQ: formatarData(linha[49], true)          
+        };
+        
+        historico.push(pedido);
+      }
+    }
+    
+    return JSON.stringify(historico.reverse());
+    
+  } catch (e) {
+    Logger.log("Erro ao buscar histórico: " + e.message);
+    return JSON.stringify([]);
+  }
+}
+
+// --- FUNÇÕES PARA O CATÁLOGO DE PRODUTOS ---
+
+
+function abrirFormCatalogo() {
+  var html = HtmlService.createTemplateFromFile('FormCatalogo')
+      .evaluate()
+      .setWidth(1600)
+      .setHeight(800);
+  SpreadsheetApp.getUi().showModalDialog(html, ' ');
+}
+
+function getCatalogoProdutosData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const abaProdutos = ss.getSheetByName("Produtos");
+    const abaFacas = ss.getSheetByName("Facas"); // Nome da aba de modelos de faca
+    
+    if (!abaProdutos || abaProdutos.getLastRow() < 2) return JSON.stringify([]);
+
+    // 1. CRIAR MAPA DE DETALHES DAS FACAS
+    // Chave: Nome da Faca | Valor: Objeto com Cilindro, Repetições, etc.
+    const mapaFacas = {};
+    if (abaFacas && abaFacas.getLastRow() > 1) {
+      // Lê colunas A até I (1 a 9) - Ajuste conforme suas constantes
+      const dadosFacas = abaFacas.getRange(2, 1, abaFacas.getLastRow() - 1, 9).getValues();
+      
+      for (let i = 0; i < dadosFacas.length; i++) {
+        const linha = dadosFacas[i];
+        const nomeFaca = String(linha[0]).trim().toUpperCase(); // COL_FACA_NOME (1)
+        
+        if (nomeFaca) {
+          mapaFacas[nomeFaca] = {
+            repeticoes: linha[6],       // COL_FACA_REPETICOES (7)
+            cilindro: linha[7],         // COL_FACA_CILINDRO (8)
+            entreRepeticoes: linha[8]   // COL_FACA_ENTRE_REPETICOES (9)
+          };
+        }
+      }
+    }
+
+    // 2. LER PRODUTOS
+    const dados = abaProdutos.getRange(2, 1, abaProdutos.getLastRow() - 1, 26).getValues();
+    const catalogo = [];
+    const timeZone = Session.getScriptTimeZone();
+
+    const formatarData = (valor) => {
+      if (!valor) return "";
+      if (valor instanceof Date) return Utilities.formatDate(valor, timeZone, "dd/MM/yyyy HH:mm");
+      return String(valor);
+    };
+
+    for (let i = 0; i < dados.length; i++) {
+      const linha = dados[i];
+      const codigo = String(linha[1]).trim(); // Coluna B
+      
+      if (codigo && codigo !== "#N/A") {
+        
+        // Busca detalhes da faca usada neste produto
+        const nomeFacaProd = String(linha[4]).trim().toUpperCase(); // Coluna E
+        const detalhesFaca = mapaFacas[nomeFacaProd] || {};
+
+        const produto = {
+          linhaPlanilha: i + 2,
+          // Principais
+          dataCadastro: formatarData(linha[0]),
+          codigo: codigo,
+          cliente: linha[2],
+          descricao: linha[3],
+          faca: linha[4],
+          status: linha[13],
+          
+          // Detalhes do Produto
+          substrato: linha[5],
+          cola: linha[6],
+          largura: linha[7],
+          altura: linha[8],
+          puxada: linha[9],
+          qtdCores: linha[10],
+          carreiras: linha[11],
+          acabamento: linha[14],
+          cold: linha[15],
+          motivo: linha[16],
+          tipoRotulo: linha[17],
+          fichaTecnica: linha[18],
+          tubete: linha[19],          // COL_PRODUTO_DIAMETRO_TUBETE (20)
+          qtdPorRolo: linha[20],
+          sentido: linha[21],
+          layout: linha[22],
+          idCliche: linha[23],
+          
+          // Detalhes da Faca (Vindos da outra aba)
+          facaCilindro: detalhesFaca.cilindro || "-",
+          facaRepeticoes: detalhesFaca.repeticoes || "-",
+          facaEntre: detalhesFaca.entreRepeticoes || "-"
+        };
+        
+        catalogo.push(produto);
+      }
+    }
+    
+    return JSON.stringify(catalogo.reverse());
+    
+  } catch (e) {
+    Logger.log("Erro ao buscar catálogo: " + e.message);
+    return JSON.stringify([]);
+  }
+}
+
+// ==================================================================
+// 2. ABERTURA NO CELULAR (Web App)
+// ==================================================================
+function doGet(e) {
+  var page = e.parameter.page || 'PainelSetores';
+  
+  try {
+    var template = HtmlService.createTemplateFromFile(page);
+    
+    // CRACHÁ: Diz ao HTML que É Web App (Mobile)
+    template.isWebApp = true; 
+    
+    return template.evaluate()
+      .setTitle('Sistema Feira')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      
+  } catch (error) {
+    return HtmlService.createHtmlOutput("Erro: Página não encontrada (" + page + ")");
+  }
+}
+
+// Função auxiliar de URL (Mantenha esta)
+function getScriptUrl() {
+  return ScriptApp.getService().getUrl();
+}
+
+// ==================================================================
+// 1. GERADOR PRINCIPAL DE PDF (GOOGLE SLIDES)
+// ==================================================================
+function gerarPDFPedidoSlides(dadosForm) {
+  const ID_TEMPLATE = "1e078MoX18QV6vuLQ83Fu3MKJSKBHuENomb9hffMFFkY"; 
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  try {
+    const p = dadosForm.dadosDoProduto;
+    
+    // Busca dados auxiliares
+    const infoCliente = _buscarDadosCliente(ss, p.cliente);
+    const infoOrcamento = _buscarDadosOrcamentoPorId(ss, dadosForm.numOrcamento);
+    const dataTopo = _formatarDataExtenso(new Date());
+
+    // --- 1. CÁLCULO E FORMATAÇÃO DA METRAGEM ---
+    let metragemFormatada = "0";
+    try {
+        const valorMetragem = calcularMetragem(
+          p.puxada,
+          p.qtdCores,
+          dadosForm.quantidade,
+          dadosForm.semExcedente,
+          p.tipoRotulo, 
+          p.carreiras   
+        );
+        
+        // Formata com ponto de milhar e até 2 casas decimais (ex: 1.500,50)
+        if (valorMetragem) {
+            metragemFormatada = valorMetragem.toLocaleString('pt-BR', {
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 2
+            });
+        }
+    } catch (err) {
+        Logger.log("Erro ao calcular metragem p/ PDF: " + err);
+    }
+
+    // --- 2. FORMATAÇÃO DA QUANTIDADE ---
+    let quantidadeFormatada = "0";
+    try {
+        if (dadosForm.quantidade) {
+            // Garante que é número antes de formatar
+            let qtdNum = parseFloat(String(dadosForm.quantidade).replace('.', '').replace(',', '.'));
+            if (!isNaN(qtdNum)) {
+                quantidadeFormatada = qtdNum.toLocaleString('pt-BR'); // ex: 10.000
+            } else {
+                quantidadeFormatada = dadosForm.quantidade;
+            }
+        }
+    } catch (e) {
+        quantidadeFormatada = dadosForm.quantidade || "0";
+    }
+
+    // --- 3. MAPA DE SUBSTITUIÇÃO ---
+    const substituicoes = {
+      "{{DATA_IMPRESSAO}}": dataTopo,
+      "{{NUM_PEDIDO}}": dadosForm.numPedido || "---",
+      "{{NUM_ORCAMENTO}}": dadosForm.numOrcamento || "---",
+      "{{CLIENTE_NOME}}": p.cliente || "---",
+      "{{CLIENTE_ENDERECO}}": infoCliente.enderecoCompleto || "Endereço não cadastrado",
+      "{{CLIENTE_EMAIL}}": infoCliente.email || "-",
+      "{{CLIENTE_DOC}}": infoCliente.documento || "-",
+      "{{CLIENTE_CONTATO}}": infoCliente.contato || "-",
+      "{{VENDEDOR}}": dadosForm.vendedora || "-",
+      "{{COND_PAGTO}}": infoOrcamento.condicao || "A Combinar",
+      "{{FORMA_PAGTO}}": "A Combinar", 
+      "{{TIPO_FRETE}}": dadosForm.tipoExpedicao || "CIF", 
+      "{{DATA_PEDIDO}}": Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy"),
+      "{{DATA_ENTREGA}}": dadosForm.dataEntrega || "---", 
+      "{{OBSERVACOES}}": dadosForm.observacoesCQ || "",
+      "{{PROD_DESCRICAO}}": p.descricao || "-",
+      "{{PROD_FACA}}": p.faca || "-",
+      "{{PROD_LARGURA}}": p.largura ? String(p.largura) + " mm" : "-",
+      "{{PROD_ALTURA}}": p.altura ? String(p.altura) + " mm" : "-",
+      "{{PROD_TIPO_ROTULO}}": p.tipoRotulo || "Único",
+      "{{PROD_PUXADA}}": p.puxada ? String(p.puxada) + " mm" : "-",
+      "{{PROD_ACABAMENTO}}": p.acabamento || "Nenhum",
+      "{{PROD_COLD}}": p.cold || "Não",
+      
+      // CAMPOS FORMATADOS
+      "{{PEDIDO_METRAGEM}}": metragemFormatada + " m", 
+      "{{PEDIDO_QTD}}": quantidadeFormatada
+    };
+    
+    const templateFile = DriveApp.getFileById(ID_TEMPLATE);
+    const copiaFile = templateFile.makeCopy("TEMP_" + dadosForm.numPedido);
+    const copiaId = copiaFile.getId();
+    const slideApp = SlidesApp.openById(copiaId);
+    const slide = slideApp.getSlides()[0]; 
+
+    // Substitui textos em lote
+    for (const [chave, valor] of Object.entries(substituicoes)) {
+      slide.replaceAllText(chave, String(valor));
+    }
+    
+    // Imagem
+    if (dadosForm.layoutArteData && dadosForm.layoutArteData.length > 100) {
+       try {
+         const shapes = slide.getImages();
+         const base64Data = dadosForm.layoutArteData.split(",")[1];
+         const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), MimeType.PNG, "layout.png");
+         
+         for (let i = 0; i < shapes.length; i++) {
+           if (shapes[i].getTitle() === "{{IMAGEM_LAYOUT}}" || shapes[i].getDescription() === "{{IMAGEM_LAYOUT}}") {
+             shapes[i].replace(blob);
+             break;
+           }
+         }
+       } catch(e) { Logger.log("Erro imagem: " + e); }
+    }
+
+    slideApp.saveAndClose(); 
+    
+    const pdfBlob = copiaFile.getAs(MimeType.PDF);
+    const pdfFile = DriveApp.createFile(pdfBlob).setName("PEDIDO_" + dadosForm.numPedido + ".pdf");
+    
+    copiaFile.setTrashed(true);
+    pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    return pdfFile.getUrl();
+
+  } catch (e) {
+    throw new Error("Erro PDF: " + e.message);
+  }
+}
+
+// ==================================================================
+// 2. BUSCAR DADOS CLIENTE (Auxiliar)
+// ==================================================================
+function _buscarDadosCliente(ss, nomeCliente) {
+  // Aba "Clientes"
+  // Colunas: A=Data, B=Cliente, C=CNPJ, D=Contato, E=CEP, F=Endereço, G=Bairro, H=Cidade, I=Estado, J=Email
+  const aba = ss.getSheetByName("Clientes");
+  if(!aba) return {};
+  
+  const dados = aba.getDataRange().getValues();
+  
+  for(let i=1; i<dados.length; i++) {
+    if(String(dados[i][1]).trim() == String(nomeCliente).trim()) { // Coluna B (índice 1)
+      
+      const rua = dados[i][5];
+      const bairro = dados[i][6];
+      const cidade = dados[i][7];
+      const uf = dados[i][8];
+      const cep = dados[i][4];
+      const endCompleto = `${rua}, ${bairro} - ${cidade}/${uf} (CEP: ${cep})`;
+
+      return {
+        documento: dados[i][2], // CNPJ (Col C)
+        contato: dados[i][3],   // Contato (Col D)
+        email: dados[i][9],     // Email (Col J)
+        enderecoCompleto: endCompleto
+      };
+    }
+  }
+  return {};
+}
+
+
+
+// ==================================================================
+// 4. FORMATAR DATA EXTENSO (Auxiliar)
+// ==================================================================
+function _formatarDataExtenso(data) {
+  const dias = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+  const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  
+  const diaSemana = dias[data.getDay()];
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const hora = String(data.getHours()).padStart(2, '0');
+  const min = String(data.getMinutes()).padStart(2, '0');
+  
+  return `${diaSemana}, ${dia} de ${mes} - ${hora}:${min}`;
+}
+
+function DIAGNOSTICO_CLIENTES() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName("Clientes"); // CONFIRA SE O NOME É EXATAMENTE ESTE
+  
+  if (!aba) {
+    console.log("ERRO CRÍTICO: Aba 'Cadastro de Clientes' não encontrada. Verifique acentos/espaços.");
+    return;
+  }
+  
+  // Lê o cabeçalho (Linha 1)
+  const cabecalho = aba.getRange(1, 1, 1, 20).getValues()[0];
+  
+  console.log("--- MAPA DA ABA CLIENTES (Anote os números) ---");
+  cabecalho.forEach((col, index) => {
+    console.log(`Índice [${index}] (Coluna ${String.fromCharCode(65 + index)}): ${col}`);
+  });
+  
+  // Lê a primeira linha de dados para testar
+  const dadosExemplo = aba.getRange(2, 1, 1, 20).getValues()[0];
+  console.log("--- EXEMPLO DE DADOS (Linha 2) ---");
+  console.log("Nome na Coluna B (1)? " + dadosExemplo[1]);
 }
