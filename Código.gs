@@ -738,7 +738,7 @@ function abrirFormProduto() {
   const html = HtmlService.createTemplateFromFile("FormProduto");
   html.listas = dados; 
   const ui = SpreadsheetApp.getUi();
-  ui.showModalDialog(html.evaluate().setWidth(800).setHeight(1000), " ");
+  ui.showModalDialog(html.evaluate().setWidth(1600).setHeight(800), " ");
 }
 
 /**
@@ -813,29 +813,96 @@ function getProximoCodigoProduto() {
   
   return proximoCodigo;
 }
-function getDetalhesFaca(nomeFaca) {
-  try {
-    const abaFacas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_FACAS_MODELOS);
-    const dados = abaFacas.getRange(2, 1, abaFacas.getLastRow() - 1, 5).getDisplayValues();
-    const nomeBusca = nomeFaca.trim().toLowerCase();
-    for (const linha of dados) {
-      const nomePlanilha = linha[COL_FACA_NOME - 1].toString().trim().toLowerCase();
-      if (nomePlanilha == nomeBusca) {
-        return {
-          largura: linha[COL_FACA_LARGURA - 1],
-          altura: linha[COL_FACA_ALTURA - 1],
-          puxada: linha[COL_FACA_PUXADA - 1],
-          carreiras: linha[COL_FACA_CARREIRAS - 1]
-        };
-      }
-    }
-    return null; 
-  } catch (e) {
-    Logger.log(`Erro ao buscar detalhes da faca ${nomeFaca}: ${e}`);
-    return null;
-  }
+// =============================================================================
+// SUBSTITUA AS FUNÇÕES ABAIXO NO SEU ARQUIVO .GS (BACKEND)
+// =============================================================================
+
+function getListaClientesCompleta() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName("Clientes");
+    
+    if (!aba) {
+      console.log("ERRO CRÍTICO: Aba 'Clientes' não existe.");
+      return [];
+    }
+
+    // Pega da linha 2 até o final da planilha na Coluna B (Índice 2)
+    // Se seus clientes não estão na B, mude "B2:B"
+    const range = aba.getRange("B2:B" + aba.getMaxRows());
+    const valores = range.getValues();
+    
+    let listaLimpa = [];
+    for (let i = 0; i < valores.length; i++) {
+      let v = valores[i][0];
+      // CONVERSÃO FORÇADA PARA TEXTO (Isso resolve o bug do [object Object])
+      if (v && String(v).trim() !== "") {
+        listaLimpa.push(String(v).trim());
+      }
+    }
+    
+    return listaLimpa; // Retorna ["Cliente A", "Cliente B"]
+  } catch (e) {
+    console.log("Erro no Backend Clientes: " + e);
+    return [];
+  }
 }
 
+function getListaFacas() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName("Facas");
+    if (!aba) return [];
+
+    // Pega da linha 2 até o final na Coluna A
+    const range = aba.getRange("A2:A" + aba.getMaxRows());
+    const valores = range.getValues();
+    
+    let listaLimpa = [];
+    for (let i = 0; i < valores.length; i++) {
+      let v = valores[i][0];
+      if (v && String(v).trim() !== "") {
+        listaLimpa.push(String(v).trim());
+      }
+    }
+    return listaLimpa;
+  } catch (e) {
+    return [];
+  }
+}
+
+function getDetalhesFaca(nomeFaca) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const aba = ss.getSheetByName("Facas");
+  if (!aba) return null;
+  
+  // Busca OTIMIZADA: Lê apenas a coluna A para achar a linha
+  const dadosNomes = aba.getRange("A2:A" + aba.getLastRow()).getValues();
+  const busca = String(nomeFaca).toUpperCase().trim();
+  
+  let indexEncontrado = -1;
+  
+  for(let i=0; i<dadosNomes.length; i++) {
+    if(String(dadosNomes[i][0]).toUpperCase().trim() === busca) {
+      indexEncontrado = i;
+      break;
+    }
+  }
+  
+  if (indexEncontrado === -1) return null; 
+  
+  // Se achou, busca apenas aquela linha específica (Linha = index + 2)
+  // Pega 4 colunas a partir da B (Largura, Altura, Puxada, Carreiras)
+  const linhaReal = indexEncontrado + 2;
+  const dadosLinha = aba.getRange(linhaReal, 2, 1, 4).getValues()[0];
+  
+  return {
+    largura: dadosLinha[0],   
+    altura: dadosLinha[1],    
+    puxada: dadosLinha[2],    
+    carreiras: dadosLinha[3]  
+  };
+}
 
 function _getProximoIdUnicoFaca(codFacaModelo, abaInventario) {
   try {
@@ -5975,73 +6042,6 @@ function getMesesDisponiveis() {
 }
 
 /**
- * Retorna uma lista única de todas as Facas da planilha.
- * (Corrigido para usar a constante COL_PEDIDO_FACA)
- */
-function getListaFacas() {
-  try {
-    const abaPedidos = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_PEDIDOS);
-    const lastRow = abaPedidos.getLastRow();
-    if (lastRow < 2) return [];
-    
-    // Usa a constante da Coluna 13
-    const range = abaPedidos.getRange(2, COL_PEDIDO_FACA, lastRow - 1, 1);
-    const values = range.getValues();
-    
-    const facas = new Set();
-    values.forEach(row => {
-      if (row[0]) {
-        facas.add(row[0]);
-      }
-    });
-    
-    return Array.from(facas).sort();
-  } catch (e) {
-    Logger.log("Erro em getListaFacas: " + e.message);
-    return [];
-  }
-}
-
-// ADICIONE ESTA FUNÇÃO INTEIRA AO SEU CÓDIGO.GS
-
-/**
- * (NOVO HELPER) Cria um índice (Set) de todas as facas cadastradas para
- * verificação de existência O(1) (muito rápido).
- */
-function _getListaFacasCadastradas() {
-  // Tenta buscar o índice do cache
-  const cache = CacheService.getScriptCache();
-  const facasCacheadas = cache.get("lista_facas_set");
-  
-  if (facasCacheadas) {
-    // Se achou no cache, retorna o Set
-    return new Set(JSON.parse(facasCacheadas));
-  }
-
-  // Se não, busca na planilha
-  try {
-    const abaFacas = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_FACAS_MODELOS);
-    if (abaFacas.getLastRow() < 2) return new Set();
-    
-    const dadosNomes = abaFacas.getRange(2, COL_FACA_NOME, abaFacas.getLastRow() - 1, 1)
-                              .getValues()
-                              .flat() // Converte [["FX-01"], ["FX-02"]] em ["FX-01", "FX-02"]
-                              .map(f => f.toString().trim().toLowerCase()); // Normaliza
-                              
-    const facasSet = new Set(dadosNomes);
-    
-    // Salva o resultado no cache por 1 hora (3600 segundos)
-    cache.put("lista_facas_set", JSON.stringify([...facasSet]), 3600);
-    
-    return facasSet;
-    
-  } catch (e) {
-    Logger.log("Erro grave ao criar Set de Facas: " + e.message);
-    return new Set(); // Retorna um Set vazio em caso de falha
-  }
-}
-
-/**
  * Retorna uma lista única de todos os Produtos da planilha.
  * (Corrigido para usar a constante COL_PEDIDO_PRODUTO)
  */
@@ -10269,9 +10269,6 @@ function _buscarDadosCliente(ss, nomeCliente) {
   }
   return {};
 }
-
-
-
 // ==================================================================
 // 4. FORMATAR DATA EXTENSO (Auxiliar)
 // ==================================================================
@@ -10288,25 +10285,40 @@ function _formatarDataExtenso(data) {
   return `${diaSemana}, ${dia} de ${mes} - ${hora}:${min}`;
 }
 
-function DIAGNOSTICO_CLIENTES() {
+// --- COLE ISSO NO FINAL DO SEU CODIGO.GS ---
+
+function getHistoricoProduto(codProduto) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const aba = ss.getSheetByName("Clientes"); // CONFIRA SE O NOME É EXATAMENTE ESTE
+  const abaLog = ss.getSheetByName("Log_Alteracoes_Produtos");
+  if (!abaLog) return "[]"; // Retorna array vazio em string se não existir
   
-  if (!aba) {
-    console.log("ERRO CRÍTICO: Aba 'Cadastro de Clientes' não encontrada. Verifique acentos/espaços.");
-    return;
+  const dados = abaLog.getDataRange().getValues();
+  const logs = [];
+  
+  // Pula cabeçalho e busca logs desse produto
+  for (let i = 1; i < dados.length; i++) {
+    // Coluna B (índice 1) é o Codigo
+    if (String(dados[i][1]) === String(codProduto)) {
+      logs.push({
+        data: Utilities.formatDate(new Date(dados[i][0]), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm"),
+        user: dados[i][2],
+        acao: dados[i][3],
+        detalhes: dados[i][4]
+      });
+    }
   }
-  
-  // Lê o cabeçalho (Linha 1)
-  const cabecalho = aba.getRange(1, 1, 1, 20).getValues()[0];
-  
-  console.log("--- MAPA DA ABA CLIENTES (Anote os números) ---");
-  cabecalho.forEach((col, index) => {
-    console.log(`Índice [${index}] (Coluna ${String.fromCharCode(65 + index)}): ${col}`);
-  });
-  
-  // Lê a primeira linha de dados para testar
-  const dadosExemplo = aba.getRange(2, 1, 1, 20).getValues()[0];
-  console.log("--- EXEMPLO DE DADOS (Linha 2) ---");
-  console.log("Nome na Coluna B (1)? " + dadosExemplo[1]);
+  // Retorna JSON para o frontend
+  return JSON.stringify(logs);
+}
+
+function registrarLogFront(cod, acao, detalhes) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let abaLog = ss.getSheetByName("Log_Alteracoes_Produtos");
+  if (!abaLog) {
+    abaLog = ss.insertSheet("Log_Alteracoes_Produtos");
+    abaLog.appendRow(["Data/Hora", "Cod_Produto", "Usuario", "Tipo_Acao", "Detalhes"]);
+  }
+  const user = Session.getActiveUser().getEmail();
+  const data = new Date();
+  abaLog.appendRow([data, cod, user, acao, detalhes]);
 }
