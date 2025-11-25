@@ -814,36 +814,28 @@ function getProximoCodigoProduto() {
   return proximoCodigo;
 }
 // =============================================================================
-// SUBSTITUA AS FUNÇÕES ABAIXO NO SEU ARQUIVO .GS (BACKEND)
+// FUNÇÕES DE BACKEND BLINDADAS (Retornam apenas Texto Puro)
 // =============================================================================
 
 function getListaClientesCompleta() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const aba = ss.getSheetByName("Clientes");
-    
-    if (!aba) {
-      console.log("ERRO CRÍTICO: Aba 'Clientes' não existe.");
-      return [];
-    }
+    if (!aba) return [];
 
-    // Pega da linha 2 até o final da planilha na Coluna B (Índice 2)
-    // Se seus clientes não estão na B, mude "B2:B"
-    const range = aba.getRange("B2:B" + aba.getMaxRows());
-    const valores = range.getValues();
+    // Pega da coluna B (linha 2 até o fim)
+    const dados = aba.getRange("B2:B" + aba.getLastRow()).getValues();
     
     let listaLimpa = [];
-    for (let i = 0; i < valores.length; i++) {
-      let v = valores[i][0];
-      // CONVERSÃO FORÇADA PARA TEXTO (Isso resolve o bug do [object Object])
-      if (v && String(v).trim() !== "") {
-        listaLimpa.push(String(v).trim());
+    for (let i = 0; i < dados.length; i++) {
+      let v = String(dados[i][0]); // Força texto
+      if (v && v.trim() !== "") {
+        listaLimpa.push(v.trim());
       }
     }
-    
-    return listaLimpa; // Retorna ["Cliente A", "Cliente B"]
+    return listaLimpa;
   } catch (e) {
-    console.log("Erro no Backend Clientes: " + e);
+    console.log("Erro Clientes: " + e);
     return [];
   }
 }
@@ -854,15 +846,14 @@ function getListaFacas() {
     const aba = ss.getSheetByName("Facas");
     if (!aba) return [];
 
-    // Pega da linha 2 até o final na Coluna A
-    const range = aba.getRange("A2:A" + aba.getMaxRows());
-    const valores = range.getValues();
+    // Pega da coluna A (linha 2 até o fim)
+    const dados = aba.getRange("A2:A" + aba.getLastRow()).getValues();
     
     let listaLimpa = [];
-    for (let i = 0; i < valores.length; i++) {
-      let v = valores[i][0];
-      if (v && String(v).trim() !== "") {
-        listaLimpa.push(String(v).trim());
+    for (let i = 0; i < dados.length; i++) {
+      let v = String(dados[i][0]);
+      if (v && v.trim() !== "") {
+        listaLimpa.push(v.trim());
       }
     }
     return listaLimpa;
@@ -876,31 +867,21 @@ function getDetalhesFaca(nomeFaca) {
   const aba = ss.getSheetByName("Facas");
   if (!aba) return null;
   
-  // Busca OTIMIZADA: Lê apenas a coluna A para achar a linha
-  const dadosNomes = aba.getRange("A2:A" + aba.getLastRow()).getValues();
+  // Busca Rápida
+  const nomes = aba.getRange("A2:A" + aba.getLastRow()).getValues().flat();
   const busca = String(nomeFaca).toUpperCase().trim();
+  const index = nomes.findIndex(n => String(n).toUpperCase().trim() === busca);
   
-  let indexEncontrado = -1;
+  if (index === -1) return null;
   
-  for(let i=0; i<dadosNomes.length; i++) {
-    if(String(dadosNomes[i][0]).toUpperCase().trim() === busca) {
-      indexEncontrado = i;
-      break;
-    }
-  }
-  
-  if (indexEncontrado === -1) return null; 
-  
-  // Se achou, busca apenas aquela linha específica (Linha = index + 2)
-  // Pega 4 colunas a partir da B (Largura, Altura, Puxada, Carreiras)
-  const linhaReal = indexEncontrado + 2;
-  const dadosLinha = aba.getRange(linhaReal, 2, 1, 4).getValues()[0];
+  // Pega linha correspondente (Linha = Index + 2)
+  const linha = aba.getRange(index + 2, 2, 1, 4).getValues()[0];
   
   return {
-    largura: dadosLinha[0],   
-    altura: dadosLinha[1],    
-    puxada: dadosLinha[2],    
-    carreiras: dadosLinha[3]  
+    largura: linha[0],
+    altura: linha[1],
+    puxada: linha[2],
+    carreiras: linha[3]
   };
 }
 
@@ -3915,6 +3896,55 @@ function abrirFormAlteracaoData() {
     .setHeight(600);
   
   SpreadsheetApp.getUi().showModalDialog(html, ' ');
+}
+
+function buscarDadosPedido(numPedido) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    
+    if (!aba) {
+      throw new Error(`Aba "${NOME_ABA_PEDIDOS}" não encontrada.`);
+    }
+
+    // Pega todos os dados da planilha como String (para preservar formatação de datas)
+    // Otimização: Se a planilha for gigante, pode ser necessário filtrar, 
+    // mas getDataRange é seguro para até ~10k linhas na maioria dos casos.
+    const dados = aba.getDataRange().getDisplayValues(); 
+    
+    // Loop começa em 1 para pular o cabeçalho (linha 1 da planilha)
+    for (let i = 1; i < dados.length; i++) {
+      let linha = dados[i];
+      
+      // Ajuste de Índice: Como arrays em JS começam em 0 e suas constantes são base 1 (Planilha),
+      // subtraímos 1 de cada constante.
+      
+      const idPedidoPlanilha = String(linha[COL_PEDIDO_NUMERO - 1]).trim();
+      const idPedidoBusca = String(numPedido).trim();
+
+      if (idPedidoPlanilha === idPedidoBusca) {
+        
+        return {
+          sucesso: true,
+          cliente: linha[COL_PEDIDO_CLIENTE - 1],          // Coluna K
+          descricao: linha[COL_PEDIDO_DESCRICAO - 1],      // Coluna L
+          dataEntregaAtual: linha[COL_PEDIDO_DATA_ENTREGA - 1], // Coluna G
+          linhaPlanilha: i + 1 // Retorna o número real da linha (base 1)
+        };
+      }
+    }
+
+    return {
+      sucesso: false,
+      mensagem: "Pedido não encontrado."
+    };
+
+  } catch (e) {
+    return {
+      sucesso: false,
+      mensagem: "Erro no backend: " + e.message
+    };
+  }
 }
 
 /**
@@ -10083,32 +10113,6 @@ function getCatalogoProdutosData() {
   }
 }
 
-// ==================================================================
-// 2. ABERTURA NO CELULAR (Web App)
-// ==================================================================
-function doGet(e) {
-  var page = e.parameter.page || 'PainelSetores';
-  
-  try {
-    var template = HtmlService.createTemplateFromFile(page);
-    
-    // CRACHÁ: Diz ao HTML que É Web App (Mobile)
-    template.isWebApp = true; 
-    
-    return template.evaluate()
-      .setTitle('Sistema Feira')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-      
-  } catch (error) {
-    return HtmlService.createHtmlOutput("Erro: Página não encontrada (" + page + ")");
-  }
-}
-
-// Função auxiliar de URL (Mantenha esta)
-function getScriptUrl() {
-  return ScriptApp.getService().getUrl();
-}
 
 // ==================================================================
 // 1. GERADOR PRINCIPAL DE PDF (GOOGLE SLIDES)
@@ -10321,4 +10325,135 @@ function registrarLogFront(cod, acao, detalhes) {
   const user = Session.getActiveUser().getEmail();
   const data = new Date();
   abaLog.appendRow([data, cod, user, acao, detalhes]);
+}
+
+/* ==================================================================
+   MÓDULO DE EXPEDIÇÃO
+   ================================================================== */
+
+/**
+ * Rota para abrir o formulário de Expedição
+ */
+function abrirFormExpedicao() {
+  return HtmlService.createTemplateFromFile('FormExpedicao')
+    .evaluate()
+    .setTitle('Controle de Expedição')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Busca todos os pedidos que estão com status "Expedição" (ou prontos para sair)
+ */
+function buscarPedidosParaExpedicao() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    const dados = aba.getDataRange().getDisplayValues();
+    
+    // Status que a expedição deve enxergar. 
+    // Ajuste conforme o fluxo (ex: "Liberado Qualidade", "Expedição", "Pronto")
+    const STATUS_ALVO = ["Na Expedição", "Liberado para Expedição", "Aguardando Envio"];
+    
+    let pedidosEncontrados = [];
+
+    // Começa do 1 para pular cabeçalho
+    for (let i = 1; i < dados.length; i++) {
+      let linha = dados[i];
+      let statusAtual = linha[COL_PEDIDO_STATUS - 1]; // Índice base 0
+
+      if (STATUS_ALVO.includes(statusAtual)) {
+        pedidosEncontrados.push({
+          linha: i + 1,
+          numero: linha[COL_PEDIDO_NUMERO - 1],
+          cliente: linha[COL_PEDIDO_CLIENTE - 1],
+          descricao: linha[COL_PEDIDO_DESCRICAO - 1],
+          quantidade: linha[COL_PEDIDO_QUANTIDADE - 1],
+          tipoExpedicao: linha[COL_PEDIDO_TIPO_EXPEDICAO - 1], // Transportadora, Retira, etc.
+          dataEntrega: linha[COL_PEDIDO_DATA_ENTREGA - 1],
+          vendedora: linha[COL_PEDIDO_VENDEDORA - 1],
+          observacao: linha[COL_PEDIDO_OBS_ESPECIAIS - 1] || ""
+        });
+      }
+    }
+
+    return { sucesso: true, pedidos: pedidosEncontrados };
+
+  } catch (e) {
+    return { sucesso: false, erro: e.message };
+  }
+}
+
+/**
+ * Conclui o pedido: Muda status para "Concluído" e define Data de Conclusão
+ */
+function concluirPedidoExpedicao(numPedido, linha) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    
+    // Validação de segurança: verifica se a linha corresponde ao pedido
+    const valorPedidoNaLinha = aba.getRange(linha, COL_PEDIDO_NUMERO).getDisplayValue();
+    if (String(valorPedidoNaLinha).trim() !== String(numPedido).trim()) {
+      throw new Error("A linha da planilha não corresponde ao número do pedido. Atualize a página.");
+    }
+
+    const dataHoje = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
+
+    // 1. Atualiza Status para "Concluído" (ou "Enviado", "Entregue")
+    aba.getRange(linha, COL_PEDIDO_STATUS).setValue("Concluído");
+
+    // 2. Preenche a Data de Conclusão (se estiver vazia ou for atualizar)
+    aba.getRange(linha, COL_PEDIDO_DATA_CONCLUSAO).setValue(dataHoje);
+
+    // 3. (Opcional) Enviar E-mail de notificação de despacho
+    enviarEmailConclusaoExpedicao(linha, numPedido);
+
+    return { sucesso: true };
+
+  } catch (e) {
+    return { sucesso: false, erro: e.message };
+  }
+}
+
+/**
+ * Envia e-mail simples notificando que o pedido saiu
+ */
+function enviarEmailConclusaoExpedicao(linha, numPedido) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = ss.getSheetByName(NOME_ABA_PEDIDOS);
+    
+    // Pega dados para o e-mail
+    const cliente = aba.getRange(linha, COL_PEDIDO_CLIENTE).getValue();
+    const vendedora = aba.getRange(linha, COL_PEDIDO_VENDEDORA).getValue();
+    const tipoFrete = aba.getRange(linha, COL_PEDIDO_TIPO_EXPEDICAO).getValue();
+
+    // Tenta achar o e-mail da vendedora na aba Vendedoras (Opcional, se tiver essa aba mapeada)
+    // Por enquanto, enviamos para o Diretor/Admin definido nas constantes
+    const destinatarios = [EMAIL_DIRETOR_COMERCIAL]; // Adicione outros se necessário
+    
+    const assunto = `📦 Pedido Enviado/Concluído: ${numPedido} - ${cliente}`;
+    
+    const corpo = `
+      <h3>Confirmação de Expedição</h3>
+      <p>O pedido <strong>${numPedido}</strong> foi processado pela expedição e marcado como Concluído.</p>
+      <ul>
+        <li><strong>Cliente:</strong> ${cliente}</li>
+        <li><strong>Vendedora:</strong> ${vendedora}</li>
+        <li><strong>Tipo de Envio:</strong> ${tipoFrete}</li>
+        <li><strong>Data:</strong> ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm")}</li>
+      </ul>
+      <p><em>Sistema de Controle Interno</em></p>
+    `;
+
+    MailApp.sendEmail({
+      to: destinatarios.join(","),
+      subject: assunto,
+      htmlBody: corpo
+    });
+    
+  } catch (e) {
+    console.error("Erro ao enviar email expedição: " + e.message);
+    // Não paramos o fluxo se o e-mail falhar, apenas logamos
+  }
 }
