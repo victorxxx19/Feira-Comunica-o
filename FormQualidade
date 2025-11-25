@@ -2,1452 +2,593 @@
 <html>
 <head>
 <base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 
 <style>
 /* ===================================================
-   ESTILOS GERAIS (Baseado no FormProducao)
+   ESTILOS GERAIS
 =================================================== */
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5;
-  margin: 0;
-  padding: 0 0 80px 0;
-}
-.header-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 25px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #ddd;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.header-title {
-  display: flex;
-  align-items: center;
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #37417c;
-}
-.header-title i {
-  font-size: 2.0rem;
-  margin-right: 12px;
-  color: #37417c;
-}
-.header-logo {
-  max-height: 45px;
-  width: auto;
-}
-#divObjetos {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 5px 20px 20px 20px; 
-  box-shadow: none !important;
-  background-color: transparent; 
-  opacity: 1;
-  transition: opacity 0.3s ease;
-}
-.subtitulo-descricao {
-  font-style: italic;
-  color: #555;
-  margin-bottom: 15px;
-  text-align: left;
-  padding-left: 5px;
-}
-.section-container {
-  margin-bottom: 25px;
-}
-.section-header {
-  display: flex;
-  align-items: center;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #C8E154;
-  margin-bottom: 15px;
-}
-.section-header i {
-  font-size: 2.0rem;
-  color: #37417c;
-  margin-right: 10px;
-}
-.section-header span {
-  font-size: 1.5rem;
-  font-weight: 400;
-  color: #37417c;
-  text-transform: uppercase;
-}
-.section-content {
-  background-color: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0 0 80px 0; }
+.header-container { display: flex; justify-content: space-between; align-items: center; padding: 10px 25px; background-color: #ffffff; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.header-title { display: flex; align-items: center; font-size: 1.6rem; font-weight: 600; color: #37417c; }
+.header-title i { font-size: 2.0rem; margin-right: 12px; color: #37417c; }
+.header-logo { max-height: 45px; width: auto; }
 
-/* ===================================================
-   ESTILOS DA TABELA (Simplificado)
-=================================================== */
-.tabela-cq {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.tabela-cq thead th {
-  background-color: #37417c;
-  color: #ffffff;
-  padding: 10px 10px !important;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  border-bottom: 2px solid #ccc;
-  text-align: center !important;
-  font-weight: bold;
-  word-wrap: break-word;
-  vertical-align: middle;
-}
-.tabela-cq tbody td {
-  padding: 8px 5px !important;
-  vertical-align: middle !important;
-  text-align: center;
-  color: #000;
-  line-height: 1.4;
-  font-weight: 500;
-  font-size: 0.8rem;
-  word-wrap: break-word;
-}
+#divObjetos { max-width: 1600px; margin: 0 auto; padding: 5px 20px; }
 
-/* Larguras Tabela 1 (Para Iniciar) */
-#tabela-para-controlar thead th:nth-child(1) { width: 8%; } /* N° Pedido */
-#tabela-para-controlar thead th:nth-child(2) { width: 10%; } /* Data Entrega */
-#tabela-para-controlar thead th:nth-child(3) { width: 22%; } /* Cliente */
-#tabela-para-controlar thead th:nth-child(4) { width: 25%; } /* Descrição */
-#tabela-para-controlar thead th:nth-child(5) { width: 10%; } /* Qtd. Pedido */
-#tabela-para-controlar thead th:nth-child(6) { width: 15%; } /* Status Atual */
-#tabela-para-controlar thead th:nth-child(7) { width: 10%; } /* Ação */
+.section-header { display: flex; align-items: center; padding-bottom: 10px; border-bottom: 2px solid #C8E154; margin-bottom: 15px; margin-top: 20px; }
+.section-header i { font-size: 2.0rem; color: #37417c; margin-right: 10px; }
+.section-header span { font-size: 1.5rem; font-weight: 400; color: #37417c; text-transform: uppercase; }
+.section-content { background-color: #ffffff; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-/* Larguras Tabela 2 (Em Controle) */
-#tabela-em-controle thead th:nth-child(1) { width: 8%; } /* N° Pedido */
-#tabela-em-controle thead th:nth-child(2) { width: 10%; } /* Data Entrega */
-#tabela-em-controle thead th:nth-child(3) { width: 20%; } /* Cliente */
-#tabela-em-controle thead th:nth-child(4) { width: 10%; } /* Qtd. Pedido */
-#tabela-em-controle thead th:nth-child(5) { width: 12%; } /* Qtd. Aprovada */
-#tabela-em-controle thead th:nth-child(6) { width: 10%; } /* Qtd. Reprovada */
-#tabela-em-controle thead th:nth-child(7) { width: 5%; } /* Lotes */
-#tabela-em-controle thead th:nth-child(8) { width: 25%; } /* Ações */
+/* TABELAS */
+.tabela-cq { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.tabela-cq thead th { background-color: #37417c; color: #ffffff; padding: 10px; font-size: 0.85rem; text-transform: uppercase; text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
+.tabela-cq tbody td { padding: 8px 5px; text-align: center; font-size: 0.8rem; border-bottom: 1px solid #eee; }
 
-/* Estilos de Ação */
-td.col-acao-cq {
-  text-align: center;
-  padding: 5px 2px !important;
-  vertical-align: middle;
-}
-td.col-acao-cq .btn,
-td.col-acao-cq .btn-small {
-  padding: 0 0.8rem;
-  height: 28px;
-  line-height: 28px;
-  font-size: 0.75rem;
-  text-transform: none; 
-  margin: 2px 2px;
-}
-.btn-iniciar-cq { background-color: #00897B !important; } /* Teal */
-.btn-lancar-lote { background-color: #1E88E5 !important; } /* Blue */
-.btn-ver-lotes { background-color: #757575 !important; } /* Grey */
-.btn-finalizar-cq { background-color: #43A047 !important; } /* Green */
+/* Larguras Tabela 2 */
+#tabela-em-controle thead th:nth-child(1) { width: 8%; } 
+#tabela-em-controle thead th:nth-child(2) { width: 10%; } 
+#tabela-em-controle thead th:nth-child(3) { width: 20%; } 
+#tabela-em-controle thead th:nth-child(4) { width: 10%; } 
+#tabela-em-controle thead th:nth-child(5) { width: 10%; } 
+#tabela-em-controle thead th:nth-child(6) { width: 15%; } /* Perda */
+#tabela-em-controle thead th:nth-child(7) { width: 5%; } 
+#tabela-em-controle thead th:nth-child(8) { width: 22%; } /* Ações */
 
-/* Números Clicáveis e Status */
-.num-pedido-clicavel { cursor: pointer !important; color: #37417c; font-weight: bold; text-decoration: underline; }
-.data-alerta { color: #FF9800 !important; font-weight: bold; }
-.data-atrasada { color: #D32F2F !important; font-weight: bold; }
-.data-status-icon { font-size: 1rem; vertical-align: bottom; margin-left: 2px;}
-.status-producao-finalizada { background-color: #E1BEE7 !important; color: #6A1B9A !important; }
-.status-controlando { background-color: #BBDEFB !important; color: #1565C0 !important; }
+/* Botões */
+.btn-small { padding: 0 10px; height: 28px; line-height: 28px; font-size: 0.75rem; margin: 2px; }
+.btn-iniciar-cq { background-color: #00897B !important; }
+.btn-lancar-lote { background-color: #1E88E5 !important; }
+.btn-ver-lotes { background-color: #757575 !important; }
+.btn-finalizar-cq { background-color: #43A047 !important; }
+.perda-alta { color: #D32F2F; font-weight: bold; }
 
-/* Tooltip (para resumo de lotes) */
-.chip.tooltipped {
-  cursor: help;
-  display: inline-block;
-  padding: 4px 8px;
-  font-size: 0.8rem;
-  height: auto;
-  line-height: 1.2;
-}
-.qtd-aprovada, .qtd-reprovada {
-  font-weight: bold;
-}
-.qtd-aprovada.excedente-ok { color: #2E7D32; } /* Verde */
-.qtd-aprovada.excedente-falta { color: #E65100; } /* Laranja */
-.qtd-aprovada.excedente-excesso { color: #D32F2F; } /* Vermelho */
-.qtd-reprovada { color: #D32F2F; }
+/* MODAIS */
+.modal { border-radius: 12px !important; max-height: 95% !important; overflow: visible !important; }
+.modal h4 { color: #37417c; border-bottom: 2px solid; border-image: linear-gradient(to right, #37417c, #C8E154) 1; padding-bottom: 15px; font-size: 1.5rem; }
+.modal-content { overflow-y: auto; max-height: 85vh; padding-bottom: 100px !important; }
 
-/* Rodapé Fixo */
-#footer-bar {
-  position: fixed;
-  bottom: 0; 
-  left: 0;
-  width: 100%;
-  background-color: #ffffff;
-  border-top: 1px solid #ddd;
-  padding: 12px 24px;
-  display: flex;
-  justify-content: flex-end;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-  z-index: 999;
+/* Inputs Personalizados */
+.custom-input-field {
+    background-color: #f5f7fa; border-radius: 6px; border-left: 4px solid #37417c;
+    padding: 8px 12px; margin-bottom: 15px; position: relative;
+    overflow: visible !important; 
 }
-#btnReportarProblema {
-  background-color: #E53935 !important; /* Vermelho */
-  color: #ffffff !important;
-  font-weight: bold;
+.custom-input-field label { font-size: 0.7rem; color: #37417c; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
+.custom-input-field input, .custom-input-field select {
+    border: none !important; background: transparent !important; height: 30px !important;
+    font-size: 1rem !important; color: #333; font-weight: 500; width: 100%; margin: 0 !important; box-shadow: none !important;
 }
+.custom-input-field input:focus { box-shadow: none !important; border-bottom: 1px solid #37417c !important; }
 
-/* ===================================================
-   PADRONIZAÇÃO DE MODAIS (NOVO)
-=================================================== */
+/* Select Materialize fix */
+.select-wrapper input.select-dropdown { border-bottom: none !important; height: 30px !important; line-height: 30px !important; }
+.dropdown-content { z-index: 9999 !important; }
 
-/* --- 1. Estilo Padrão para Títulos H4 de TODOS os modais --- */
-.modal h4 {
-  border-bottom: 2px solid;
-  border-image: linear-gradient(to right, #37417c, #C8E154) 1;
-  padding-bottom: 15px;
-  margin-bottom: 20px !important;
-  color: #37417c;
-  font-weight: 600;
-  font-size: 1.5rem !important;
-  display: flex;
-  align-items: center;
-}
-.modal h4 i {
-    margin-right: 10px;
-}
-/* Ajusta o tamanho do modal de detalhes */
-#detalhes-pedido-modal { 
-  max-width: 1200px !important; 
-  width: 95% !important; 
-  max-height: 90% !important;
-}
-#modal-lancar-lote, #modal-reportar-problema-cq { max-width: 600px; }
-#modal-ver-lotes { max-width: 800px; }
-
-/* --- 2. Estilos para Modais de INPUT (Lançar Lote, Reportar Problema) --- */
-/* Esta é a adaptação do .detalhes-pedido-valor para os .input-field */
-
-#modal-lancar-lote .input-field,
-#modal-reportar-problema-cq .input-field {
-  display: flex;
-  flex-direction: column; /* Força o label a ficar em cima */
-  background-color: #f5f7fa;
-  border-radius: 6px;
-  border-left: 3px solid #37417c;
-  padding: 8px 12px 4px 12px; /* Padding para o label e o input */
-  margin-top: 20px; /* Espaço para o label "flutuar" */
-  margin-bottom: 15px;
-  box-sizing: border-box;
-}
-
-/* Força o Label a parecer o .detalhes-pedido-label */
-#modal-lancar-lote .input-field label,
-#modal-reportar-problema-cq .input-field label {
-  position: static; /* Remove o comportamento de flutuação */
-  transform: none !important; /* Remove o comportamento de flutuação */
-  font-size: 0.75rem !important;
-  color: #37417c !important; /* Azul, não cinza */
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  pointer-events: none; /* Não interage com o clique */
-  width: 100%;
-}
-/* Faz o label da textarea ficar alinhado */
-#modal-lancar-lote .input-field label[for^="lote-motivo"],
-#modal-reportar-problema-cq .input-field label[for^="problema-cq-descricao"] {
-  margin-bottom: 8px;
-}
-
-
-/* Remove as bordas/sombras dos inputs/selects internos */
-#modal-lancar-lote .input-field input[type=number],
-#modal-lancar-lote .input-field input[type=text],
-#modal-lancar-lote .input-field .select-wrapper input.select-dropdown,
-#modal-reportar-problema-cq .input-field input[type=text],
-#modal-reportar-problema-cq .input-field .select-wrapper input.select-dropdown {
-  border-bottom: none !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  height: 1.8rem !important; /* Altura menor para o input */
-  line-height: 1.8rem !important;
-  font-size: 0.95rem !important;
-  color: #000 !important;
-  font-weight: 500 !important;
-  padding: 0 !important; /* Remove padding interno do input */
-  background-color: transparent !important;
-}
-
-/* Ajustes finos para o input não ter padding extra */
-#modal-lancar-lote .input-field .select-wrapper,
-#modal-reportar-problema-cq .input-field .select-wrapper {
-    padding: 0;
-    margin: 0;
-    display: block;
-    height: 1.8rem;
-}
-#modal-lancar-lote .input-field .select-wrapper .caret,
-#modal-reportar-problema-cq .input-field .select-wrapper .caret {
-    fill: #37417c;
-    top: 2px; /* Ajuste vertical da seta */
-}
-
-/* Ajuste para Textarea */
-#modal-lancar-lote .input-field textarea.materialize-textarea,
-#modal-reportar-problema-cq .input-field textarea.materialize-textarea {
-  height: 6rem !important; /* Altura maior para textarea */
-  padding: 0 !important;
-  margin: 0 !important;
-  line-height: 1.4rem;
-  border-bottom: none !important;
-  box-shadow: none !important;
-  background-color: transparent;
-}
-
-/* --- 3. Estilos do Modal de DETALHES (Copiados do FormProducao) --- */
-/* (Estes já estavam no seu FormQualidade original, mas estão aqui para garantir) */
-.detalhes-pedido-grid-3-col {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px 24px;
-  margin-bottom: 20px;
-}
-.detalhes-pedido-item { display: flex; flex-direction: column; }
-.detalhes-pedido-label {
-  font-size: 0.75rem; color: #666;
-  text-transform: uppercase;
-  font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;
-}
-.detalhes-pedido-valor {
-  font-size: 0.95rem;
-  color: #000; font-weight: 500;
-  padding: 8px 12px; background-color: #f5f7fa;
-  border-radius: 6px; border-left: 3px solid #37417c;
-  min-height: 38px; word-wrap: break-word;
-}
-.detalhes-pedido-item.full-width { grid-column: 1 / -1; }
-.detalhes-pedido-item.span-2 { grid-column: span 2; }
-.detalhes-pedido-secao {
-  margin-top: 24px;
-  padding-top: 20px; border-top: 1px solid #e0e0e0;
-}
-.detalhes-pedido-secao-titulo {
-  font-size: 0.85rem;
-  color: #37417c; text-transform: uppercase;
-  font-weight: 700; letter-spacing: 0.5px; margin-bottom: 12px;
-  display: flex; align-items: center;
-}
-.detalhes-pedido-secao-titulo i { margin-right: 8px; font-size: 1.1rem; }
-.detalhes-pedido-obs {
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
-  padding: 12px 16px; border-radius: 6px; color: #856404;
-  font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;
-  word-wrap: break-word;
-}
-.detalhes-pedido-obs.vazio {
-  background-color: #f5f7fa; border-left-color: #ccc;
-  color: #999; font-style: italic;
-}
-
-/* --- 4. Estilos específicos do Modal VER LOTES --- */
-#modal-ver-lotes .modal-content { padding-bottom: 10px; }
-#tabela-lotes-cq { width: 100%; margin-top: 15px; }
-#tabela-lotes-cq th { background: #f4f4f4; color: #333; text-align: center; padding: 8px 5px; font-size: 0.8rem; }
-#tabela-lotes-cq td { text-align: center; padding: 8px 5px; font-size: 0.8rem; border-bottom: 1px solid #eee; }
-#lotes-resumo-container {
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 2px solid #37417c;
-}
-.resumo-item { display: flex; justify-content: space-between; font-size: 1.1rem; margin-bottom: 8px;}
-.resumo-label { color: #555; }
-.resumo-valor { font-weight: bold; color: #000; }
-#resumo-lotes-status,
-#finalizar-status-validacao {
-  font-weight: bold;
-  font-size: 1.1rem;
-  text-align: center;
-  padding: 8px;
-  border-radius: 4px;
-}
-/* Cores do status de validação */
-.validacao-ok { background-color: #E8F5E9; color: #2E7D32; }
-.validacao-erro { background-color: #FFEBEE; color: #C62D2D; }
-
-
-/* --- 5. Outros Estilos --- */
-#msg-sem-pedidos,
-#msg-sem-cq {
-  font-style: italic;
-  color: #777;
-  padding: 20px; 
-  text-align: center;
-  margin: 0;
-}
-.modal .modal-footer .btn-flat { color: #E53935 !important; }
-.modal .modal-footer .btn { background-color: #37417c !important; }
-.modal .modal-footer .btn.green { background-color: #4CAF50 !important; }
-.modal .modal-footer .btn.red { background-color: #E53935 !important; }
-
-/* Loader (mantido) */
-#page-loader { 
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-  background: rgba(255,255,255,0.7); 
-  z-index: 9998; 
-  display: flex; 
-  justify-content: center; 
-  align-items: center;
-}
+/* Footer Fixo */
+#footer-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #ddd; padding: 10px 20px; display: flex; justify-content: flex-end; z-index: 999; }
+#btnReportarProblema { background-color: #E53935 !important; font-weight: bold; }
+#page-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
 </style>
 </head>
 <body>
 
 <div id="toast-custom-container"></div>
+<div id="page-loader" style="display: none;"><div class="preloader-wrapper active"><div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div></div></div>
 
-<div id="page-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9998; display: flex; justify-content: center; align-items: center;">
-  <div class="preloader-wrapper active">
-    <div class="spinner-layer spinner-blue-only">
-      <div class="circle-clipper left"><div class="circle"></div></div>
-      <div class="gap-patch"><div class="circle"></div></div>
-      <div class="circle-clipper right"><div class="circle"></div></div>
-    </div>
-  </div>
-</div>
-
-<div class="header-container z-depth-1">
-  <div class="header-title">
-    <i class="material-icons">verified</i> <span>Controle de Qualidade</span>
-  </div>
-  <img src="[meucodebase64]" alt="Logo" class="header-logo">
+<div class="header-container">
+  <div class="header-title"><i class="material-icons" style="margin-right:10px;">verified</i> Controle de Qualidade</div>
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAADICAYAAADGFbfiAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAEumlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4KPHg6eG1wbWV0YSB4bWxuczp4PSdhZG9iZTpuczptZXRhLyc+CjxyZGY6UkRGIHhtbG5zOnJkZj0naHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyc+CgogPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICB4bWxuczpBdHRyaWI9J2h0dHA6Ly9ucy5hdHRyaWJ1dGlvbi5jb20vYWRzLzEuMC8nPgogIDxBdHRyaWI6QWRzPgogICA8cmRmOlNlcT4KICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0nUmVzb3VyY2UnPgogICAgIDxBdHRyaWI6Q3JlYXRlZD4yMDI1LTExLTA0PC9BdHRyaWI6Q3JlYXRlZD4KICAgICA8QXR0cmliOkV4dElkPjcyMDNmNjM2LTRhNmUtNDkzZi04MGZlLWE0NWRhNjljNTJmZDwvQXR0cmliOkV4dElkPgogICAgIDxBdHRyaWI6RmJJZD41MjUyNjU5MTQxNzk1ODA8L0F0dHJpYjpGYklkPgogICAgIDxBdHRyaWI6VG91Y2hUeXBlPjI8L0F0dHJpYjpUb3VjaFR5cGU+CiAgICA8L3JkZjpsaT4KICAgPC9yZGY6U2VxPgogIDwvQXR0cmliOkFkcz4KIDwvcmRmOkRlc2NyaXB0aW9uPgoKIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PScnCiAgeG1sbnM6ZGM9J2h0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvJz4KICA8ZGM6dGl0bGU+CiAgIDxyZGY6QWx0PgogICAgPHJkZjpsaSB4bWw6bGFuZz0neC1kZWZhdWx0Jz5EZXNpZ24gc2VtIG5vbWUgLSAxPC9yZGY6bGk+CiAgIDwvcmRmOkFsdD4KICA8L2RjOnRpdGxlPgogPC9yZGY6RGVzY3JpcHRpb24+CgogPHJkZjpEZXNjcmlwdGlv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" alt="Logo" class="header-logo">
 </div>
 
 <div id="divObjetos">
-  
-  <p class="subtitulo-descricao">
-    Pedidos liberados da produção para iniciar o controle de qualidade.
-  </p>
-
   <div class="section-container">
-    <div class="section-header">
-      <i class="material-icons">playlist_add</i>
-      <span>Para Iniciar Controle</span>
-    </div>
-    <div class="section-content z-depth-1">
-      <div id="tabela-para-controlar-container">
-        <table id="tabela-para-controlar" class="tabela-cq striped highlight">
-          <thead>
-            <tr>
-              <th>N° do Pedido</th>
-              <th>Data de Entrega</th>
-              <th>Cliente</th>
-              <th>Descrição</th>
-              <th>Qtd. Pedido</th>
-              <th>Status Atual</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-para-controlar-corpo"></tbody>
-        </table>
-        <p id="msg-sem-pedidos" style="display: none;">
-          Não há pedidos "Produção Finalizada" aguardando o início do controle.
-        </p>
-      </div>
+    <div class="section-header"><i class="material-icons">playlist_add</i><span>Para Iniciar Controle</span></div>
+    <div class="section-content">
+      <table id="tabela-para-controlar" class="tabela-cq striped">
+        <thead><tr><th>Pedido</th><th>Entrega</th><th>Cliente</th><th>Descrição</th><th>Qtd.</th><th>Status</th><th>Ação</th></tr></thead>
+        <tbody id="tabela-para-controlar-corpo"></tbody>
+      </table>
+      <p id="msg-sem-pedidos" style="display:none; padding:20px; text-align:center; color:#777;">Nenhum pedido aguardando.</p>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header">
-      <i class="material-icons">rule</i>
-      <span>Em Controle de Qualidade</span>
-    </div>
-    <div class="section-content z-depth-1">
-      <div id="tabela-em-controle-container">
-        <table id="tabela-em-controle" class="tabela-cq striped highlight">
-          <thead>
-            <tr>
-              <th>N° do Pedido</th>
-              <th>Data Entrega</th>
-              <th>Cliente</th>
-              <th>Qtd. Pedido</th>
-              <th>Qtd. Aprovada</th>
-              <th>Qtd. Reprovada</th>
-              <th>Lotes</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-em-controle-corpo"></tbody>
-        </table>
-      </div>
-      <p id="msg-sem-cq" style="display: none;">
-        Não há pedidos "Controlando" na fila de qualidade.
-      </p>
+    <div class="section-header"><i class="material-icons">rule</i><span>Em Controle (Lançamento)</span></div>
+    <div class="section-content">
+      <table id="tabela-em-controle" class="tabela-cq striped">
+        <thead><tr><th>Pedido</th><th>Entrega</th><th>Cliente</th><th>Qtd. Pedido</th><th>Aprovada</th><th>Perda Total</th><th>Lotes</th><th>Ações</th></tr></thead>
+        <tbody id="tabela-em-controle-corpo"></tbody>
+      </table>
+      <p id="msg-sem-cq" style="display:none; padding:20px; text-align:center; color:#777;">Nenhum pedido em andamento.</p>
     </div>
   </div>
+</div>
 
-</div> <div id="footer-bar">
+<div id="footer-bar">
   <button id="btnReportarProblema" class="btn waves-effect" onclick="abrirModalReportarProblema()">
-    Reportar Problema
-    <i class="material-icons right">report_problem</i>
+    Reportar Problema <i class="material-icons right">report_problem</i>
   </button>
 </div>
 
-<div id="modal-lancar-lote" class="modal">
+<div id="modal-lancar-lote" class="modal" style="max-width: 700px;">
   <div class="modal-content">
-    <h4><i class="material-icons left">add_task</i>Lançar Lote de Inspeção</h4>
-    <p>Registre um lote de inspeção para o Pedido: <strong id="lote-num-pedido-label">---</strong></p>
-    <div class="row" style="margin-top: 20px;">
-      <div class="input-field col s6">
-        <select id="lote-unidade-cq">
-          </select>
-        <label>Unidade CQ</label>
-      </div>
-      <div class="input-field col s6">
-        <select id="lote-inspetor">
-          </select>
-        <label>Inspetor</label>
-      </div>
+    <h4><i class="material-icons left">scale</i>Apontamento de Qualidade</h4>
+    <div class="row" style="margin-bottom:10px;">
+       <div class="col s12 m6">Pedido: <strong id="lote-num-pedido-label" style="color:#37417c;">---</strong></div>
+       <div class="col s12 m6">Qtd/Rolo: <strong id="lote-qtd-rolo-label" style="color:#37417c;">---</strong></div>
+    </div>
+    <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+    
+    <div class="row">
+       <div class="col s6 custom-input-field"><label>Unidade CQ</label><select id="lote-unidade-cq"></select></div>
+       <div class="col s6 custom-input-field"><label>Inspetor</label><select id="lote-inspetor"></select></div>
     </div>
     <div class="row">
-      <div class="input-field col s6">
-        <input id="lote-qtd-aprovada" type="number" step="1">
-        <label for="lote-qtd-aprovada">Qtd. Aprovada</label>
-      </div>
-      <div class="input-field col s6">
-        <input id="lote-qtd-reprovada" type="number" step="1" value="0">
-        <label for="lote-qtd-reprovada">Qtd. Reprovada</label>
-      </div>
+       <div class="col s4 custom-input-field" style="border-left-color: #43A047;"><label>Qtd. Aprovada (Etiq)</label><input id="lote-qtd-aprovada" type="number" onkeyup="calcularPerda()"></div>
+       <div class="col s4 custom-input-field" id="div-peso-rolo"><label>Peso 1 Rolo Bom (Kg)</label><input id="lote-peso-rolo" type="number" step="0.01" onkeyup="calcularPerda()"></div>
+       <div class="col s4 custom-input-field" style="border-left-color: #D32F2F;"><label>Peso Refugo (Kg)</label><input id="lote-peso-refugo" type="number" step="0.001" onkeyup="calcularPerda()"></div>
     </div>
     <div class="row">
-      <div class="input-field col s12">
-        <select id="lote-motivo-reprova">
-          <option value="" disabled selected>Selecione o motivo (Obrigatório se Qtd. Reprovada > 0)</option>
-          <option value="Variação de Impressão">Variação de Impressão</option>
-          <option value="Desencaixe de Impressão">Desencaixe de Impressão</option>
-          <option value="Falha de Impressão (Pontos, riscos)">Falha de Impressão (Pontos, riscos)</option>
-          <option value="Falta de Tinta / Tinta Fraca">Falta de Tinta / Tinta Fraca</option>
-          <option value="Excesso de Tinta / Borrão">Excesso de Tinta / Borrão</option>
-          <option value="Degolando Liner">Degolando Liner</option>
-          <option value="Corte com Rebarba">Corte com Rebarba</option>
-          <option value="Corte Fora de Padrão">Corte Fora de Padrão</option>
-          <option value="Contaminação / Manchas">Contaminação / Manchas</option>
-          <option value="Material Fora de Especificação">Material Fora de Especificação</option>
-          <option value="Outro (Reportar no Log de Problemas)">Outro (Reportar no Log de Problemas)</option>
-        </select>
-        <label for="lote-motivo-reprova">Motivo da Reprova (se houver)</label>
-      </div>
+       <div class="col s7 custom-input-field" style="border-left-color: #FBC02D;">
+          <label>Motivos da Reprova</label>
+          <select multiple id="lote-motivos">
+              <option value="" disabled>Selecione...</option>
+              <option value="Liner degolando">Liner degolando</option>
+              <option value="Falha de Impressão">Falha de Impressão</option>
+              <option value="Variação de Impressão">Variação de Impressão</option>
+              <option value="Desencaixe de Letras">Desencaixe de Letras</option>
+              <option value="Erro de Corte">Erro de Corte</option>
+              <option value="Problema de Faca">Problema de Faca</option>
+              <option value="Corte e Refilamento">Corte e Refilamento</option>
+              <option value="Sobra de Bobina">Sobra de Bobina</option>
+              <option value="Falha no Cold">Falha no Cold</option>
+              <option value="Parada de Máquina">Parada de Máquina</option>
+          </select>
+       </div>
+       <div class="col s5">
+          <div style="background: #ffebee; color: #c62828; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #ef9a9a;">
+             <small>PERDA NO PEDIDO TODO</small><br><span id="display-perc-perda" style="font-size: 1.4rem; font-weight: 800;">0.00%</span>
+          </div>
+       </div>
     </div>
     <input type="hidden" id="lote-num-pedido-hidden">
+    <input type="hidden" id="lote-qtd-total-pedido">
+    <input type="hidden" id="lote-qtd-rolo-hidden">
   </div>
   <div class="modal-footer">
-    <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
-    <button class="waves-effect btn green" id="btn-salvar-lote">Salvar Lote</button>
+    <button class="modal-close btn-flat waves-effect">Cancelar</button>
+    <button class="btn green waves-effect" onclick="handleSalvarLote()">Salvar</button>
   </div>
 </div>
 
-<div id="modal-ver-lotes" class="modal">
-  <div class="modal-content">
-    <h4><i class="material-icons left">list_alt</i>Lotes Inspecionados</h4>
-    <p>Pedido: <strong id="ver-lotes-num-pedido">---</strong></p>
-    
-    <div id="ver-lotes-loading" style="text-align: center; padding: 20px; display: none;">
-      <div class="preloader-wrapper active small">
-        <div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div>
-      </div>
-      <p>Buscando lotes...</p>
-    </div>
-
-    <table id="tabela-lotes-cq" class="striped">
-      <thead>
-        <tr>
-          <th>Data/Hora</th>
-          <th>Unidade CQ</th>
-          <th>Inspetor</th>
-          <th>Qtd. Aprovada</th>
-          <th>Qtd. Reprovada</th>
-          <th>Motivo Reprova</th>
-        </tr>
-      </thead>
-      <tbody id="corpo-tabela-lotes">
-        </tbody>
-    </table>
-    
-    <div id="lotes-resumo-container">
-      <div class="resumo-item">
-        <span class="resumo-label">Qtd. Pedido Original:</span>
-        <span class="resumo-valor" id="resumo-lotes-qtd-pedido">---</span>
-      </div>
-      <div class="resumo-item">
-        <span class="resumo-label">Total Aprovado:</span>
-        <span class="resumo-valor" id="resumo-lotes-total-aprovado">---</span>
-      </div>
-      <div class="resumo-item">
-        <span class="resumo-label">Total Reprovado:</span>
-        <span class="resumo-valor" id="resumo-lotes-total-reprovado">---</span>
-      </div>
-      <div id="resumo-lotes-status" style="margin-top: 15px;">
-        </div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button class="modal-close waves-effect waves-grey btn-flat">Fechar</button>
-  </div>
-</div>
-
-<div id="modal-confirmar-finalizar" class="modal">
-  <div class="modal-content">
-    <h4 id="finalizar-titulo"><i class="material-icons left green-text">check_circle</i>Finalizar Controle?</h4>
-    <p>Você está prestes a finalizar o controle do Pedido <strong id="finalizar-num-pedido">---</strong> e enviá-lo para a Expedição.</p>
-    
-    <div id="finalizar-resumo-container" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-      </div>
-    
-    <div id="finalizar-motivo-atraso-container" style="display: none; margin-top: 15px;">
-      <p class="red-text text-darken-2" style="font-weight: bold;"><i class="material-icons left">warning</i>Este pedido está sendo finalizado COM ATRASO.</p>
-      <div class="input-field">
-        <textarea id="finalizar-motivo-atraso-input" class="materialize-textarea" placeholder="Obrigatório"></textarea>
-        <label for="finalizar-motivo-atraso-input">Motivo do Atraso</label>
-      </div>
-    </div>
-
-    <input type="hidden" id="finalizar-linha-planilha">
-  </div>
-  <div class="modal-footer">
-    <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
-    <button class="waves-effect btn green" id="btn-confirmar-finalizacao">Confirmar e Enviar</button>
-  </div>
-</div>
-
-<div id="modal-reportar-problema-cq" class="modal">
-  <div class="modal-content">
-    <h4><i class="material-icons left red-text">report_problem</i>Reportar Problema de Qualidade</h4>
-    <p>Reporte um problema identificado durante a inspeção. Isso <strong>não</strong> altera o status do pedido, apenas registra o problema.</p>
-    <div class="row">
-      <div class="input-field col s12">
-        <input id="problema-cq-num-pedido" type="text" class="validate">
-        <label for="problema-cq-num-pedido">Nº do Pedido (Obrigatório)</label>
-      </div>
-    </div>
-    <div class="row">
-      <div class="input-field col s12">
-        <select id="problema-cq-inspetor">
-          </select>
-        <label>Inspetor (Obrigatório)</label>
-      </div>
-    </div>
-    <div class="row">
-      <div class="input-field col s12">
-        <select id="problema-cq-tipo">
-          <option value="" disabled selected>Escolha o Tipo de Problema</option>
-          <option value="Tonalidade Fora do Padrão">Tonalidade Fora do Padrão</option>
-          <option value="Falha de Registro (Gráfico)">Falha de Registro (Gráfico)</option>
-          <option value="Falha de Corte (Faca)">Falha de Corte (Faca)</option>
-          <option value="Material/Substrato Incorreto">Material/Substrato Incorreto</option>
-          <option value="Contaminação (Manchas, Sujeira)">Contaminação (Manchas, Sujeira)</option>
-          <option value="Problema no Tubete/Acabamento">Problema no Tubete/Acabamento</option>
-          <option value="Outro (Descrever)">Outro (Descrever)</option>
-        </select>
-        <label>Tipo de Problema (Obrigatório)</label>
-      </div>
-    </div>
-    <div class="row">
-      <div class="input-field col s12">
-        <textarea id="problema-cq-descricao" class="materialize-textarea" placeholder="Descreva o problema em detalhes..."></textarea>
-        <label for="problema-cq-descricao">Descrição Detalhada (Obrigatório)</label>
-      </div>
-    </div>
-  </div>
-  <div class="modal-footer">
-    <button class="modal-close waves-effect waves-grey btn-flat">Cancelar</button>
-    <button class="waves-effect btn red" id="btn-confirmar-reporte-cq">Reportar Problema</button>
-  </div>
-</div>
-
-<div id="detalhes-pedido-modal" class="modal">
+<div id="modal-sobra" class="modal" style="max-width: 400px;">
     <div class="modal-content">
-      <h4 id="detalhes-titulo">Detalhes do Pedido</h4>
-      <div id="detalhes-loading" style="text-align: center; padding: 40px;">
-        <div class="preloader-wrapper active">
-          <div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div>
-        </div>
-        <p>Buscando dados...</p>
-      </div>
-      <div id="detalhes-conteudo" style="display: none;">
-  <div class="detalhes-pedido-grid-3-col">
-    
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">N° Pedido</span><span id="detalhe-num-pedido" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Data Pedido</span><span id="detalhe-data-pedido" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Tipo de Pedido</span><span id="detalhe-tipo-pedido" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Quantidade Pedida</span><span id="detalhe-quantidade" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Vendedora</span><span id="detalhe-vendedora" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Tipo de Expedição</span><span id="detalhe-tipo-expedicao" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Data Entrega</span><span id="detalhe-data-entrega" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Data Conclusão</span><span id="detalhe-data-conclusao" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Status do Pedido</span><span id="detalhe-status" class="detalhes-pedido-valor"></span></div>
-    
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Cód. Produto</span><span id="detalhe-cod-produto" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Cliente</span><span id="detalhe-cliente" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item span-2"><span class="detalhes-pedido-label">Descrição do Produto</span><span id="detalhe-descricao" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Faca</span><span id="detalhe-faca" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Substrato</span><span id="detalhe-substrato" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Tipo de Cola</span><span id="detalhe-tipo-cola" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Largura (mm)</span><span id="detalhe-largura" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Altura (mm)</span><span id="detalhe-altura" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Puxada (mm)</span><span id="detalhe-puxada" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Qtd. Cores</span><span id="detalhe-qtd-cores" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Carreiras</span><span id="detalhe-carreiras" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Acabamento</span><span id="detalhe-tipo-acabamento" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Cold</span><span id="detalhe-cold" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Metragem Calculada (m)</span><span id="detalhe-metragem" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Sem Excedente?</span><span id="detalhe-sem-excedente" class="detalhes-pedido-valor"></span></div>
-
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Máquina (Prod)</span><span id="detalhe-maquina" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Fila (Prod)</span><span id="detalhe-fila" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Impressor</span><span id="detalhe-impressor" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Data Início Produção</span><span id="detalhe-data-inicio-prod" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Data Fim Produção</span><span id="detalhe-data-fim-prod" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Fornecedor Substrato</span><span id="detalhe-fornecedor-substrato" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Lote Substrato</span><span id="detalhe-lote-substrato" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Metragem Real (m)</span><span id="detalhe-metragem-real" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Refugo (m)</span><span id="detalhe-refugo-metragem" class="detalhes-pedido-valor"></span></div>
-    
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Unidade CQ</span><span id="detalhe-unidade-cq" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Inspetor</span><span id="detalhe-inspetor" class="detalhes-pedido-valor"></span></div>
-    <div class="detalhes-pedido-item"><span class="detalhes-pedido-label">Qtd. Aprovada CQ</span><span id="detalhe-qtd-aprovada-cq" class="detalhes-pedido-valor"></span></div>
-    
-  </div>
-
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">announcement</i> Observações PCP</h6>
-    <div id="detalhe-obs-pcp" class="detalhes-pedido-obs vazio">Nenhuma observação.</div>
-  </div>
-  
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">build</i> Problemas da Produção</h6>
-    <div id="detalhe-problemas-producao" class="detalhes-pedido-obs vazio">Nenhum problema relatado.</div>
-  </div>
-
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">info</i> Observações/Problemas CQ</h6>
-    <div id="detalhe-obs-cq" class="detalhes-pedido-obs vazio">Nenhuma observação.</div>
-  </div>
-  
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">warning</i> Motivo Metragem a Mais</h6>
-    <div id="detalhe-motivo-mais-metragem" class="detalhes-pedido-obs vazio">Nenhum motivo informado.</div>
-  </div>
-  
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">history</i> Motivo Atraso</h6>
-    <div id="detalhe-motivo-atraso" class="detalhes-pedido-obs vazio">Nenhum atraso ou motivo informado.</div>
-  </div>
-  
-  <div class="detalhes-pedido-secao">
-    <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">cancel</i> Motivo Cancelamento</h6>
-    <div id="detalhe-motivo-cancelamento" class="detalhes-pedido-obs vazio">Não cancelado.</div>
-  </div>
-
-</div>
+        <h5 class="orange-text text-darken-2">Registrar Sobra</h5>
+        <p>Pedido: <strong id="sobra-num-pedido-label"></strong></p>
+        <div class="custom-input-field" style="border-left-color: #FB8C00;"><label>Quantidade de Sobra</label><input id="input-sobra-manual" type="number"></div>
+        <input type="hidden" id="sobra-num-pedido-hidden">
+        <div id="loader-sobra" class="progress orange lighten-4" style="display: none; margin-top: 20px;"><div class="indeterminate orange"></div></div>
     </div>
     <div class="modal-footer">
-      <button class="modal-close waves-effect waves-grey btn-flat">Fechar</button>
+        <button id="btn-cancelar-sobra" class="modal-close btn-flat waves-effect">Cancelar</button>
+        <button id="btn-confirmar-sobra" class="btn orange waves-effect" onclick="confirmarSobra()">Confirmar</button>
     </div>
 </div>
 
+<div id="modal-finalizar" class="modal">
+  <div class="modal-content">
+    <h4><i class="material-icons left green-text">check_circle</i>Finalizar Pedido</h4>
+    <div id="finalizar-resumo"></div>
+    <input type="hidden" id="finalizar-num">
+    <input type="hidden" id="finalizar-linha">
+  </div>
+  <div class="modal-footer">
+    <button class="modal-close btn-flat waves-effect">Cancelar</button>
+    <button class="btn green waves-effect" id="btn-conf-finalizar" disabled>Confirmar</button>
+  </div>
+</div>
+
+<div id="modal-gerenciar" class="modal modal-fixed-footer" style="width: 95%; max-width: 1100px; max-height: 95%;">
+    <div class="modal-content">
+        <h4><i class="material-icons left">edit_note</i>Gerenciar Lotes</h4>
+        <div class="row" style="margin-bottom:10px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <div class="col s12 m4">Pedido: <strong id="gerenciar-num-pedido" class="blue-text text-darken-2">---</strong></div>
+            <div class="col s12 m4">Qtd/Rolo: <strong id="gerenciar-qtd-rolo">---</strong></div>
+            <div class="col s12 m4">Qtd Total: <strong id="gerenciar-qtd-total">---</strong></div>
+        </div>
+
+        <div id="area-editar-lote" class="card-panel grey lighten-5" style="display:none; border:1px solid #ccc;">
+            <h6 class="blue-text"><i class="material-icons left">edit</i>Editando Lote: <span id="edit-id-log"></span></h6>
+            <div class="row" style="margin-bottom:0;">
+                <div class="col s3 custom-input-field"><label>Unidade</label><select id="edit-unidade"></select></div>
+                <div class="col s3 custom-input-field"><label>Inspetor</label><select id="edit-inspetor"></select></div>
+                <div class="col s2 custom-input-field"><label>Qtd Aprov</label><input type="number" id="edit-qtd-aprovada" onkeyup="calcularPerdaEdicao()"></div>
+                <div class="col s2 custom-input-field"><label>Peso Rolo</label><input type="number" step="0.01" id="edit-peso-rolo" onkeyup="calcularPerdaEdicao()"></div>
+                <div class="col s2 custom-input-field"><label>Peso Refugo</label><input type="number" step="0.001" id="edit-peso-refugo" onkeyup="calcularPerdaEdicao()"></div>
+            </div>
+            <div class="row" style="margin-bottom:0; align-items:center;">
+                <div class="col s8 custom-input-field"><label>Motivos</label><input type="text" id="edit-motivos"></div>
+                <div class="col s4 center-align">
+                     <div style="background: #fff; border: 2px solid #D32F2F; border-radius: 8px; padding: 5px;">
+                        <small style="color: #D32F2F;">NOVA PERDA</small><br>
+                        <span id="edit-display-perda" style="font-size: 1.2rem; font-weight: 800;">0.00%</span>
+                     </div>
+                </div>
+            </div>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn-flat waves-effect" onclick="cancelarEdicao()">Cancelar</button>
+                <button id="btn-salvar-edicao" class="btn blue waves-effect" onclick="salvarEdicao()">Salvar</button>
+            </div>
+        </div>
+
+        <table class="striped centered">
+            <thead><tr><th>Data</th><th>Unidade</th><th>Inspetor</th><th>Aprovada</th><th>Reprova</th><th>Motivos</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-gerenciar"></tbody>
+        </table>
+        <div id="loader-gerenciar" class="progress" style="display:none;"><div class="indeterminate"></div></div>
+    </div>
+    <div class="modal-footer">
+        <button class="modal-close btn-flat">Fechar</button>
+    </div>
+</div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 
 <script>
-// ===================================================
-// JAVASCRIPT (FormQualidade) - v2.0 (Modelo de Log)
-// ===================================================
-
-// --- Variáveis Globais ---
+// VARIAVEIS E HELPERS
 let todosPedidos = [];
-let todosLotesInspecao = {}; // Mapa { numPedido: [...] }
+let todosLotes = {};
 let listaInspetores = [];
-let listaUnidadesCQ = ["Mesa-01", "Mesa-02", "Mesa-03", "Vemax", "Revisora One"]; // Lista fixa
+let listaUnidadesCQ = ["Mesa-01", "Mesa-02", "Mesa-03", "Vemax", "Revisora One"];
+let loteEmEdicaoId = null;
+const selectOptions = { dropdownOptions: { container: document.body } };
 
-// Instâncias de Modais
-let modalLancarLote, modalVerLotes, modalFinalizar, modalReportarProblema, modalDetalhesInstance;
+function gerarOptions(lista, texto) {
+    return `<option value="" disabled selected>${texto}</option>` + lista.map(x=>`<option>${x}</option>`).join('');
+}
+function formatNum(v) { return v ? parseFloat(String(v).replace(/\./g,'').replace(',','.')).toLocaleString('pt-BR') : '0'; }
+function normalizar(s) { return s ? s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,"").replace(/ç/g,'c').replace(/\s/g,'') : ''; }
+function showPageLoader(s) { document.getElementById('page-loader').style.display=s?'flex':'none'; }
+function onCarregarErro(e) { showPageLoader(false); M.toast({html:'Erro: '+e.message,classes:'red'}); }
+function populaSelect(id,l) { 
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = gerarOptions(l, "Selecione");
+}
 
-// --- Inicialização ---
-document.addEventListener('DOMContentLoaded', function() {
-  // Inicializa todos os modais
-  modalLancarLote = M.Modal.init(document.getElementById('modal-lancar-lote'), { dismissible: true });
-  modalVerLotes = M.Modal.init(document.getElementById('modal-ver-lotes'), { dismissible: true });
-  modalFinalizar = M.Modal.init(document.getElementById('modal-confirmar-finalizar'), { dismissible: false });
-  modalReportarProblema = M.Modal.init(document.getElementById('modal-reportar-problema-cq'), { dismissible: true });
-  modalDetalhesInstance = M.Modal.init(document.getElementById('detalhes-pedido-modal'), { dismissible: true });
-
-  showPageLoader(true);
-  google.script.run
-    .withSuccessHandler(onDadosCarregados)
-    .withFailureHandler(onCarregarErro)
-    .buscarPedidosParaQualidade_v2(); // <- Nova função de backend
-
-  setupListeners(); 
+document.addEventListener('DOMContentLoaded', () => {
+    M.AutoInit();
+    carregarDados();
 });
 
-// --- Callbacks do Backend ---
-function onDadosCarregados(dadosDoBackend) {
-  if (dadosDoBackend && dadosDoBackend.sucesso) {
-    todosPedidos = dadosDoBackend.pedidos || [];
-    todosLotesInspecao = dadosDoBackend.lotesInspecao || {};
-    listaInspetores = dadosDoBackend.inspetores || [];
-    
-    // Popula dropdowns que só precisam ser preenchidos uma vez
-    populateDropdownsFixos();
-    
-    renderizarTabelas();
-  } else {
-    onCarregarErro({ message: dadosDoBackend.erro || "O backend não retornou dados válidos." });
-  }
-  showPageLoader(false);
+function carregarDados() {
+    showPageLoader(true);
+    google.script.run.withSuccessHandler(data => {
+        todosPedidos = data.pedidos || [];
+        todosLotes = data.lotesInspecao || {};
+        listaInspetores = data.inspetores || [];
+        populaSelect('lote-unidade-cq', listaUnidadesCQ);
+        populaSelect('lote-inspetor', listaInspetores);
+        M.FormSelect.init(document.querySelectorAll('select'), selectOptions);
+        renderizar();
+        showPageLoader(false);
+    }).buscarPedidosParaQualidade_v2();
 }
 
-function onCarregarErro(err) {
-  showPageLoader(false);
-  showErrorToast("Falha ao carregar dados: " + (err.message || "Erro desconhecido."));
-}
+function renderizar() {
+    const corpo1 = document.getElementById('tabela-para-controlar-corpo');
+    const corpo2 = document.getElementById('tabela-em-controle-corpo');
+    corpo1.innerHTML = ""; corpo2.innerHTML = "";
 
-// --- Funções de Renderização ---
+    const paraIniciar = todosPedidos.filter(p => ['producaofinalizada','emproducao'].includes(normalizar(p.status)));
+    const emAndamento = todosPedidos.filter(p => normalizar(p.status) === 'controlando');
 
-function populateDropdownsFixos() {
-  const selectUnidade = document.getElementById('lote-unidade-cq');
-  const selectInspetorLote = document.getElementById('lote-inspetor');
-  const selectInspetorProblema = document.getElementById('problema-cq-inspetor');
-  
-  selectUnidade.innerHTML = gerarOptions(listaUnidadesCQ, "", true, "Selecione a Unidade");
-  selectInspetorLote.innerHTML = gerarOptions(listaInspetores, "", true, "Selecione o Inspetor");
-  selectInspetorProblema.innerHTML = gerarOptions(listaInspetores, "", true, "Selecione o Inspetor");
-  
-  // Re-inicializa selects dos modais (os da tabela são inicializados no render)
-  M.FormSelect.init(document.querySelectorAll('#modal-lancar-lote select, #modal-reportar-problema-cq select'));
-}
-
-function renderizarTabelas() {
-  const controlarCorpo = document.getElementById('tabela-para-controlar-corpo');
-  const emControleCorpo = document.getElementById('tabela-em-controle-corpo');
-  const msgSemPedidos = document.getElementById('msg-sem-pedidos');
-  const msgSemCQ = document.getElementById('msg-sem-cq');
-  
-  controlarCorpo.innerHTML = "";
-  emControleCorpo.innerHTML = "";
-  
-  let pedidosParaControlar = [];
-  let pedidosEmControle = [];
-
-  todosPedidos.forEach(pedido => {
-    const statusNormal = normalizarStatus(pedido.status);
-    // ADICIONADO "emproducao" A ESTA LISTA
-    if (statusNormal === 'producaofinalizada' || statusNormal === 'emproducao') {
-      pedidosParaControlar.push(pedido);
-    } else if (statusNormal === 'controlando') {
-      pedidosEmControle.push(pedido);
-    }
-  });
-
-  // Renderiza Tabela 1
-  if (pedidosParaControlar.length === 0) {
-    msgSemPedidos.style.display = 'block';
-  } else {
-    msgSemPedidos.style.display = 'none';
-    pedidosParaControlar.sort((a, b) => parseDate(a.dataEntrega) - parseDate(b.dataEntrega));
-    pedidosParaControlar.forEach(pedido => {
-      controlarCorpo.appendChild(criarLinhaParaControlar(pedido));
-    });
-  }
-  
-  // Renderiza Tabela 2
-  if (pedidosEmControle.length === 0) {
-    msgSemCQ.style.display = 'block';
-  } else {
-    msgSemCQ.style.display = 'none';
-    pedidosEmControle.sort((a, b) => parseDate(a.dataEntrega) - parseDate(b.dataEntrega));
-    pedidosEmControle.forEach(pedido => {
-      // Pega os lotes agregados que o backend já processou
-      const agregados = todosLotesInspecao[pedido.numPedido] || { totalAprovado: 0, totalReprovado: 0, count: 0 };
-      emControleCorpo.appendChild(criarLinhaEmControle(pedido, agregados));
-    });
-  }
-  
-  // Re-inicializa tooltips
-  M.Tooltip.init(document.querySelectorAll('.tooltipped'), { position: 'top' });
-}
-
-function criarLinhaParaControlar(pedido) {
-  const tr = document.createElement('tr');
-  tr.dataset.linhaPlanilha = pedido.linhaPlanilha;
-  const dataStatus = checkDataStatus(pedido.dataEntrega);
-  
-  tr.innerHTML = `
-    <td class="num-pedido-clicavel">${pedido.numPedido}</td>
-    <td class="${dataStatus.classe}">${pedido.dataEntrega} ${dataStatus.icone}</td>
-    <td class_name="col-cliente" style="text-align: left;">${pedido.cliente}</td>
-    <td class_name="col-descricao" style="text-align: left;">${pedido.descricao}</td>
-    <td>${formatarNumero(pedido.quantidade)}</td>
-    <td class="${getStatusColorClass(pedido.status)}">${pedido.status}</td>
-    <td class="col-acao-cq">
-      <button class="btn btn-small btn-iniciar-cq" data-linha="${pedido.linhaPlanilha}">
-        Iniciar Controle <i class="material-icons right" style="font-size: 1rem; margin-left: 2px;">play_arrow</i>
-      </button>
-    </td>
-  `;
-  return tr;
-}
-
-function criarLinhaEmControle(pedido, agregados) {
-  const tr = document.createElement('tr');
-  tr.dataset.linhaPlanilha = pedido.linhaPlanilha;
-  tr.dataset.numPedido = pedido.numPedido;
-  const dataStatus = checkDataStatus(pedido.dataEntrega);
-  
-  const qtdPedidoNum = parseFloat(String(pedido.quantidade).replace(/\./g, '').replace(',', '.')) || 0;
-  
-  // Valida a quantidade aprovada
-  const { classe, tooltip } = validarQtdAprovada(
-    qtdPedidoNum, 
-    agregados.totalAprovado, 
-    pedido.semExcedente
-  );
-
-  tr.innerHTML = `
-    <td class="num-pedido-clicavel">${pedido.numPedido}</td>
-    <td class="${dataStatus.classe}">${pedido.dataEntrega} ${dataStatus.icone}</td>
-    <td class_name="col-cliente" style="text-align: left;">${pedido.cliente}</td>
-    <td>${formatarNumero(pedido.quantidade)}</td>
-    <td class="qtd-aprovada ${classe}" data-tooltip="${tooltip}">${formatarNumero(agregados.totalAprovado)}</td>
-    <td class="qtd-reprovada">${formatarNumero(agregados.totalReprovado)}</td>
-    <td><span class="chip tooltipped" data-tooltip="Qtd. de lotes inspecionados">${agregados.count}</span></td>
-    <td class="col-acao-cq">
-      <button class="btn-small btn-lancar-lote" title="Lançar novo lote de inspeção"><i class="material-icons">add_task</i></button>
-      <button class="btn-small btn-ver-lotes" title="Ver lotes lançados"><i class="material-icons">list_alt</i></button>
-      <button class="btn btn-small btn-finalizar-cq" title="Finalizar CQ e Enviar p/ Expedição">
-        Finalizar <i class="material-icons right" style="font-size: 1rem; margin-left: 2px;">check</i>
-      </button>
-    </td>
-  `;
-  return tr;
-}
-
-// --- Funções de Ação e Eventos ---
-
-function setupListeners() {
-  // Tabela 1: Iniciar Controle
-  document.getElementById('tabela-para-controlar-corpo').addEventListener('click', function(event) {
-    const btn = event.target.closest('.btn-iniciar-cq');
-    if (btn) {
-      handleIniciarControle(btn.dataset.linha);
-    }
-  });
-
-  // Tabela 2: Ações (Lançar, Ver, Finalizar)
-  document.getElementById('tabela-em-controle-corpo').addEventListener('click', function(event) {
-    const tr = event.target.closest('tr[data-num-pedido]');
-    if (!tr) return;
-    
-    const numPedido = tr.dataset.numPedido;
-    const linhaPlanilha = tr.dataset.linhaPlanilha;
-
-    if (event.target.closest('.btn-lancar-lote')) {
-      abrirModalLancarLote(numPedido);
-    }
-    if (event.target.closest('.btn-ver-lotes')) {
-      abrirModalVerLotes(numPedido);
-    }
-    if (event.target.closest('.btn-finalizar-cq')) {
-      abrirModalFinalizar(numPedido, linhaPlanilha);
-    }
-  });
-
-  // Salvar (Modal 1: Lançar Lote)
-  document.getElementById('btn-salvar-lote').addEventListener('click', handleSalvarLote);
-  
-  // Confirmar (Modal 3: Finalizar)
-  document.getElementById('btn-confirmar-finalizacao').addEventListener('click', handleFinalizarCQ);
-  
-  // Reportar Problema (Modal 4)
-  document.getElementById('btn-confirmar-reporte-cq').addEventListener('click', handleReportarProblema);
-  
-  // Detalhes do Pedido (Ambas as tabelas)
-  document.getElementById('divObjetos').addEventListener('click', function(event) {
-    const pedidoCell = event.target.closest('.num-pedido-clicavel');
-    if (pedidoCell) {
-      const tr = pedidoCell.closest('tr[data-linha-planilha]');
-      if (tr) {
-        handleNumeroPedidoClick(tr.dataset.linhaPlanilha);
-      }
-    }
-  });
-}
-
-// Ação: Tabela 1 -> Mover para Tabela 2
-function handleIniciarControle(linhaPlanilha) {
-  showPageLoader(true);
-  google.script.run
-    .withSuccessHandler(onDadosCarregados) // Recarrega tudo
-    .withFailureHandler(onCarregarErro)
-    .salvarInicioCQ(linhaPlanilha);
-}
-
-// Ação: Tabela 2 -> Abrir Modal 1 (Lançar Lote)
-function abrirModalLancarLote(numPedido) {
-  // Limpa o modal
-  document.getElementById('lote-num-pedido-label').textContent = numPedido;
-  document.getElementById('lote-num-pedido-hidden').value = numPedido;
-  document.getElementById('lote-qtd-aprovada').value = "";
-  document.getElementById('lote-qtd-reprovada').value = "0";
-  document.getElementById('lote-motivo-reprova').value = "";
-  
-  // Reseta selects (Materialize)
-  M.FormSelect.init(document.querySelectorAll('#modal-lancar-lote select'));
-  M.updateTextFields(); // Atualiza labels
-  
-  modalLancarLote.open();
-}
-
-// Ação: Salvar (Modal 1)
-function handleSalvarLote() {
-  const dadosLote = {
-    numPedido: document.getElementById('lote-num-pedido-hidden').value,
-    unidadeCQ: document.getElementById('lote-unidade-cq').value,
-    inspetor: document.getElementById('lote-inspetor').value,
-    qtdAprovada: document.getElementById('lote-qtd-aprovada').value,
-    qtdReprovada: document.getElementById('lote-qtd-reprovada').value || "0",
-    motivoReprova: document.getElementById('lote-motivo-reprova').value
-  };
-
-  // Validação
-  if (!dadosLote.unidadeCQ || !dadosLote.inspetor) {
-    showErrorToast("Unidade CQ e Inspetor são obrigatórios.");
-    return;
-  }
-  const qtdAprov = parseFloat(dadosLote.qtdAprovada) || 0;
-  const qtdReprov = parseFloat(dadosLote.qtdReprovada) || 0;
-  if (qtdAprov <= 0 && qtdReprov <= 0) {
-    showErrorToast("A Qtd. Aprovada ou Reprovada deve ser maior que 0.");
-    return;
-  }
-  if (qtdReprov > 0 && !dadosLote.motivoReprova) {
-    showErrorToast("O Motivo da Reprova é obrigatório se Qtd. Reprovada > 0.");
-    return;
-  }
-
-  showPageLoader(true);
-  modalLancarLote.close();
-  google.script.run
-    .withSuccessHandler(onDadosCarregados) // Recarrega tudo
-    .withFailureHandler(onCarregarErro)
-    .salvarNovoLoteCQ(dadosLote);
-}
-
-// Ação: Tabela 2 -> Abrir Modal 2 (Ver Lotes)
-function abrirModalVerLotes(numPedido) {
-  const pedido = todosPedidos.find(p => p.numPedido == numPedido);
-  if (!pedido) return;
-
-  const agregados = todosLotesInspecao[numPedido] || { totalAprovado: 0, totalReprovado: 0, count: 0 };
-  const qtdPedidoNum = parseFloat(String(pedido.quantidade).replace(/\./g, '').replace(',', '.')) || 0;
-
-  // Preenche o resumo no modal
-  document.getElementById('ver-lotes-num-pedido').textContent = numPedido;
-  document.getElementById('resumo-lotes-qtd-pedido').textContent = formatarNumero(pedido.quantidade);
-  document.getElementById('resumo-lotes-total-aprovado').textContent = formatarNumero(agregados.totalAprovado);
-  document.getElementById('resumo-lotes-total-reprovado').textContent = formatarNumero(agregados.totalReprovado);
-  
-  // Atualiza o status de validação
-  const { classe, mensagem } = validarQtdAprovada(qtdPedidoNum, agregados.totalAprovado, pedido.semExcedente, true);
-  const statusEl = document.getElementById('resumo-lotes-status');
-  statusEl.textContent = mensagem;
-  statusEl.className = classe; // Define a cor (validacao-ok ou validacao-erro)
-
-  // Mostra o loader e limpa a tabela
-  document.getElementById('ver-lotes-loading').style.display = 'block';
-  document.getElementById('corpo-tabela-lotes').innerHTML = "";
-  modalVerLotes.open();
-
-  // Busca os detalhes dos lotes
-  google.script.run
-    .withSuccessHandler(onDetalhesLoteRecebidos)
-    .withFailureHandler(onCarregarErro)
-    .getDetalhesInspecaoCQ(numPedido);
-}
-
-// Callback: Quando os detalhes dos lotes chegam (Modal 2)
-function onDetalhesLoteRecebidos(lotes) {
-  const corpoTabela = document.getElementById('corpo-tabela-lotes');
-  corpoTabela.innerHTML = ""; // Limpa
-  
-  if (lotes && lotes.length > 0) {
-    lotes.forEach(lote => {
-      corpoTabela.innerHTML += `
-        <tr>
-          <td>${lote.data}</td>
-          <td>${lote.unidadeCQ}</td>
-          <td>${lote.inspetor}</td>
-          <td>${formatarNumero(lote.qtdAprovada)}</td>
-          <td>${formatarNumero(lote.qtdReprovada)}</td>
-          <td style="text-align: left; max-width: 200px; white-space: pre-wrap;">${lote.motivoReprova}</td>
-        </tr>
-      `;
-    });
-  } else {
-    corpoTabela.innerHTML = `<tr><td colspan="6">Nenhum lote lançado para este pedido.</td></tr>`;
-  }
-  
-  document.getElementById('ver-lotes-loading').style.display = 'none';
-}
-
-// Ação: Tabela 2 -> Abrir Modal 3 (Finalizar)
-function abrirModalFinalizar(numPedido, linhaPlanilha) {
-  const pedido = todosPedidos.find(p => p.numPedido == numPedido);
-  if (!pedido) return;
-
-  const agregados = todosLotesInspecao[numPedido] || { totalAprovado: 0, totalReprovado: 0 };
-  const qtdPedidoNum = parseFloat(String(pedido.quantidade).replace(/\./g, '').replace(',', '.')) || 0;
-  
-  // Preenche dados
-  document.getElementById('finalizar-num-pedido').textContent = numPedido;
-  document.getElementById('finalizar-linha-planilha').value = linhaPlanilha;
-
-  // Valida
-  const { valido, mensagem, classe } = validarQtdAprovada(qtdPedidoNum, agregados.totalAprovado, pedido.semExcedente, true);
-
-  // Preenche o resumo no modal
-  const resumoHTML = `
-    <div class="resumo-item">
-      <span class="resumo-label">Qtd. Pedido Original:</span>
-      <span class="resumo-valor">${formatarNumero(pedido.quantidade)}</span>
-    </div>
-    <div class="resumo-item">
-      <span class="resumo-label">Total Aprovado:</span>
-      <span class="resumo-valor">${formatarNumero(agregados.totalAprovado)}</span>
-    </div>
-    <div class="resumo-item">
-      <span class="resumo-label">Total Reprovado:</span>
-      <span class="resumo-valor">${formatarNumero(agregados.totalReprovado)}</span>
-    </div>
-    <div id="finalizar-status-validacao" class="${classe}" style="margin-top: 15px; text-align: center; padding: 8px; font-weight: bold; border-radius: 4px;">
-      ${mensagem}
-    </div>
-  `;
-  document.getElementById('finalizar-resumo-container').innerHTML = resumoHTML;
-
-  // Verifica Atraso
-  const dataStatus = checkDataStatus(pedido.dataEntrega);
-  const containerAtraso = document.getElementById('finalizar-motivo-atraso-container');
-  const inputAtraso = document.getElementById('finalizar-motivo-atraso-input');
-  if (dataStatus.classe === 'data-atrasada') {
-    containerAtraso.style.display = 'block';
-    inputAtraso.value = "";
-    M.textareaAutoResize(inputAtraso);
-    M.updateTextFields();
-  } else {
-    containerAtraso.style.display = 'none';
-    inputAtraso.value = ""; // Limpa por segurança
-  }
-
-  // Habilita/Desabilita botão de confirmação
-  document.getElementById('btn-confirmar-finalizacao').disabled = !valido;
-  
-  modalFinalizar.open();
-}
-
-// Ação: Salvar (Modal 3)
-function handleFinalizarCQ() {
-  const numPedido = document.getElementById('finalizar-num-pedido').textContent;
-  const linhaPlanilha = document.getElementById('finalizar-linha-planilha').value;
-  const motivoAtraso = document.getElementById('finalizar-motivo-atraso-input').value;
-  const isAtrasado = document.getElementById('finalizar-motivo-atraso-container').style.display === 'block';
-
-  if (isAtrasado && !motivoAtraso) {
-    showErrorToast("O Motivo do Atraso é obrigatório.");
-    return;
-  }
-
-  showPageLoader(true);
-  modalFinalizar.close();
-  google.script.run
-    .withSuccessHandler(onDadosCarregados) // Recarrega tudo
-    .withFailureHandler(onCarregarErro)
-    .finalizarControleQualidade_v2(numPedido, linhaPlanilha, motivoAtraso);
-}
-
-// Ação: Footer -> Abrir Modal 4 (Reportar Problema)
-function abrirModalReportarProblema() {
-  // Limpa o modal
-  document.getElementById('problema-cq-num-pedido').value = "";
-  document.getElementById('problema-cq-descricao').value = "";
-  // Reseta selects (Materialize)
-  M.FormSelect.init(document.querySelectorAll('#modal-reportar-problema-cq select'));
-  M.updateTextFields();
-  modalReportarProblema.open();
-}
-
-// Ação: Salvar (Modal 4)
-function handleReportarProblema() {
-  const dadosProblema = {
-    numPedido: document.getElementById('problema-cq-num-pedido').value,
-    inspetor: document.getElementById('problema-cq-inspetor').value,
-    tipoProblema: document.getElementById('problema-cq-tipo').value,
-    descricao: document.getElementById('problema-cq-descricao').value
-  };
-
-  // Validação
-  if (!dadosProblema.numPedido || !dadosProblema.inspetor || !dadosProblema.tipoProblema || !dadosProblema.descricao) {
-    showErrorToast("Todos os campos são obrigatórios para reportar um problema.");
-    return;
-  }
-
-  showPageLoader(true);
-  modalReportarProblema.close();
-  google.script.run
-    .withSuccessHandler(function(msg) {
-      showPageLoader(false);
-      showSuccessToast(msg); // Não precisa recarregar a tela inteira por isso
-    })
-    .withFailureHandler(onCarregarErro)
-    .reportarProblemaCQ_v2(dadosProblema);
-}
-
-function handleNumeroPedidoClick(linhaPlanilha) {
-        const loading = document.getElementById('detalhes-loading');
-        const content = document.getElementById('detalhes-conteudo');
-        const grid = content.querySelector('.detalhes-pedido-grid-3-col');
-        
-        loading.style.display = 'block';
-        content.style.display = 'none';
-        grid.innerHTML = ''; 
-        content.querySelectorAll('.detalhes-pedido-secao').forEach(el => el.remove());
-        
-        modalDetalhesInstance.open();
-        
-        google.script.run
-            .withSuccessHandler(onGetDetalhesSucesso)
-            .withFailureHandler(onGetDetalhesErro)
-            .getDetalhesCompletosDoPedido(linhaPlanilha); 
+    if(paraIniciar.length === 0) document.getElementById('msg-sem-pedidos').style.display = 'block';
+    else {
+        document.getElementById('msg-sem-pedidos').style.display = 'none';
+        paraIniciar.forEach(p => {
+            corpo1.innerHTML += `
+            <tr>
+                <td>${p.numPedido}</td><td>${p.dataEntrega}</td><td>${p.cliente}</td>
+                <td style="font-size:0.8rem">${p.descricao}</td><td>${formatNum(p.quantidade)}</td>
+                <td>${p.status}</td>
+                <td><button class="btn-small btn-iniciar-cq waves-effect tooltipped" data-tooltip="Iniciar" onclick="iniciar('${p.linhaPlanilha}')"><i class="material-icons">play_arrow</i></button></td>
+            </tr>`;
+        });
     }
 
-    function onGetDetalhesSucesso(detalhes) {
-        const loading = document.getElementById('detalhes-loading');
-        const content = document.getElementById('detalhes-conteudo');
-        const grid = content.querySelector('.detalhes-pedido-grid-3-col');
-        grid.innerHTML = '';
-        content.querySelectorAll('.detalhes-pedido-secao').forEach(el => el.remove());
-
-        const addItem = (label, valor, span = 1, sufixo = '') => {
-            const val = (valor || '---') + (valor ? sufixo : '');
-            const item = document.createElement('div');
-            item.className = `detalhes-pedido-item ${span === 2 ? 'span-2' : ''} ${span === 3 ? 'full-width' : ''}`;
-            item.innerHTML = `<span class="detalhes-pedido-label">${label}</span><span class="detalhes-pedido-valor">${val}</span>`;
-            grid.appendChild(item);
-        };
-        const addObs = (titulo, icone, valor, textoVazio) => {
-            const secao = document.createElement('div');
-            secao.className = 'detalhes-pedido-secao';
-            let obsHtml = '';
-            if (valor && valor.trim()) {
-                let style = 'border-color: #ffc107; background-color: #fff3cd; color: #856404;'; // Amarelo
-                if (titulo.includes('Problema') || titulo.includes('Cancelamento') || titulo.includes('Atraso')) {
-                    style = 'border-color: #D32F2F; background-color: #FFEBEE; color: #B71C1C;'; // Vermelho
+    if(emAndamento.length === 0) document.getElementById('msg-sem-cq').style.display = 'block';
+    else {
+        document.getElementById('msg-sem-cq').style.display = 'none';
+        emAndamento.forEach(p => {
+            const dados = todosLotes[p.numPedido] || {totalAprovado:0, totalPesoRefugo:0, count:0, pesoReferencia:0};
+            
+            let textoPerda = "-";
+            let classePerda = "";
+            if (dados.totalPesoRefugo > 0) {
+                const qtdPorRolo = parseFloat(p.qtdPorRolo) || 1000;
+                const pesoRef = parseFloat(dados.pesoReferencia) || 0;
+                const qtdPedido = parseFloat(String(p.quantidade).replace(/\./g, '').replace(',', '.')) || 0;
+                let percStr = "?%"; let qtdEstStr = "?";
+                if (pesoRef > 0 && qtdPedido > 0) {
+                    const pesoTotalTeorico = (qtdPedido / qtdPorRolo) * pesoRef;
+                    const perc = (dados.totalPesoRefugo / pesoTotalTeorico) * 100;
+                    percStr = perc.toFixed(2).replace('.', ',') + "%";
+                    const qtdEst = Math.floor((dados.totalPesoRefugo / pesoRef) * qtdPorRolo);
+                    qtdEstStr = qtdEst.toLocaleString('pt-BR');
+                    if(perc > 10) classePerda = "perda-alta";
                 }
-                obsHtml = `<div class="detalhes-pedido-obs" style="${style}">${valor}</div>`;
-            } else {
-                obsHtml = `<div class="detalhes-pedido-obs vazio">${textoVazio}</div>`;
+                const pesoFmt = dados.totalPesoRefugo.toFixed(3).replace('.', ',');
+                textoPerda = `${pesoFmt} kg (${percStr}) : ${qtdEstStr}`;
             }
-            secao.innerHTML = `
-                <h6 class="detalhes-pedido-secao-titulo"><i class="material-icons">${icone}</i> ${titulo}</h6>
-                ${obsHtml}
-            `;
-            content.appendChild(secao);
-        };
 
-        // Preenche o Grid
-        addItem('N° do Pedido', detalhes.numPedido);
-        addItem('Data do Pedido', detalhes.dataPedido);
-        addItem('Tipo de Pedido', detalhes.tipo);
-        addItem('Quantidade Pedida', formatarNumero(detalhes.quantidade));
-        addItem('Vendedora', detalhes.vendedora);
-        addItem('Tipo de Expedição', detalhes.tipoExpedicao);
-        addItem('Data de Entrega', detalhes.dataEntrega);
-        addItem('Data de Conclusão', detalhes.dataConclusao);
-        addItem('Status do Pedido', detalhes.status);
-        addItem('Cód. Produto', detalhes.codProduto);
-        addItem('Cliente', detalhes.cliente);
-        addItem('Cód. Clichê', detalhes.idCliche)
-        addItem('Descrição do Produto', detalhes.descricao, 2);
-        addItem('Faca', detalhes.faca);
-        addItem('Substrato', detalhes.substrato);
-        addItem('Tipo de Cola', detalhes.tipoCola);
-        addItem('Largura', detalhes.largura, 1, ' mm');
-        addItem('Altura', detalhes.altura, 1, ' mm');
-        addItem('Puxada', detalhes.puxada, 1, ' mm');
-        addItem('Qtd. Cores', detalhes.qtdCores);
-        addItem('Carreiras', detalhes.carreiras);
-        addItem('Acabamento', detalhes.tipoAcabamento);
-        addItem('Cold', detalhes.cold);
-        addItem('Metragem Calculada', detalhes.metragem, 1, ' m');
-        addItem('Sem Excedente?', (detalhes.semExcedente === 'true' || detalhes.semExcedente === 'VERDADEIRO') ? 'SIM' : 'NÃO');
-        addItem('Máquina (Prod)', detalhes.maquina);
-        addItem('Fila (Prod)', detalhes.fila);
-        addItem('Impressor', detalhes.impressor);
-        addItem('Data Início Produção', detalhes.dataInicioProd);
-        addItem('Data Fim Produção', detalhes.dataFimProd);
-        addItem('Fornecedor Substrato', detalhes.fornecedorSubstrato);
-        addItem('Lote Substrato', detalhes.loteSubstrato);
-        addItem('Metragem Real', detalhes.metragemReal, 1, ' m');
-        addItem('Refugo', detalhes.refugoMetragem, 1, ' m');
-        addItem('Unidade CQ', detalhes.unidadeCQ);
-        addItem('Inspetor', detalhes.inspetor);
-        addItem('Qtd. Aprovada CQ', formatarNumero(detalhes.qtdAprovadaCQ));
-
-        // Preenche Observações
-        addObs('Observações PCP', 'announcement', detalhes.obsPCP, 'Nenhuma observação.');
-        addObs('Problemas da Produção', 'build', detalhes.problemasProducao, 'Nenhum problema relatado.');
-        addObs('Observações/Problemas CQ', 'info', detalhes.obsCQ, 'Nenhuma observação.');
-        addObs('Motivo Metragem a Mais', 'warning', detalhes.motivoMaisMetragem, 'Nenhum motivo informado.');
-        addObs('Motivo Atraso', 'history', detalhes.motivoAtraso, 'Nenhum atraso ou motivo informado.');
-        addObs('Motivo Cancelamento', 'cancel', detalhes.motivoCancelamento, 'Não cancelado.');
-
-        loading.style.display = 'none';
-        content.style.display = 'block';
+            corpo2.innerHTML += `
+            <tr data-id="${p.numPedido}">
+                <td>${p.numPedido}</td><td>${p.dataEntrega}</td><td>${p.cliente}</td>
+                <td>${formatNum(p.quantidade)}</td>
+                <td style="font-weight:bold; color:#2E7D32;">${formatNum(dados.totalAprovado)}</td>
+                <td class="${classePerda}" style="font-size:0.8rem; font-weight:bold;">${textoPerda}</td>
+                <td><span class="new badge grey" data-badge-caption="">${dados.count}</span></td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-small btn-lancar-lote blue tooltipped" data-tooltip="Lançar" onclick="abrirLancar('${p.numPedido}')"><i class="material-icons">add_task</i></button>
+                    <button class="btn-small cyan darken-2 waves-effect tooltipped" data-tooltip="Gerenciar" onclick="abrirGerenciador('${p.numPedido}')"><i class="material-icons">edit_note</i></button>
+                    <button class="btn-small btn-sobra orange tooltipped" data-tooltip="Sobra" onclick="abrirSobra('${p.numPedido}')"><i class="material-icons">inventory_2</i></button>
+                    <button class="btn-small btn-finalizar-cq green tooltipped" data-tooltip="Finalizar" onclick="abrirFinalizar('${p.numPedido}')"><i class="material-icons">check</i></button>
+                </td>
+            </tr>`;
+        });
+        M.Tooltip.init(document.querySelectorAll('.tooltipped'));
     }
+}
 
-    function onGetDetalhesErro(err) {
-      showErrorToast('Erro ao buscar detalhes: ' + err.message);
-      modalDetalhesInstance.close();
+// --- GERENCIADOR ---
+function abrirGerenciador(num) {
+    document.getElementById('gerenciar-num-pedido').innerText = num;
+    // Busca dados para o header
+    const p = todosPedidos.find(x => String(x.numPedido) === String(num));
+    if(p) {
+        const qtdRolo = parseFloat(String(p.qtdPorRolo).replace(/\./g,'').replace(',','.')) || 1000;
+        const qtdTotal = parseFloat(String(p.quantidade).replace(/\./g,'').replace(',','.')) || 0;
+        document.getElementById('gerenciar-qtd-rolo').innerText = formatNum(qtdRolo);
+        document.getElementById('gerenciar-qtd-rolo').dataset.val = qtdRolo;
+        document.getElementById('gerenciar-qtd-total').innerText = formatNum(qtdTotal);
+        document.getElementById('gerenciar-qtd-total').dataset.val = qtdTotal;
     }
+    
+    cancelarEdicao();
+    const selUn = document.getElementById('edit-unidade');
+    const selInsp = document.getElementById('edit-inspetor');
+    if(selUn.options.length <= 1) populaSelect('edit-unidade', listaUnidadesCQ);
+    if(selInsp.options.length <= 1) populaSelect('edit-inspetor', listaInspetores);
+    
+    M.FormSelect.init(document.querySelectorAll('#area-editar-lote select'), selectOptions);
+    M.Modal.getInstance(document.getElementById('modal-gerenciar')).open();
+    carregarListaLotes(num);
+}
+function carregarListaLotes(num) {
+    const tbody = document.getElementById('tbody-gerenciar');
+    const loader = document.getElementById('loader-gerenciar');
+    tbody.innerHTML = ""; loader.style.display = 'block';
+    google.script.run.withSuccessHandler(lotes => {
+        loader.style.display = 'none';
+        if(lotes.length === 0) { tbody.innerHTML = "<tr><td colspan='7'>Vazio.</td></tr>"; return; }
+        lotes.forEach(l => {
+            const json = JSON.stringify(l).replace(/"/g, '&quot;');
+            tbody.innerHTML += `
+            <tr id="tr-${l.idLog}">
+                <td>${l.data}</td><td>${l.unidade}</td><td>${l.inspetor}</td>
+                <td style="font-weight:bold; color:#2E7D32;">${formatNum(l.qtdAprovada)}</td>
+                <td style="color:#C62828; font-weight:bold;">${l.strReprova}</td>
+                <td style="max-width:150px; font-size:0.8rem; overflow:hidden;">${l.motivos}</td>
+                <td>
+                    <button class="btn-small blue icon-btn" onclick="prepararEdicao(${json})"><i class="material-icons">edit</i></button>
+                    <button class="btn-small red icon-btn" onclick="excluirLote('${l.idLog}','${num}')"><i class="material-icons">delete</i></button>
+                </td>
+            </tr>`;
+        });
+    }).getLogCompletoPedido(num);
+}
+function prepararEdicao(l) {
+    loteEmEdicaoId = l.idLog;
+    document.getElementById('edit-id-log').innerText = l.idLog;
+    document.getElementById('edit-unidade').value = l.unidade;
+    document.getElementById('edit-inspetor').value = l.inspetor;
+    document.getElementById('edit-qtd-aprovada').value = l.qtdAprovada;
+    document.getElementById('edit-peso-refugo').value = l.pesoRefugo;
+    document.getElementById('edit-motivos').value = l.motivos;
+    
+    // Tenta preencher peso rolo
+    const num = document.getElementById('gerenciar-num-pedido').innerText;
+    const p = todosPedidos.find(x => String(x.numPedido) === String(num));
+    document.getElementById('edit-peso-rolo').value = (p && p.pesoReferencia) ? p.pesoReferencia : "";
+    
+    M.FormSelect.init(document.querySelectorAll('#area-editar-lote select'), selectOptions);
+    M.updateTextFields();
+    calcularPerdaEdicao();
+    document.getElementById('area-editar-lote').style.display = 'block';
+}
+function calcularPerdaEdicao() {
+    const qtdAprov = parseFloat(document.getElementById('edit-qtd-aprovada').value)||0;
+    const pesoRefugo = parseFloat(document.getElementById('edit-peso-refugo').value)||0;
+    const pesoRolo = parseFloat(document.getElementById('edit-peso-rolo').value)||0;
+    const qtdRolo = parseFloat(document.getElementById('gerenciar-qtd-rolo').dataset.val)||1000;
+    const qtdTotal = parseFloat(document.getElementById('gerenciar-qtd-total').dataset.val)||0;
+    const display = document.getElementById('edit-display-perda');
+    
+    if(qtdTotal>0 && qtdRolo>0 && pesoRolo>0) {
+        const pesoTotal = (qtdTotal/qtdRolo)*pesoRolo;
+        const perda = (pesoRefugo/pesoTotal)*100;
+        display.innerText = perda.toFixed(2)+"%";
+    } else display.innerText = "---";
+}
+function salvarEdicao() {
+    if(!loteEmEdicaoId) return;
+    const btn = document.getElementById('btn-salvar-edicao');
+    const orig = btn.innerHTML;
+    const pesoRef = parseFloat(document.getElementById('edit-peso-refugo').value)||0;
+    const percStr = document.getElementById('edit-display-perda').innerText;
+    const strFinal = `${pesoRef.toFixed(3).replace('.',',')} kg (${percStr})`;
+    
+    const dados = {
+        idLog: loteEmEdicaoId,
+        unidade: document.getElementById('edit-unidade').value,
+        inspetor: document.getElementById('edit-inspetor').value,
+        qtdAprovada: document.getElementById('edit-qtd-aprovada').value,
+        motivos: document.getElementById('edit-motivos').value,
+        strReprovaFinal: strFinal
+    };
+    const num = document.getElementById('gerenciar-num-pedido').innerText;
+    
+    btn.disabled=true; btn.innerHTML='Salvando...'; showPageLoader(true);
+    google.script.run.withSuccessHandler(res => {
+        showPageLoader(false); btn.disabled=false; btn.innerHTML=orig;
+        if(res.sucesso) {
+            M.toast({html:'Atualizado!',classes:'green'}); cancelarEdicao(); carregarListaLotes(num); carregarDados();
+        } else M.toast({html:'Erro: '+res.erro,classes:'red'});
+    }).editarLoteCQ(dados);
+}
+function cancelarEdicao() { document.getElementById('area-editar-lote').style.display='none'; loteEmEdicaoId=null; }
+function excluirLote(id, num) {
+    if(!confirm("Excluir?")) return;
+    showPageLoader(true);
+    google.script.run.withSuccessHandler(res => {
+        showPageLoader(false);
+        if(res.sucesso) { M.toast({html:'Excluído.',classes:'green'}); carregarListaLotes(num); carregarDados(); }
+        else M.toast({html:'Erro: '+res.erro,classes:'red'});
+    }).excluirLoteCQ(id);
+}
 
+// --- LANÇAR LOTE ---
+function abrirLancar(id) {
+    const p = todosPedidos.find(x => String(x.numPedido) === String(id));
+    if(!p) return;
+    let qtdRolo = 1000;
+    if(p.qtdPorRolo) qtdRolo = parseFloat(String(p.qtdPorRolo).replace(/\./g,'').replace(',','.')) || 1000;
+    
+    document.getElementById('lote-num-pedido-label').innerText=id;
+    document.getElementById('lote-num-pedido-hidden').value=id;
+    document.getElementById('lote-qtd-rolo-label').innerText=formatNum(qtdRolo);
+    document.getElementById('lote-qtd-rolo-hidden').value=qtdRolo;
+    document.getElementById('lote-qtd-total-pedido').value=p.quantidade;
+    
+    document.getElementById('lote-qtd-aprovada').value="";
+    document.getElementById('lote-peso-refugo').value="";
+    document.getElementById('display-perc-perda').innerText="0.00%";
+    document.getElementById('lote-peso-rolo').value=p.pesoReferencia||"";
+    
+    const sel = document.getElementById('lote-motivos'); sel.selectedIndex = -1;
+    M.FormSelect.init(sel, selectOptions);
+    M.Modal.getInstance(document.getElementById('modal-lancar-lote')).open();
+    M.updateTextFields();
+}
+function calcularPerda() {
+    const aprov = parseFloat(document.getElementById('lote-qtd-aprovada').value)||0;
+    const qtdRolo = parseFloat(document.getElementById('lote-qtd-rolo-hidden').value)||1000;
+    const pesoRolo = parseFloat(document.getElementById('lote-peso-rolo').value)||0;
+    const pesoRef = parseFloat(document.getElementById('lote-peso-refugo').value)||0;
+    const totalPed = parseFloat(document.getElementById('lote-qtd-total-pedido').value)||0;
 
-// (SUBSTITUA ESTA FUNÇÃO no <script> do FormQualidade.html)
+    if(totalPed>0 && qtdRolo>0 && pesoRolo>0) {
+        const pesoTotal = (totalPed/qtdRolo)*pesoRolo;
+        const perda = (pesoRef/pesoTotal)*100;
+        document.getElementById('display-perc-perda').innerText = perda.toFixed(2)+"%";
+    } else document.getElementById('display-perc-perda').innerText = "0.00%";
+}
+function handleSalvarLote() {
+    const modal = document.getElementById('modal-lancar-lote');
+    const sel = document.getElementById('lote-motivos');
+    let motivos = "";
+    if(sel) {
+        const inst = M.FormSelect.getInstance(sel);
+        if(inst) motivos = inst.getSelectedValues().join(', ');
+        else if(sel.selectedOptions) motivos = Array.from(sel.selectedOptions).map(o=>o.value).join(', ');
+    }
+    
+    const dados = {
+        numPedido: document.getElementById('lote-num-pedido-hidden').value,
+        unidadeCQ: document.getElementById('lote-unidade-cq').value,
+        inspetor: document.getElementById('lote-inspetor').value,
+        qtdAprovada: document.getElementById('lote-qtd-aprovada').value,
+        pesoRoloReferencia: document.getElementById('lote-peso-rolo').value,
+        pesoRefugo: document.getElementById('lote-peso-refugo').value||0,
+        percPerda: document.getElementById('display-perc-perda').innerText,
+        motivosSelecionados: motivos
+    };
+    if(!dados.unidadeCQ || !dados.inspetor || !dados.qtdAprovada) { M.toast({html:'Preencha obrigatórios',classes:'red'}); return; }
+    if(parseFloat(dados.pesoRefugo)>0 && !dados.motivosSelecionados) { M.toast({html:'Informe motivo',classes:'red'}); return; }
+    
+    M.Modal.getInstance(modal).close();
+    showPageLoader(true);
+    google.script.run.withSuccessHandler(()=>{
+        showPageLoader(false); M.toast({html:'Lote salvo!',classes:'green'}); carregarDados();
+    }).withFailureHandler(onCarregarErro).salvarNovoLoteCQ(dados);
+}
 
-function validarQtdAprovada(qtdPedido, qtdAprovada, semExcedente, gerarMensagem = false) {
-  const isSemExcedente = (semExcedente === true || String(semExcedente).toUpperCase() === "TRUE");
-  let valido = false;
-  let mensagem = "";
-  let classe = "";
+// --- SOBRA ---
+function abrirSobra(id) {
+    document.getElementById('sobra-num-pedido-label').innerText=id;
+    document.getElementById('sobra-num-pedido-hidden').value=id;
+    document.getElementById('input-sobra-manual').value="";
+    M.Modal.getInstance(document.getElementById('modal-sobra')).open();
+}
+function confirmarSobra() {
+    const qtd = document.getElementById('input-sobra-manual').value;
+    const id = document.getElementById('sobra-num-pedido-hidden').value;
+    const btn = document.getElementById('btn-confirmar-sobra');
+    const canc = document.getElementById('btn-cancelar-sobra');
+    const load = document.getElementById('loader-sobra');
+    if(!qtd || qtd<=0) { M.toast({html:'Inválido',classes:'red'}); return; }
+    
+    btn.disabled=true; canc.disabled=true; load.style.display='block';
+    google.script.run.withSuccessHandler(()=>{
+        M.toast({html:'Registrado!',classes:'green'});
+        btn.disabled=false; canc.disabled=false; load.style.display='none';
+        M.Modal.getInstance(document.getElementById('modal-sobra')).close();
+    }).withFailureHandler(e=>{
+        M.toast({html:'Erro: '+e.message,classes:'red'});
+        btn.disabled=false; canc.disabled=false; load.style.display='none';
+    })._adicionarSobraEstoquePublica(id, qtd);
+}
 
-  // Define os limites com base na regra
-  let limiteMin = 0;
-  let limiteMaxSobra = 0; // Limite que o cliente paga (acima disso vira sobra)
-
-  if (isSemExcedente) {
-    // --- REGRA 1: Sem Excedente ---
-    limiteMin = qtdPedido;
-    limiteMaxSobra = qtdPedido;
-    valido = (qtdAprovada >= limiteMin); // Validação é só o MÍNIMO
-
-    if (!valido) {
-      mensagem = `INVÁLIDO: Qtd. Aprovada (${formatarNumero(qtdAprovada)}) deve ser NO MÍNIMO 100% (${formatarNumero(limiteMin)}).`;
-      classe = "validacao-erro";
+// --- FINALIZAR ---
+function abrirFinalizar(id) {
+    const p = todosPedidos.find(x => String(x.numPedido) === String(id));
+    const lotes = todosLotes[id] || {totalAprovado:0};
+    const total = lotes.totalAprovado;
+    const meta = parseFloat(String(p.quantidade).replace(/\./g,'').replace(',','.'));
+    const semExc = (String(p.semExcedente).toUpperCase() === 'TRUE');
+    let msg="", cor="", pode=false;
+    if(semExc) {
+        if(total===meta) { msg="OK! Exato."; cor="green-text"; pode=true; }
+        else if(total>meta) { msg=`ERRO: Excesso.`; cor="red-text"; }
+        else { msg=`ERRO: Faltam.`; cor="red-text"; }
     } else {
-      // Se for válido (>= 100%), verifica se há sobra
-      const sobra = qtdAprovada - limiteMaxSobra;
-      if (sobra > 0) {
-        mensagem = `VALIDADO (com ${formatarNumero(sobra)} de sobra p/ estoque)`;
-        classe = "validacao-ok";
-      } else {
-        mensagem = "VALIDADO (Exato)";
-        classe = "validacao-ok";
-      }
+        const min=Math.round(meta*0.9), max=Math.round(meta*1.1);
+        if(total>=min && total<=max) { msg="OK!"; cor="green-text"; pode=true; }
+        else if(total>max) { msg="ERRO: >110%."; cor="red-text"; }
+        else { msg="ERRO: <90%."; cor="red-text"; }
     }
-  } else {
-    // --- REGRA 2: Com Excedente ---
-    limiteMin = Math.round(qtdPedido * 0.90);
-    limiteMaxSobra = Math.round(qtdPedido * 1.10);
-    valido = (qtdAprovada >= limiteMin); // Validação é só o MÍNIMO
+    document.getElementById('finalizar-num').value=id;
+    document.getElementById('finalizar-linha').value=p.linhaPlanilha;
+    document.getElementById('btn-conf-finalizar').disabled=!pode;
+    document.getElementById('finalizar-resumo').innerHTML = `<p>Pedido: <b>${formatNum(meta)}</b> | Aprovado: <b>${formatNum(total)}</b></p><div class="card-panel center-align ${cor} lighten-5"><strong>${msg}</strong></div>`;
+    M.Modal.getInstance(document.getElementById('modal-finalizar')).open();
+}
+document.getElementById('btn-conf-finalizar').onclick = () => {
+    const id = document.getElementById('finalizar-num').value;
+    const lin = document.getElementById('finalizar-linha').value;
+    showPageLoader(true);
+    google.script.run.withSuccessHandler(()=>{
+        M.Modal.getInstance(document.getElementById('modal-finalizar')).close();
+        M.toast({html:'Finalizado!',classes:'green'}); carregarDados();
+    }).withFailureHandler(onCarregarErro).finalizarControleQualidade_v2(id,lin,"");
+};
+function iniciar(lin) { showPageLoader(true); google.script.run.withSuccessHandler(carregarDados).salvarInicioCQ(lin); }
 
-    if (!valido) {
-      mensagem = `INVÁLIDO: Qtd. Aprovada (${formatarNumero(qtdAprovada)}) está abaixo da tolerância mínima de 90% (${formatarNumero(limiteMin)}).`;
-      classe = "validacao-erro";
-    } else {
-      // Se for válido (>= 90%), verifica se há sobra
-      const sobra = qtdAprovada - limiteMaxSobra;
-      if (sobra > 0) {
-        mensagem = `VALIDADO (Dentro da tolerância, com ${formatarNumero(sobra)} de sobra p/ estoque)`;
-        classe = "validacao-ok";
-      } else {
-        mensagem = "VALIDADO (Dentro da tolerância 10%)";
-        classe = "validacao-ok";
-      }
-    }
-  }
-
-  // Retorno para os Modais (que usam gerarMensagem = true)
-  if (gerarMensagem) {
-    return { valido, mensagem, classe };
-  } 
-  
-  // Retorno para a Tabela (CSS)
-  else {
-    let classeTabela = "";
-    if (qtdAprovada > 0) {
-      if (valido) {
-        classeTabela = 'excedente-ok'; // Se passou na validação (>= 90% ou >= 100%), fica verde
-      } else {
-        classeTabela = 'excedente-falta'; // A única forma de falhar é estar abaixo do mínimo
-      }
-    }
-    return { classe: classeTabela, tooltip: mensagem };
-  }
-}
-function showPageLoader(show) {
-  const loader = document.getElementById('page-loader');
-  if (loader) loader.style.display = show ? 'flex' : 'none';
-  document.getElementById('divObjetos').style.opacity = show ? 0.5 : 1;
-  document.getElementById('footer-bar').style.display = show ? 'none' : 'flex';
-}
-function normalizarStatus(str) {
-  if (!str) return "";
-  return str.toLowerCase().replace(/[áàâã]/g, 'a').replace(/[éèê]/g, 'e').replace(/[íìî]/g, 'i').replace(/[óòôõ]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ç/g, 'c').trim().replace(/\s/g, '');
-}
-function getStatusColorClass(status) {
-  const statusLower = normalizarStatus(status);
-  switch (statusLower) {
-    case "producaofinalizada": return "status-producao-finalizada"; 
-    case "controlando": return "status-controlando";
-    default: return "";
-  }
-}
-function showSuccessToast(message) { M.toast({ html: '<i class="material-icons left">check_circle</i> ' + message, classes: 'green darken-1', displayLength: 3000, container: '#toast-custom-container' }); }
-function showErrorToast(error) { const msg = (typeof error === 'object' && error.message) ? error.message : error; M.toast({ html: '<i class="material-icons left">error</i> ' + msg, classes: 'red darken-2', displayLength: 5000, container: '#toast-custom-container' }); }
-function formatarNumero(valor) { if (valor === null || valor === undefined || valor === "") return '0'; let numeroLimpo = String(valor).replace(/\./g, "").replace(',', '.'); let num = parseFloat(numeroLimpo); if (isNaN(num)) return valor; return num.toLocaleString('pt-BR', { maximumFractionDigits: 0, minimumFractionDigits: 0 }); }
-function gerarOptions(lista, valorSelecionado, comVazio, textoVazio = "Selecione") {
-  if (!lista) lista = [];
-  let html = comVazio ? `<option value="" disabled ${!valorSelecionado ? 'selected' : ''}>${textoVazio}</option>` : '';
-  lista.forEach(item => {
-    const selected = item === valorSelecionado ? 'selected' : '';
-    html += `<option value="${item}" ${selected}>${item}</option>`;
-  });
-  return html;
-}
-function parseDate(dateString) { if (!dateString) return new Date(0); const parts = dateString.split('/'); if (parts.length !== 3) return new Date(0); return new Date(parts[2], parts[1] - 1, parts[0]); }
-function checkDataStatus(dateString) {
-  if (!dateString) return { classe: "", icone: "" };
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const dataEntrega = parseDate(dateString); 
-  if (isNaN(dataEntrega.getTime()) || dataEntrega.getTime() === 0) return { classe: "", icone: "" };
-  const diffTime = dataEntrega.getTime() - hoje.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) {
-    return { classe: 'data-atrasada', icone: '<i class="material-icons data-status-icon" style="font-size: 1rem; vertical-align: bottom;">error_outline</i>' };
-  }
-  if (diffDays <= 2) {
-    return { classe: 'data-alerta', icone: '<i class="material-icons data-status-icon" style="font-size: 1rem; vertical-align: bottom;">warning</i>' };
-  }
-  return { classe: "", icone: '' };
-}
 </script>
 </body>
 </html>
