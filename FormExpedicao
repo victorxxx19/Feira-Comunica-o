@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <style>
+    body { background-color: #f5f5f5; font-family: 'Segoe UI', sans-serif; }
+    .nav-wrapper { background: linear-gradient(to right, #0047BB, #002e7a); }
+    
+    /* Card de Pedido */
+    .pedido-card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-left: 5px solid #0047BB;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .pedido-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .card-title { font-weight: bold; font-size: 1.2rem; color: #333; margin: 0; }
+    .card-badge { background: #e3f2fd; color: #0d47a1; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    
+    .card-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem; color: #555; }
+    .info-item strong { color: #333; display: block; font-size: 0.75rem; text-transform: uppercase; }
+    
+    .card-actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
+    
+    /* Área de Impressão (Etiqueta) - Só aparece na impressão */
+    #area-impressao { display: none; }
+    
+    @media print {
+      body * { visibility: hidden; }
+      #area-impressao, #area-impressao * { visibility: visible; }
+      #area-impressao {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .etiqueta-print {
+        border: 2px solid #000;
+        width: 10cm; /* Tamanho aproximado de etiqueta térmica */
+        height: auto;
+        padding: 10px;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+        page-break-inside: avoid;
+      }
+      .etq-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; }
+      .etq-grande { font-size: 24px; font-weight: bold; }
+      .etq-row { margin-bottom: 8px; font-size: 14px; }
+      .etq-label { font-weight: bold; }
+      .etq-footer { margin-top: 15px; border-top: 1px dashed #000; pt: 5px; font-size: 10px; text-align: center; }
+    }
+
+    /* Loader Central */
+    #loader-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.8); z-index: 9999;
+      display: flex; justify-content: center; align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-wrapper">
+      <a href="#" class="brand-logo center"><i class="material-icons">local_shipping</i> Expedição</a>
+      <ul id="nav-mobile" class="right">
+        <li><a href="#" onclick="carregarPedidos()"><i class="material-icons">refresh</i></a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top: 20px;">
+    
+    <!-- Filtro -->
+    <div class="row">
+      <div class="input-field col s12 m6 offset-m3">
+        <i class="material-icons prefix">search</i>
+        <input id="search" type="text" onkeyup="filtrarPedidos()">
+        <label for="search">Filtrar por Cliente ou Nº Pedido</label>
+      </div>
+    </div>
+
+    <!-- Lista de Pedidos -->
+    <div id="lista-pedidos">
+      <!-- Os cards serão inseridos aqui via JS -->
+    </div>
+
+    <div id="msg-vazio" class="center-align grey-text" style="display:none; margin-top: 50px;">
+      <i class="material-icons" style="font-size: 4rem;">check_circle</i>
+      <h5>Nenhum pedido pendente na expedição!</h5>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação -->
+  <div id="modal-confirmacao" class="modal">
+    <div class="modal-content">
+      <h4>Concluir Expedição</h4>
+      <p>Deseja marcar o pedido <strong id="conf-pedido"></strong> como enviado/concluído?</p>
+      <p class="red-text text-darken-2" style="font-size: 0.9rem;">
+        <i class="material-icons tiny">warning</i> Essa ação registrará a data de hoje como conclusão e notificará a gestão.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close waves-effect waves-red btn-flat">Cancelar</a>
+      <a href="#!" id="btn-conf-sim" class="waves-effect waves-green btn blue darken-2">Confirmar</a>
+    </div>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader-overlay">
+    <div class="preloader-wrapper big active">
+      <div class="spinner-layer spinner-blue-only">
+        <div class="circle-clipper left"><div class="circle"></div></div>
+        <div class="gap-patch"><div class="circle"></div></div>
+        <div class="circle-clipper right"><div class="circle"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estrutura Oculta para Impressão da Etiqueta -->
+  <div id="area-impressao">
+    <!-- Template injetado via JS -->
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    let pedidosCache = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      M.Modal.init(document.querySelectorAll('.modal'));
+      carregarPedidos();
+    });
+
+    function carregarPedidos() {
+      toggleLoader(true);
+      google.script.run
+        .withSuccessHandler(renderizarPedidos)
+        .withFailureHandler(mostrarErro)
+        .buscarPedidosParaExpedicao();
+    }
+
+    function renderizarPedidos(resultado) {
+      toggleLoader(false);
+      const container = document.getElementById('lista-pedidos');
+      const msgVazio = document.getElementById('msg-vazio');
+      container.innerHTML = '';
+
+      if (!resultado.sucesso) {
+        M.toast({html: 'Erro ao carregar: ' + resultado.erro, classes: 'red'});
+        return;
+      }
+
+      pedidosCache = resultado.pedidos;
+
+      if (pedidosCache.length === 0) {
+        msgVazio.style.display = 'block';
+        return;
+      } else {
+        msgVazio.style.display = 'none';
+      }
+
+      pedidosCache.forEach(p => {
+        // Define cor do badge baseado no tipo de frete
+        let badgeColor = p.tipoExpedicao.toLowerCase().includes('retira') ? 'orange lighten-4 orange-text text-darken-4' : 'blue lighten-4 blue-text text-darken-4';
+        
+        const card = `
+          <div class="pedido-card" data-search="${p.cliente.toLowerCase()} ${p.numero}">
+            <div class="card-header">
+              <h5 class="card-title">Pedido #${p.numero}</h5>
+              <span class="card-badge" style="background-color: ${p.tipoExpedicao.includes('Retira') ? '#ffe0b2' : '#e3f2fd'}">
+                ${p.tipoExpedicao || 'Padrão'}
+              </span>
+            </div>
+            <div class="card-info">
+              <div class="info-item"><strong>Cliente</strong> ${p.cliente}</div>
+              <div class="info-item"><strong>Data Entrega</strong> ${p.dataEntrega.substring(0, 10)}</div>
+              <div class="info-item"><strong>Produto</strong> ${p.descricao}</div>
+              <div class="info-item"><strong>Quantidade</strong> ${p.quantidade}</div>
+              <div class="info-item" style="grid-column: span 2;"><strong>Obs:</strong> ${p.observacao || '-'}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn waves-effect waves-light grey darken-1" onclick='prepararImpressao(${JSON.stringify(p)})'>
+                <i class="material-icons left">print</i> Etiqueta
+              </button>
+              <button class="btn waves-effect waves-light green darken-1" onclick="confirmarConclusao('${p.numero}', ${p.linha})">
+                <i class="material-icons left">check</i> Concluir
+              </button>
+            </div>
+          </div>
+        `;
+        container.innerHTML += card;
+      });
+    }
+
+    function filtrarPedidos() {
+      const termo = document.getElementById('search').value.toLowerCase();
+      const cards = document.querySelectorAll('.pedido-card');
+      
+      cards.forEach(card => {
+        const texto = card.getAttribute('data-search');
+        card.style.display = texto.includes(termo) ? 'block' : 'none';
+      });
+    }
+
+    // --- Lógica de Conclusão ---
+    let pedidoAtual = null;
+    let linhaAtual = null;
+
+    function confirmarConclusao(numero, linha) {
+      pedidoAtual = numero;
+      linhaAtual = linha;
+      document.getElementById('conf-pedido').textContent = numero;
+      
+      const modal = M.Modal.getInstance(document.getElementById('modal-confirmacao'));
+      
+      // Configura o clique do botão sim
+      document.getElementById('btn-conf-sim').onclick = function() {
+        modal.close();
+        executarConclusao();
+      };
+      
+      modal.open();
+    }
+
+    function executarConclusao() {
+      toggleLoader(true);
+      google.script.run
+        .withSuccessHandler((res) => {
+          toggleLoader(false);
+          if (res.sucesso) {
+            M.toast({html: 'Pedido concluído com sucesso!', classes: 'green'});
+            // Remove o card da tela
+            carregarPedidos(); // Recarrega para garantir
+          } else {
+            M.toast({html: 'Erro: ' + res.erro, classes: 'red'});
+          }
+        })
+        .withFailureHandler(mostrarErro)
+        .concluirPedidoExpedicao(pedidoAtual, linhaAtual);
+    }
+
+    // --- Lógica de Impressão ---
+    function prepararImpressao(pedido) {
+      const area = document.getElementById('area-impressao');
+      const dataHoje = new Date().toLocaleDateString('pt-BR');
+      
+      area.innerHTML = `
+        <div class="etiqueta-print">
+          <div class="etq-header">
+            <div class="etq-grande">PEDIDO: ${pedido.numero}</div>
+            <div>${pedido.tipoExpedicao}</div>
+          </div>
+          <div class="etq-row"><span class="etq-label">CLIENTE:</span><br> ${pedido.cliente}</div>
+          <div class="etq-row"><span class="etq-label">PRODUTO:</span><br> ${pedido.descricao}</div>
+          <div class="etq-row">
+            <span class="etq-label">QTD:</span> ${pedido.quantidade} &nbsp;&nbsp;|&nbsp;&nbsp; 
+            <span class="etq-label">DATA:</span> ${dataHoje}
+          </div>
+          <div class="etq-row"><span class="etq-label">OBS:</span> ${pedido.observacao || ''}</div>
+          <div class="etq-footer">
+            Conferido por Expedição - Feira Comunicação
+          </div>
+        </div>
+      `;
+      
+      window.print();
+    }
+
+    function toggleLoader(show) {
+      document.getElementById('loader-overlay').style.display = show ? 'flex' : 'none';
+    }
+
+    function mostrarErro(e) {
+      toggleLoader(false);
+      console.error(e);
+      M.toast({html: 'Erro crítico: ' + (e.message || e), classes: 'red'});
+    }
+  </script>
+</body>
+</html>
