@@ -276,12 +276,20 @@
                     <input id="num_pedido_busca" type="text" class="validate">
                     <label for="num_pedido_busca">Nº do Pedido</label>
                 </div>
-                <div class="col s12 m6" style="padding-top: 20px;">
-                    <button id="btnBuscar" class="btn waves-effect waves-light btn-buscar">
-                        <i class="material-icons left">search</i>
-                        Buscar Pedido
-                    </button>
-                </div>
+                <div class="col s12 m6" style="padding-top: 20px; display: flex; align-items: center;">
+    <button id="btnBuscar" class="btn waves-effect waves-light btn-buscar" style="margin-right: 15px;">
+        <i class="material-icons left">search</i>
+        Buscar Pedido
+    </button>
+
+    <div id="loader-busca" class="preloader-wrapper small active" style="display: none;">
+        <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left"><div class="circle"></div></div>
+            <div class="gap-patch"><div class="circle"></div></div>
+            <div class="circle-clipper right"><div class="circle"></div></div>
+        </div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -386,53 +394,86 @@
             document.getElementById('btnSolicitarAlteracao').addEventListener('click', solicitarAlteracaoDeData);
         });
 
-        function buscarPedido() {
-            const numPedido = document.getElementById('num_pedido_busca').value;
-            mostrarLoader(true);
-            limparDados();
-            document.getElementById('btnSolicitarAlteracao').disabled = true;
+       // --- NOVA FUNÇÃO AUXILIAR ---
+    function toggleLoaderBusca(ativo) {
+        const btn = document.getElementById('btnBuscar');
+        const loader = document.getElementById('loader-busca');
+        
+        if (ativo) {
+            btn.disabled = true;           // Trava o botão
+            loader.style.display = 'inline-block'; // Mostra o loader
+        } else {
+            btn.disabled = false;          // Destrava o botão
+            loader.style.display = 'none'; // Esconde o loader
+        }
+    }
 
-            if (!numPedido) {
-                mostrarErro("Por favor, digite o Nº do Pedido.");
-                mostrarLoader(false);
-                return;
-            }
+    // --- FUNÇÕES DE BUSCA ATUALIZADAS ---
 
-            google.script.run
-                .withSuccessHandler(onBuscarSucesso)
-                .withFailureHandler(onBuscarErro)
-                .buscarDadosPedido(numPedido);
+    function buscarPedido() {
+        const numPedido = document.getElementById('num_pedido_busca').value;
+        
+        // Ativa o loader e trava o botão imediatamente
+        toggleLoaderBusca(true);
+        
+        // Limpa dados visuais anteriores
+        if(typeof limparDados === 'function') limparDados();
+        document.getElementById('pedido-dados').style.display = 'none';
+        
+        // Esconde msg de erro se houver
+        mostrarErro(null);
+
+        if (!numPedido) {
+            mostrarErro("Por favor, digite o Nº do Pedido.");
+            toggleLoaderBusca(false); // Destrava se falhar a validação
+            return;
         }
 
-        function onBuscarSucesso(dados) {
-            mostrarLoader(false);
-            if (dados.sucesso) {
-                // Preenche os campos hidden
-                document.getElementById('cliente_info').value = dados.cliente;
-                document.getElementById('descricao_info').value = dados.descricao;
-                document.getElementById('data_entrega_atual').value = dados.dataEntregaAtual;
-                document.getElementById('pedido_linha').value = dados.linhaPlanilha;
-                
-                // Preenche os displays
-                document.getElementById('cliente_info_display').textContent = dados.cliente;
-                document.getElementById('descricao_info_display').textContent = dados.descricao;
-                document.getElementById('data_entrega_atual_display').textContent = dados.dataEntregaAtual;
+        google.script.run
+            .withSuccessHandler(onBuscarSucesso)
+            .withFailureHandler(onBuscarErro)
+            .buscarDadosPedido(numPedido);
+    }
 
-                M.updateTextFields();
-                document.getElementById('pedido-dados').style.display = 'block';
-                document.getElementById('btnSolicitarAlteracao').disabled = false;
-                mostrarErro(null);
-            } else {
-                mostrarErro(dados.mensagem || "Pedido não encontrado.");
-                document.getElementById('pedido-dados').style.display = 'none';
-            }
-        }
+    function onBuscarSucesso(dados) {
+        // Desativa o loader assim que o backend responde
+        toggleLoaderBusca(false);
 
-        function onBuscarErro(erro) {
-            mostrarLoader(false);
-            mostrarErro("Erro na busca: " + (erro.message || erro));
+        if (dados.sucesso) {
+            // Preenche os campos (Exemplo do Form Alteração de Data)
+            document.getElementById('cliente_info').value = dados.cliente;
+            document.getElementById('descricao_info').value = dados.descricao;
+            document.getElementById('data_entrega_atual').value = dados.dataEntregaAtual;
+            document.getElementById('pedido_linha').value = dados.linhaPlanilha;
+            
+            // Displays de texto
+            document.getElementById('cliente_info_display').textContent = dados.cliente;
+            document.getElementById('descricao_info_display').textContent = dados.descricao;
+            document.getElementById('data_entrega_atual_display').textContent = dados.dataEntregaAtual;
+
+            M.updateTextFields();
+            
+            // Mostra o container
+            document.getElementById('pedido-dados').style.display = 'block';
+            
+            // Habilita o botão de ação principal (se houver ID específico, verifique)
+            const btnAcao = document.getElementById('btnSolicitarAlteracao') || document.getElementById('btnCancelarPedido');
+            if(btnAcao) btnAcao.disabled = false;
+            
+            mostrarErro(null);
+        } else {
+            mostrarErro(dados.mensagem || "Pedido não encontrado.");
             document.getElementById('pedido-dados').style.display = 'none';
         }
+    }
+
+    function onBuscarErro(erro) {
+        // Desativa o loader mesmo se der erro crítico
+        toggleLoaderBusca(false);
+        
+        mostrarErro("Erro na busca: " + (erro.message || erro));
+        document.getElementById('pedido-dados').style.display = 'none';
+    }
 
         function solicitarAlteracaoDeData() {
             const linha = document.getElementById('pedido_linha').value;
