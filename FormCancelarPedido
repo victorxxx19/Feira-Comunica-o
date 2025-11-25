@@ -260,12 +260,20 @@
                     <input id="num_pedido_busca" type="text" class="validate">
                     <label for="num_pedido_busca">Nº do Pedido</label>
                 </div>
-                <div class="col s12 m6" style="padding-top: 20px;">
-                    <button id="btnBuscar" class="btn waves-effect waves-light btn-buscar">
-                        <i class="material-icons left">search</i>
-                        Buscar Pedido
-                    </button>
-                </div>
+                <div class="col s12 m6" style="padding-top: 20px; display: flex; align-items: center;">
+    <button id="btnBuscar" class="btn waves-effect waves-light btn-buscar" style="margin-right: 15px;">
+        <i class="material-icons left">search</i>
+        Buscar Pedido
+    </button>
+    
+    <div id="loader-busca" class="preloader-wrapper small active" style="display: none;">
+        <div class="spinner-layer spinner-blue-only">
+            <div class="circle-clipper left"><div class="circle"></div></div>
+            <div class="gap-patch"><div class="circle"></div></div>
+            <div class="circle-clipper right"><div class="circle"></div></div>
+        </div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -343,52 +351,77 @@
             document.getElementById('btnCancelarPedido').addEventListener('click', registrarCancelamento);
         });
 
-        function buscarPedido() {
-            const numPedido = document.getElementById('num_pedido_busca').value;
-            mostrarLoader(true);
-            limparDados();
-            document.getElementById('btnCancelarPedido').disabled = true;
+       // --- NOVA FUNÇÃO AUXILIAR ---
+    function toggleLoaderBusca(ativo) {
+        const btn = document.getElementById('btnBuscar');
+        const loader = document.getElementById('loader-busca');
+        
+        if (ativo) {
+            btn.disabled = true;           // Trava o botão
+            loader.style.display = 'inline-block'; // Mostra o loader
+        } else {
+            btn.disabled = false;          // Destrava o botão
+            loader.style.display = 'none'; // Esconde o loader
+        }
+    }
 
-            if (!numPedido) {
-                mostrarErro("Por favor, digite o Nº do Pedido.");
-                mostrarLoader(false);
-                return;
-            }
+    // --- FUNÇÕES DE BUSCA ATUALIZADAS ---
 
-            google.script.run
-                .withSuccessHandler(onBuscarSucesso)
-                .withFailureHandler(onBuscarErro)
-                .buscarDadosPedidoParaCancelar(numPedido); // Função backend correta
+    function buscarPedido() {
+        const numPedido = document.getElementById('num_pedido_busca').value;
+        
+        // 1. Ativa loader e limpa UI
+        toggleLoaderBusca(true);
+        limparDados();
+        document.getElementById('btnCancelarPedido').disabled = true;
+        mostrarErro(null);
+
+        // 2. Validação
+        if (!numPedido) {
+            mostrarErro("Por favor, digite o Nº do Pedido.");
+            toggleLoaderBusca(false); // Destrava se falhar validação
+            return;
         }
 
-        function onBuscarSucesso(dados) {
-            mostrarLoader(false);
-            if (dados.sucesso) {
-                // Preenche os campos hidden
-                document.getElementById('pedido_linha').value = dados.linhaPlanilha;
-                document.getElementById('num_pedido_encontrado').value = dados.numPedido;
-                
-                // Preenche os displays (ATUALIZADO)
-                document.getElementById('cliente_info_display').textContent = dados.cliente;
-                document.getElementById('descricao_info_display').textContent = dados.descricao;
-                document.getElementById('data_entrega_display').textContent = dados.dataEntrega;
-                document.getElementById('status_atual_display').textContent = dados.status;
+        // 3. Chamada ao Backend
+        google.script.run
+            .withSuccessHandler(onBuscarSucesso)
+            .withFailureHandler(onBuscarErro)
+            .buscarDadosPedidoParaCancelar(numPedido);
+    }
 
-                M.updateTextFields();
-                document.getElementById('pedido-dados').style.display = 'block';
-                document.getElementById('btnCancelarPedido').disabled = false;
-                mostrarErro(null);
-            } else {
-                mostrarErro(dados.mensagem || "Pedido não encontrado.");
-                document.getElementById('pedido-dados').style.display = 'none';
-            }
-        }
+    function onBuscarSucesso(dados) {
+        // 4. Desativa loader
+        toggleLoaderBusca(false);
+        
+        if (dados.sucesso) {
+            // Preenche os campos hidden
+            document.getElementById('pedido_linha').value = dados.linhaPlanilha;
+            document.getElementById('num_pedido_encontrado').value = dados.numPedido;
+            
+            // Preenche os displays
+            document.getElementById('cliente_info_display').textContent = dados.cliente;
+            document.getElementById('descricao_info_display').textContent = dados.descricao;
+            document.getElementById('data_entrega_display').textContent = dados.dataEntrega;
+            document.getElementById('status_atual_display').textContent = dados.status;
 
-        function onBuscarErro(erro) {
-            mostrarLoader(false);
-            mostrarErro("Erro na busca: " + (erro.message || erro));
+            M.updateTextFields();
+            document.getElementById('pedido-dados').style.display = 'block';
+            document.getElementById('btnCancelarPedido').disabled = false;
+            mostrarErro(null);
+        } else {
+            mostrarErro(dados.mensagem || "Pedido não encontrado.");
             document.getElementById('pedido-dados').style.display = 'none';
         }
+    }
+
+    function onBuscarErro(erro) {
+        // 4. Desativa loader mesmo com erro
+        toggleLoaderBusca(false);
+        
+        mostrarErro("Erro na busca: " + (erro.message || erro));
+        document.getElementById('pedido-dados').style.display = 'none';
+    }
 
         function registrarCancelamento() {
             const linha = document.getElementById('pedido_linha').value;
